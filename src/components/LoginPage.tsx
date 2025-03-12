@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
@@ -14,30 +13,20 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate('/');
+        navigate('/', { replace: true });
       }
+      setAuthChecked(true);
     };
     
     checkSession();
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-        navigate('/');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -51,8 +40,9 @@ const LoginPage = () => {
       });
 
       if (error) throw error;
+
+      navigate('/', { replace: true });
       
-      // No need to navigate here as the auth state listener will handle it
     } catch (error: any) {
       toast({
         title: "Erreur de connexion",
@@ -72,9 +62,6 @@ const LoginPage = () => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
       });
 
       if (error) throw error;
@@ -93,6 +80,10 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
+
+  if (!authChecked) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">

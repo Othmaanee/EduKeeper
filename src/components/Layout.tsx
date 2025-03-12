@@ -6,7 +6,6 @@ import {
   Home,
   FolderOpenIcon,
   Upload,
-  User,
   LogOut,
   Menu,
   X,
@@ -34,25 +33,22 @@ const navItems = [
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get current session
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-    };
-    
-    getSession();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+      setLoading(false);
+    });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      
-      // If user signs out, redirect to login page
-      if (event === 'SIGNED_OUT') {
+      if (!session && location.pathname !== '/login') {
         navigate('/login');
       }
     });
@@ -60,7 +56,7 @@ export function Layout({ children }: LayoutProps) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -68,8 +64,8 @@ export function Layout({ children }: LayoutProps) {
       toast({
         description: "Vous avez été déconnecté avec succès.",
       });
-      // No need to navigate here as the auth state listener will handle it
-    } catch (error) {
+      navigate('/login');
+    } catch (error: any) {
       toast({
         title: "Erreur",
         description: "Impossible de se déconnecter. Veuillez réessayer.",
@@ -78,14 +74,18 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!user && location.pathname !== '/login') {
-      navigate('/login');
-    }
-  }, [user, location.pathname, navigate]);
+  // Show nothing while checking authentication
+  if (loading) {
+    return null;
+  }
 
-  // Don't render the layout for login page
+  // Redirect to login if no user and not already on login page
+  if (!user && location.pathname !== '/login') {
+    navigate('/login');
+    return null;
+  }
+
+  // Don't render layout for login page
   if (location.pathname === '/login') {
     return <>{children}</>;
   }
