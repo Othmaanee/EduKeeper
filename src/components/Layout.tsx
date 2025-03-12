@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Home,
@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SearchBar } from './SearchBar';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase';
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -31,7 +33,62 @@ const navItems = [
 
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Get current session
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user || null);
+    };
+    
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      
+      // If user signs out, redirect to login page
+      if (event === 'SIGNED_OUT') {
+        navigate('/login');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        description: "Vous avez été déconnecté avec succès.",
+      });
+      // No need to navigate here as the auth state listener will handle it
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de se déconnecter. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user && location.pathname !== '/login') {
+      navigate('/login');
+    }
+  }, [user, location.pathname, navigate]);
+
+  // Don't render the layout for login page
+  if (location.pathname === '/login') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -87,16 +144,23 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="" />
-                <AvatarFallback className="bg-primary/10 text-primary font-medium">JD</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                  {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                </AvatarFallback>
               </Avatar>
               <div className="ml-3">
-                <p className="text-sm font-medium">John Doe</p>
-                <p className="text-xs text-muted-foreground">john@example.com</p>
+                <p className="text-sm font-medium">
+                  {user?.email ? user.email.split('@')[0] : 'Utilisateur'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {user?.email || 'utilisateur@exemple.com'}
+                </p>
               </div>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className="ml-auto text-muted-foreground hover:text-destructive"
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4" />
               </Button>

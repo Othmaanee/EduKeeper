@@ -1,279 +1,234 @@
 
-import { useState } from 'react';
-import { 
-  FileText, FileImage, FileVideo, FileAudio, List, Grid,
-  MoreVertical, Eye, Download, Pencil, Trash, Filter
-} from 'lucide-react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Search, Filter, ArrowUpDown, CalendarIcon, FileText, MoreHorizontal, FolderIcon } from 'lucide-react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { Badge } from './ui/badge';
 
-type Document = {
-  id: string;
-  title: string;
-  type: 'pdf' | 'doc' | 'img' | 'video' | 'audio';
-  category: string;
-  categoryId: string;
-  date: string;
+// Sample document data for demo
+const DOCUMENTS = [
+  {
+    id: '1',
+    title: 'Cours de Mathématiques - Fonctions',
+    category: 'Mathématiques',
+    type: 'PDF',
+    uploadDate: '2023-05-15',
+  },
+  {
+    id: '2',
+    title: 'Introduction à la Physique Quantique',
+    category: 'Physique',
+    type: 'DOCX',
+    uploadDate: '2023-05-10',
+  },
+  {
+    id: '3',
+    title: 'Littérature Française - Le Romantisme',
+    category: 'Littérature',
+    type: 'PDF',
+    uploadDate: '2023-05-08',
+  },
+  {
+    id: '4',
+    title: 'Guide de programmation Python',
+    category: 'Informatique',
+    type: 'PDF',
+    uploadDate: '2023-05-05',
+  },
+  {
+    id: '5',
+    title: 'Histoire - La Révolution Française',
+    category: 'Histoire',
+    type: 'PPTX',
+    uploadDate: '2023-05-03',
+  },
+  {
+    id: '6',
+    title: 'Exercices de Biologie Cellulaire',
+    category: 'Biologie',
+    type: 'PDF',
+    uploadDate: '2023-04-28',
+  },
+  {
+    id: '7',
+    title: 'Cours de Philosophie - L\'existentialisme',
+    category: 'Philosophie',
+    type: 'PDF',
+    uploadDate: '2023-04-25',
+  },
+  {
+    id: '8',
+    title: 'Annales de Géographie',
+    category: 'Géographie',
+    type: 'PDF',
+    uploadDate: '2023-04-20',
+  },
+];
+
+// Type mapping for file types
+const typeColorMap: Record<string, string> = {
+  PDF: 'bg-red-100 text-red-800',
+  DOCX: 'bg-blue-100 text-blue-800',
+  PPTX: 'bg-orange-100 text-orange-800',
+  XLSX: 'bg-green-100 text-green-800',
+  TXT: 'bg-gray-100 text-gray-800',
 };
-
-const iconMap = {
-  pdf: FileText,
-  doc: FileText,
-  img: FileImage,
-  video: FileVideo,
-  audio: FileAudio,
-};
-
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('fr-FR', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
-  }).format(date);
-}
 
 export function DocumentGrid() {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
-  // This would typically come from an API
-  const documents: Document[] = [
-    { 
-      id: '1', 
-      title: 'Cours de mathématiques - Statistiques', 
-      type: 'pdf',
-      category: 'Mathématiques',
-      categoryId: 'math',
-      date: '2023-10-15' 
-    },
-    { 
-      id: '2', 
-      title: 'Exercices de grammaire française', 
-      type: 'doc',
-      category: 'Français',
-      categoryId: 'french',
-      date: '2023-10-14' 
-    },
-    { 
-      id: '3', 
-      title: 'Vidéo - Introduction à la physique quantique', 
-      type: 'video',
-      category: 'Physique',
-      categoryId: 'physics',
-      date: '2023-10-10' 
-    },
-    { 
-      id: '4', 
-      title: 'Audio - Conversation anglais niveau B2', 
-      type: 'audio',
-      category: 'Langues',
-      categoryId: 'languages',
-      date: '2023-10-05' 
-    },
-    { 
-      id: '5', 
-      title: 'Fiches de révision - Philosophie', 
-      type: 'pdf',
-      category: 'Philosophie',
-      categoryId: 'philosophy',
-      date: '2023-09-28' 
-    },
-    { 
-      id: '6', 
-      title: 'Images - Schémas de biologie', 
-      type: 'img',
-      category: 'Biologie',
-      categoryId: 'biology',
-      date: '2023-09-20' 
-    },
-  ];
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('uploadDate');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  function DocumentGridView() {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {documents.map((doc) => {
-          const Icon = iconMap[doc.type];
-          
-          return (
-            <Card 
-              key={doc.id}
-              className="group overflow-hidden animate-scale-in hover:shadow-elevation transition-all duration-300"
-            >
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="p-2.5 rounded-lg bg-secondary text-foreground">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>Voir</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Download className="mr-2 h-4 w-4" />
-                        <span>Télécharger</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        <span>Renommer</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash className="mr-2 h-4 w-4" />
-                        <span>Supprimer</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                
-                <div className="mt-4">
-                  <Link 
-                    to={`/documents/${doc.id}`}
-                    className="hover:underline decoration-primary decoration-1 underline-offset-2"
-                  >
-                    <h3 className="font-medium text-base">{doc.title}</h3>
-                  </Link>
-                  <div className="mt-3 flex items-center justify-between">
-                    <Badge 
-                      variant="secondary" 
-                      className="text-xs font-normal hover:bg-secondary"
-                      asChild
-                    >
-                      <Link to={`/categories/${doc.categoryId}`}>
-                        {doc.category}
-                      </Link>
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(doc.date)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="h-1 bg-primary/20 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-            </Card>
-          );
-        })}
-      </div>
-    );
-  }
+  const filteredDocuments = DOCUMENTS.filter(
+    (doc) =>
+      doc.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedCategory === 'all' || doc.category === selectedCategory)
+  );
 
-  function DocumentListView() {
-    return (
-      <div className="space-y-2 animate-fade-in">
-        {documents.map((doc) => {
-          const Icon = iconMap[doc.type];
-          
-          return (
-            <div 
-              key={doc.id}
-              className="group flex items-center justify-between p-3 rounded-lg hover:bg-secondary/50 transition-colors duration-200"
-            >
-              <div className="flex items-center flex-1 min-w-0">
-                <div className="p-2 rounded-md bg-secondary text-foreground mr-3">
-                  <Icon className="h-4 w-4" />
-                </div>
-                
-                <div className="min-w-0">
-                  <Link 
-                    to={`/documents/${doc.id}`}
-                    className="font-medium text-sm hover:text-primary transition-colors"
-                  >
-                    <h3 className="truncate">{doc.title}</h3>
-                  </Link>
-                  <div className="flex items-center text-xs text-muted-foreground mt-0.5">
-                    <Link 
-                      to={`/categories/${doc.categoryId}`}
-                      className="hover:text-primary transition-colors"
-                    >
-                      {doc.category}
-                    </Link>
-                    <span className="mx-2">•</span>
-                    <span>{formatDate(doc.date)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button size="icon" variant="ghost" className="h-8 w-8">
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8">
-                  <Download className="h-4 w-4" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      <span>Renommer</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash className="mr-2 h-4 w-4" />
-                      <span>Supprimer</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
+  // Sort documents based on current sort settings
+  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+    const fieldA = a[sortField as keyof typeof a];
+    const fieldB = b[sortField as keyof typeof b];
+    
+    if (fieldA < fieldB) return sortOrder === 'asc' ? -1 : 1;
+    if (fieldA > fieldB) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
+    <div className="space-y-6">
+      {/* Filters and search */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher un document..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
         
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="text-sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtrer
-          </Button>
+        <div className="flex gap-2">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Catégories</SelectLabel>
+                <SelectItem value="all">Toutes les catégories</SelectItem>
+                <SelectItem value="Mathématiques">Mathématiques</SelectItem>
+                <SelectItem value="Physique">Physique</SelectItem>
+                <SelectItem value="Littérature">Littérature</SelectItem>
+                <SelectItem value="Informatique">Informatique</SelectItem>
+                <SelectItem value="Histoire">Histoire</SelectItem>
+                <SelectItem value="Biologie">Biologie</SelectItem>
+                <SelectItem value="Philosophie">Philosophie</SelectItem>
+                <SelectItem value="Géographie">Géographie</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           
-          <div className="flex items-center bg-secondary rounded-md p-0.5">
-            <Button 
-              size="sm" 
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              className={cn(
-                "h-8 w-8 p-0",
-                viewMode === 'grid' ? 'text-primary-foreground' : 'text-muted-foreground'
-              )}
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              className={cn(
-                "h-8 w-8 p-0",
-                viewMode === 'list' ? 'text-primary-foreground' : 'text-muted-foreground'
-              )}
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Trier par</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSortField('title')}>
+                Titre
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortField('category')}>
+                Catégorie
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortField('uploadDate')}>
+                Date d'importation
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleSortOrder}>
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+                {sortOrder === 'asc' ? 'Ordre croissant' : 'Ordre décroissant'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
-      {viewMode === 'grid' ? <DocumentGridView /> : <DocumentListView />}
+      {/* Documents grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sortedDocuments.map((doc) => (
+          <Card key={doc.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Link to={`/documents/${doc.id}`}>
+              <CardContent className="p-0">
+                <div className="h-36 bg-secondary/30 flex items-center justify-center">
+                  <FileText className="h-16 w-16 text-muted-foreground/50" />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-medium truncate" title={doc.title}>
+                    {doc.title}
+                  </h3>
+                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                    <FolderIcon className="h-3.5 w-3.5 mr-1" />
+                    {doc.category}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="p-4 pt-0 flex items-center justify-between">
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                  {new Date(doc.uploadDate).toLocaleDateString('fr-FR')}
+                </div>
+                <Badge 
+                  variant="secondary"
+                  className={cn("font-normal", typeColorMap[doc.type] || "")}
+                >
+                  {doc.type}
+                </Badge>
+              </CardFooter>
+            </Link>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Empty state */}
+      {sortedDocuments.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <FileText className="h-16 w-16 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-medium">Aucun document trouvé</h3>
+          <p className="text-muted-foreground mt-1">
+            Essayez de modifier vos filtres ou d'importer de nouveaux documents.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
