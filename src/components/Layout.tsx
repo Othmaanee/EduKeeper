@@ -60,17 +60,25 @@ export function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      setLoading(true); // Add loading state while logout is processing
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       toast({
         description: "Vous avez été déconnecté avec succès.",
       });
-      navigate('/login');
+      
+      // Force la redirection après la déconnexion
+      navigate('/login', { replace: true });
+      setUser(null);
     } catch (error: any) {
       toast({
         title: "Erreur",
         description: "Impossible de se déconnecter. Veuillez réessayer.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
