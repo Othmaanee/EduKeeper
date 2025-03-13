@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
@@ -40,7 +41,7 @@ const LoginPage = () => {
       });
 
       if (error) throw error;
-
+      
       navigate('/', { replace: true });
       
     } catch (error: any) {

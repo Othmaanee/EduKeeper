@@ -34,6 +34,7 @@ export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -60,25 +61,32 @@ export function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     try {
-      setLoading(true); // Add loading state while logout is processing
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      setLoggingOut(true); 
       
+      // Effectuer la déconnexion
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Notification de déconnexion réussie
       toast({
         description: "Vous avez été déconnecté avec succès.",
       });
       
-      // Force la redirection après la déconnexion
-      navigate('/login', { replace: true });
-      setUser(null);
+      // Redirection vers la page de connexion
+      navigate('/login');
+      
     } catch (error: any) {
       toast({
         title: "Erreur",
         description: "Impossible de se déconnecter. Veuillez réessayer.",
         variant: "destructive",
       });
+      console.error("Erreur de déconnexion:", error);
     } finally {
-      setLoading(false);
+      setLoggingOut(false);
     }
   };
 
@@ -169,6 +177,7 @@ export function Layout({ children }: LayoutProps) {
                 size="icon" 
                 className="ml-auto text-muted-foreground hover:text-destructive"
                 onClick={handleLogout}
+                disabled={loggingOut}
               >
                 <LogOut className="h-4 w-4" />
               </Button>
