@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import DocumentPage from "./pages/DocumentPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import CategoryPage from "./pages/CategoryPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import UploadPage from "./pages/UploadPage";
 import NotFound from "./pages/NotFound";
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/documents/:id" element={<DocumentPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/categories/:id" element={<CategoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="*" element={<NotFound />} />
