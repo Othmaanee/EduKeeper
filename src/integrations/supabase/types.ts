@@ -14,18 +14,29 @@ export type Database = {
           created_at: string | null
           id: string
           nom: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           nom: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           nom?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -88,7 +99,15 @@ export type Database = {
           id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {

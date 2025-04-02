@@ -5,7 +5,10 @@ import { DocumentGrid } from '../components/DocumentGrid';
 const DocumentsPage = () => {
   return (
     <Layout>
-      <DocumentGrid />
+      <div className="container py-6">
+        <h1 className="text-2xl font-bold mb-6">Mes Documents</h1>
+        <DocumentGrid />
+      </div>
     </Layout>
   );
 };
