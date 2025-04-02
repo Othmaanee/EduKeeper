@@ -1,13 +1,15 @@
 
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { Upload, X, FolderPlus } from 'lucide-react';
+import { Upload, X, FolderPlus, Trash, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
+import { supabase } from '@/lib/supabase';
 
 type UploadFile = {
   id: string;
@@ -15,6 +17,8 @@ type UploadFile = {
   type: string;
   size: number;
   progress: number;
+  uploaded?: boolean;
+  url?: string;
 };
 
 export function UploadComponent() {
@@ -23,6 +27,9 @@ export function UploadComponent() {
   const [category, setCategory] = useState('');
   const [newCategoryDialog, setNewCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<UploadFile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +91,12 @@ export function UploadComponent() {
         progress = 100;
         clearInterval(interval);
         
+        setFiles((prev) => 
+          prev.map((file) => 
+            file.id === fileId ? { ...file, uploaded: true, url: `https://example.com/files/${file.name}` } : file
+          )
+        );
+        
         setTimeout(() => {
           toast.success(`Le fichier a été importé avec succès.`);
         }, 500);
@@ -99,6 +112,51 @@ export function UploadComponent() {
 
   const removeFile = (fileId: string) => {
     setFiles((prev) => prev.filter((file) => file.id !== fileId));
+  };
+
+  const confirmDelete = (file: UploadFile) => {
+    setFileToDelete(file);
+    setDeleteDialog(true);
+  };
+
+  const handleDeleteFile = async () => {
+    if (!fileToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // If the file is already uploaded to Supabase
+      if (fileToDelete.uploaded && fileToDelete.url) {
+        // Extract the file path from the URL
+        const urlParts = fileToDelete.url.split('/');
+        const bucketName = urlParts[urlParts.length - 2];
+        const fileName = urlParts[urlParts.length - 1];
+        
+        // Delete from Supabase storage
+        const { error: storageError } = await supabase
+          .storage
+          .from(bucketName)
+          .remove([fileName]);
+        
+        if (storageError) {
+          throw new Error(`Failed to delete file: ${storageError.message}`);
+        }
+        
+        // Delete database record if needed
+        // ...
+      }
+      
+      // Remove from local state
+      removeFile(fileToDelete.id);
+      
+      toast.success("Le fichier a été supprimé avec succès.");
+    } catch (error: any) {
+      toast.error(`Erreur lors de la suppression: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialog(false);
+      setFileToDelete(null);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -230,14 +288,25 @@ export function UploadComponent() {
                   </span>
                 </div>
                 
-                <Button
-                  variant="ghost" 
-                  size="icon"
-                  className="absolute top-3 right-2 h-7 w-7 text-muted-foreground hover:text-destructive"
-                  onClick={() => removeFile(file.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="absolute top-3 right-2 flex gap-1">
+                  <Button
+                    variant="ghost" 
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={() => confirmDelete(file)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="ghost" 
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-muted-foreground/70"
+                    onClick={() => removeFile(file.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -276,6 +345,34 @@ export function UploadComponent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce fichier ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteFile}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
