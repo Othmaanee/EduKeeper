@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -42,7 +41,7 @@ export function DocumentView() {
   
   // Fetch document details
   const { 
-    data: document, 
+    data: documentData, 
     isLoading: documentLoading,
     isError: documentError,
     error: documentErrorDetails,
@@ -102,10 +101,10 @@ export function DocumentView() {
   // Delete document mutation
   const deleteMutation = useMutation({
     mutationFn: async (documentId: string) => {
-      if (!document) throw new Error("Document data is required");
+      if (!documentData) throw new Error("Document data is required");
       
       // Extract the file path from the URL
-      const urlParts = document.url.split('/');
+      const urlParts = documentData.url.split('/');
       const bucketName = urlParts[urlParts.length - 2];
       const fileName = urlParts[urlParts.length - 1];
       
@@ -142,10 +141,10 @@ export function DocumentView() {
 
   // Set initial category state when document loads
   useEffect(() => {
-    if (document?.category_id) {
-      setCategory(document.category_id);
+    if (documentData?.category_id) {
+      setCategory(documentData.category_id);
     }
-  }, [document]);
+  }, [documentData]);
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
@@ -157,11 +156,11 @@ export function DocumentView() {
   }
 
   const handleDownload = async () => {
-    if (!document) return;
+    if (!documentData) return;
     
     try {
       // Get file path from URL
-      const urlParts = document.url.split('/');
+      const urlParts = documentData.url.split('/');
       const bucketName = urlParts[urlParts.length - 2];
       const filePath = urlParts[urlParts.length - 1];
       
@@ -180,12 +179,12 @@ export function DocumentView() {
       }
       
       // Create a temporary link to download the file
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = data.signedUrl;
-      link.download = document.nom;
-      document.body.appendChild(link);
+      link.download = documentData.nom;
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
       
       toast.success("Téléchargement démarré");
     } catch (error: any) {
@@ -221,7 +220,7 @@ export function DocumentView() {
   }
 
   // Handle error state
-  if (documentError || !document) {
+  if (documentError || !documentData) {
     return (
       <div className="max-w-5xl mx-auto py-12">
         <div className="text-center">
@@ -240,10 +239,10 @@ export function DocumentView() {
   }
 
   // Get file type
-  const fileType = detectFileType(document.url, document.nom);
+  const fileType = detectFileType(documentData.url, documentData.nom);
 
   // Find current category name
-  const currentCategory = categories.find(cat => cat.id === document.category_id);
+  const currentCategory = categories.find(cat => cat.id === documentData.category_id);
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
@@ -260,10 +259,10 @@ export function DocumentView() {
       {/* Document header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{document.nom}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{documentData.nom}</h1>
           <div className="mt-2 flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-1.5" />
-            <span>Importé le {formatDate(document.created_at)}</span>
+            <span>Importé le {formatDate(documentData.created_at)}</span>
           </div>
         </div>
         
@@ -297,8 +296,8 @@ export function DocumentView() {
         <div className="p-8 flex items-center justify-center min-h-[400px] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNDB2NDBoLTQweiIvPjxwYXRoIGQ9Ik00MCAyMGMwIDExLjA0Ni04Ljk1NCAyMC0yMCAyMHMtMjAtOC45NTQtMjAtMjAgOC45NTQtMjAgMjAtMjAgMjAgOC45NTQgMjAgMjB6bS0yMCAyYy0xMC40OTMgMC0xOS0zLjEzNC0xOS03cy44MzMtNyAxOS03IDE5IDMuMTM0IDE5IDctOC41MDcgNy0xOSA3eiIgZmlsbD0iI2YxZjVmOSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9nPjwvc3ZnPg==')]">
           {['JPG', 'JPEG', 'PNG', 'GIF'].includes(fileType) ? (
             <img 
-              src={document.url} 
-              alt={document.nom} 
+              src={documentData.url} 
+              alt={documentData.nom} 
               className="max-h-[500px] max-w-full object-contain" 
             />
           ) : (
