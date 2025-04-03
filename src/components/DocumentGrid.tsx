@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -45,11 +44,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function DocumentGrid() {
   const [documents, setDocuments] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("created_at");
@@ -60,43 +60,67 @@ export function DocumentGrid() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchDocuments = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         const { data: session } = await supabase.auth.getSession();
         const userId = session?.session?.user?.id;
         console.log("🧑‍💻 ID de l'utilisateur connecté :", userId);
 
-        const { data, error } = await supabase
-          .from("documents")
-          .select(
-            "id, nom, url, created_at, user_id, category_id, categories(nom)"
-          )
+        if (!userId) {
+          console.error("❌ Aucun utilisateur connecté");
+          setLoading(false);
+          return;
+        }
 
+        // Fetch documents
+        const { data: documentsData, error: documentsError } = await supabase
+          .from("documents")
+          .select("id, nom, url, created_at, user_id, category_id, categories(id, nom)")
           .eq("user_id", userId);
 
-        if (error) {
-          console.error("❌ Erreur récupération documents :", error);
+        if (documentsError) {
+          console.error("❌ Erreur récupération documents :", documentsError);
+          toast.error("Erreur lors du chargement des documents");
         } else {
-          console.log("📄 Documents récupérés :", data);
-          setDocuments(data || []);
+          console.log("📄 Documents récupérés :", documentsData);
+          setDocuments(documentsData || []);
+        }
+
+        // Fetch categories for the filter
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from("categories")
+          .select("id, nom")
+          .eq("user_id", userId);
+
+        if (categoriesError) {
+          console.error("❌ Erreur récupération catégories :", categoriesError);
+        } else {
+          setCategories(categoriesData || []);
         }
       } catch (err) {
         console.error("💥 Erreur inattendue :", err);
+        toast.error("Une erreur est survenue");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDocuments();
+    fetchData();
   }, []);
 
-  const filteredDocuments = documents.filter(
-    (doc) =>
-      (doc.nom.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        selectedCategory === "all") ||
-      doc.categories?.nom === selectedCategory
-  );
+  const filteredDocuments = documents.filter((doc) => {
+    // Always filter by search term
+    const matchesSearch = doc.nom.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // If "all" categories is selected, only filter by search term
+    if (selectedCategory === "all") {
+      return matchesSearch;
+    }
+    
+    // Otherwise, filter by both search term and category
+    return matchesSearch && doc.categories?.nom === selectedCategory;
+  });
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
     const aField = a[sortField];
@@ -205,10 +229,11 @@ export function DocumentGrid() {
               <SelectGroup>
                 <SelectLabel>Catégories</SelectLabel>
                 <SelectItem value="all">Toutes</SelectItem>
-                <SelectItem value="Mathématiques">Mathématiques</SelectItem>
-                <SelectItem value="Français">Français</SelectItem>
-                <SelectItem value="Histoire">Histoire</SelectItem>
-                <SelectItem value="Sciences">Sciences</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.nom}>
+                    {category.nom}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -238,71 +263,85 @@ export function DocumentGrid() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-8">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+          <p className="mt-2 text-muted-foreground">Chargement des documents...</p>
+        </div>
+      )}
+
       {/* Grille */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sortedDocuments.map((doc) => (
-          <Card
-            key={doc.id}
-            className="overflow-hidden hover:shadow-md transition-shadow relative"
-          >
-            <CardContent className="p-0">
-              <div className="h-36 bg-secondary/30 flex items-center justify-center">
-                <FileText className="h-16 w-16 text-muted-foreground/50" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium truncate pr-8" title={doc.nom}>
-                  {doc.nom}
-                </h3>
-                <div className="flex items-center mt-2 text-sm text-muted-foreground">
-                  <FolderIcon className="h-3.5 w-3.5 mr-1" />
-                  {doc.categories?.nom || "Sans catégorie"}
+      {!loading && sortedDocuments.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedDocuments.map((doc) => (
+            <Card
+              key={doc.id}
+              className="overflow-hidden hover:shadow-md transition-shadow relative"
+            >
+              <CardContent className="p-0">
+                <div className="h-36 bg-secondary/30 flex items-center justify-center">
+                  <FileText className="h-16 w-16 text-muted-foreground/50" />
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-0 flex items-center justify-between">
-              <div className="flex items-center text-xs text-muted-foreground">
-                <CalendarIcon className="h-3.5 w-3.5 mr-1" />
-                {new Date(doc.created_at).toLocaleDateString("fr-FR")}
-              </div>
-              <Badge variant="secondary">FICHIER</Badge>
-            </CardFooter>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 text-muted-foreground"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  onClick={() => handleDownload(doc.url, doc.nom)}
-                  className="cursor-pointer"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Télécharger
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => confirmDelete(doc)}
-                  className="cursor-pointer text-destructive"
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </Card>
-        ))}
-      </div>
+                <div className="p-4">
+                  <h3 className="font-medium truncate pr-8" title={doc.nom}>
+                    {doc.nom}
+                  </h3>
+                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                    <FolderIcon className="h-3.5 w-3.5 mr-1" />
+                    {doc.categories?.nom || "Sans catégorie"}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="p-4 pt-0 flex items-center justify-between">
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                  {new Date(doc.created_at).toLocaleDateString("fr-FR")}
+                </div>
+                <Badge variant="secondary">FICHIER</Badge>
+              </CardFooter>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8 text-muted-foreground"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => handleDownload(doc.url, doc.nom)}
+                    className="cursor-pointer"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => confirmDelete(doc)}
+                    className="cursor-pointer text-destructive"
+                  >
+                    <Trash className="h-4 w-4 mr-2" />
+                    Supprimer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Aucune donnée */}
       {!loading && sortedDocuments.length === 0 && (
         <div className="text-center text-muted-foreground py-8">
           <FileText className="mx-auto h-10 w-10 mb-4" />
           <p>Aucun document trouvé.</p>
+          <p className="mt-2">Vous pouvez importer des documents en cliquant sur "Importer" dans la barre de navigation.</p>
+          <Button variant="outline" className="mt-4" asChild>
+            <Link to="/upload">Importer un document</Link>
+          </Button>
         </div>
       )}
 

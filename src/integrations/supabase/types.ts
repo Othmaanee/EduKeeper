@@ -13,19 +13,19 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          nom: string
+          nom: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
-          nom: string
+          nom?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
-          nom?: string
+          nom?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -45,7 +45,7 @@ export type Database = {
           id: string
           nom: string
           url: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           category_id?: string | null
@@ -53,7 +53,7 @@ export type Database = {
           id?: string
           nom: string
           url: string
-          user_id?: string
+          user_id?: string | null
         }
         Update: {
           category_id?: string | null
@@ -61,7 +61,7 @@ export type Database = {
           id?: string
           nom?: string
           url?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -111,24 +111,33 @@ export type Database = {
       }
       users: {
         Row: {
+          classe: string | null
           created_at: string | null
+          date_naissance: string | null
           email: string
           id: string
           nom: string
+          prenom: string | null
           role: string
         }
         Insert: {
+          classe?: string | null
           created_at?: string | null
+          date_naissance?: string | null
           email: string
-          id?: string
+          id: string
           nom: string
+          prenom?: string | null
           role?: string
         }
         Update: {
+          classe?: string | null
           created_at?: string | null
+          date_naissance?: string | null
           email?: string
           id?: string
           nom?: string
+          prenom?: string | null
           role?: string
         }
         Relationships: []
