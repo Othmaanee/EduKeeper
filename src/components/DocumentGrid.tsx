@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -44,7 +44,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -67,25 +66,34 @@ export function DocumentGrid() {
   } = useQuery({
     queryKey: ['documents'],
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
-      const userId = session?.session?.user?.id;
+      console.log("🔍 Fetching documents");
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
       
-      if (!userId) {
-        console.error("❌ Aucun utilisateur connecté");
-        return [];
+      if (sessionError) {
+        console.error("❌ Session error:", sessionError);
+        throw new Error(sessionError.message);
       }
       
-      const { data, error } = await supabase
+      const userId = session?.session?.user?.id;
+      console.log("👤 User ID:", userId);
+      
+      // For now, we'll fetch all documents if we can't get a user ID
+      const query = supabase
         .from("documents")
-        .select("id, nom, url, created_at, user_id, category_id, categories(id, nom)")
-        .eq("user_id", userId);
+        .select("id, nom, url, created_at, user_id, category_id, categories(id, nom)");
+      
+      if (userId) {
+        query.eq("user_id", userId);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
-        console.error("❌ Erreur récupération documents:", error);
+        console.error("❌ Error fetching documents:", error);
         throw new Error(error.message);
       }
       
-      console.log("📄 Documents récupérés:", data);
+      console.log("📄 Documents retrieved:", data);
       return data || [];
     }
   });
@@ -97,21 +105,32 @@ export function DocumentGrid() {
   } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession();
+      console.log("🔍 Fetching categories");
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("❌ Session error:", sessionError);
+        throw new Error(sessionError.message);
+      }
+      
       const userId = session?.session?.user?.id;
+      console.log("👤 User ID for categories:", userId);
       
-      if (!userId) return [];
+      // For now, we'll fetch all categories if we can't get a user ID
+      const query = supabase.from("categories").select("id, nom");
       
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, nom")
-        .eq("user_id", userId);
+      if (userId) {
+        query.eq("user_id", userId);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
-        console.error("❌ Erreur récupération catégories:", error);
+        console.error("❌ Error fetching categories:", error);
         throw new Error(error.message);
       }
       
+      console.log("📂 Categories retrieved:", data);
       return data || [];
     }
   });
