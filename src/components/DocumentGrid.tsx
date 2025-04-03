@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -46,108 +47,85 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export function DocumentGrid() {
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const { data: session } = await supabase.auth.getSession();
-        const userId = session?.session?.user?.id;
-        console.log("🧑‍💻 ID de l'utilisateur connecté :", userId);
-
-        if (!userId) {
-          console.error("❌ Aucun utilisateur connecté");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch documents
-        const { data: documentsData, error: documentsError } = await supabase
-          .from("documents")
-          .select("id, nom, url, created_at, user_id, category_id, categories(id, nom)")
-          .eq("user_id", userId);
-
-        if (documentsError) {
-          console.error("❌ Erreur récupération documents :", documentsError);
-          toast.error("Erreur lors du chargement des documents");
-        } else {
-          console.log("📄 Documents récupérés :", documentsData);
-          setDocuments(documentsData || []);
-        }
-
-        // Fetch categories for the filter
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from("categories")
-          .select("id, nom")
-          .eq("user_id", userId);
-
-        if (categoriesError) {
-          console.error("❌ Erreur récupération catégories :", categoriesError);
-        } else {
-          setCategories(categoriesData || []);
-        }
-      } catch (err) {
-        console.error("💥 Erreur inattendue :", err);
-        toast.error("Une erreur est survenue");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const filteredDocuments = documents.filter((doc) => {
-    // Always filter by search term
-    const matchesSearch = doc.nom.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // If "all" categories is selected, only filter by search term
-    if (selectedCategory === "all") {
-      return matchesSearch;
-    }
-    
-    // Otherwise, filter by both search term and category
-    return matchesSearch && doc.categories?.nom === selectedCategory;
-  });
-
-  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
-    const aField = a[sortField];
-    const bField = b[sortField];
-    if (aField < bField) return sortOrder === "asc" ? -1 : 1;
-    if (aField > bField) return sortOrder === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const confirmDelete = (document: any) => {
-    setDocumentToDelete(document);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteDocument = async () => {
-    if (!documentToDelete) return;
-    
-    try {
-      setIsDeleting(true);
+  // Utiliser React Query pour récupérer les documents
+  const { 
+    data: documents = [], 
+    isLoading: documentsLoading,
+    isError: documentsError,
+    error: documentsErrorDetails,
+  } = useQuery({
+    queryKey: ['documents'],
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
       
-      // 🔎 Extraire le chemin relatif depuis l'URL publique
-      const filePath = documentToDelete.url.split("/storage/v1/object/public/documents/")[1];
+      if (!userId) {
+        console.error("❌ Aucun utilisateur connecté");
+        return [];
+      }
+      
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id, nom, url, created_at, user_id, category_id, categories(id, nom)")
+        .eq("user_id", userId);
+      
+      if (error) {
+        console.error("❌ Erreur récupération documents:", error);
+        throw new Error(error.message);
+      }
+      
+      console.log("📄 Documents récupérés:", data);
+      return data || [];
+    }
+  });
+
+  // Récupérer les catégories
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      
+      if (!userId) return [];
+      
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, nom")
+        .eq("user_id", userId);
+      
+      if (error) {
+        console.error("❌ Erreur récupération catégories:", error);
+        throw new Error(error.message);
+      }
+      
+      return data || [];
+    }
+  });
+
+  // Mutation pour supprimer un document
+  const deleteMutation = useMutation({
+    mutationFn: async (document: any) => {
+      if (!document) throw new Error("Document data is required");
+      
+      // Extraire le chemin relatif depuis l'URL publique
+      const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
 
       if (!filePath) {
-        console.error("❌ Impossible de récupérer le chemin du fichier");
-        toast.error("Impossible de récupérer le chemin du fichier");
-        return;
+        throw new Error("Impossible de récupérer le chemin du fichier");
       }
 
       // 1️⃣ Supprimer le fichier du bucket
@@ -156,33 +134,44 @@ export function DocumentGrid() {
         .remove([filePath]);
 
       if (storageError) {
-        console.error("❌ Erreur suppression fichier storage :", storageError);
-        toast.error("Erreur lors de la suppression du fichier");
-        return;
+        console.error("❌ Erreur suppression fichier storage:", storageError);
+        throw new Error(storageError.message);
       }
 
       // 2️⃣ Supprimer l'entrée dans la base de données
       const { error: dbError } = await supabase
         .from("documents")
         .delete()
-        .eq("id", documentToDelete.id);
+        .eq("id", document.id);
 
       if (dbError) {
-        console.error("❌ Erreur suppression document BDD :", dbError);
-        toast.error("Erreur lors de la suppression de l'entrée en base de données");
-        return;
+        console.error("❌ Erreur suppression document BDD:", dbError);
+        throw new Error(dbError.message);
       }
 
-      // ✅ Mise à jour locale
-      setDocuments((prev) => prev.filter((doc) => doc.id !== documentToDelete.id));
-      toast.success("Document supprimé avec succès !");
-    } catch (err) {
-      console.error("💥 Erreur inattendue :", err);
-      toast.error("Une erreur est survenue lors de la suppression");
-    } finally {
-      setIsDeleting(false);
+      return document.id;
+    },
+    onSuccess: (documentId) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast.success("Document supprimé avec succès!");
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
+    },
+    onError: (error) => {
+      console.error("💥 Erreur inattendue:", error);
+      toast.error(`Une erreur est survenue lors de la suppression: ${error.message}`);
+      setDeleteDialogOpen(false);
+    }
+  });
+
+  const confirmDelete = (document: any) => {
+    setDocumentToDelete(document);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteDocument = () => {
+    if (documentToDelete) {
+      deleteMutation.mutate(documentToDelete);
     }
   };
 
@@ -205,6 +194,29 @@ export function DocumentGrid() {
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
   };
+
+  // Filtrer les documents
+  const filteredDocuments = documents.filter((doc) => {
+    // Toujours filtrer par terme de recherche
+    const matchesSearch = doc.nom.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Si "all" categories est sélectionné, filtrer uniquement par terme de recherche
+    if (selectedCategory === "all") {
+      return matchesSearch;
+    }
+    
+    // Sinon, filtrer par terme de recherche et catégorie
+    return matchesSearch && doc.categories?.nom === selectedCategory;
+  });
+
+  // Trier les documents
+  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+    const aField = a[sortField];
+    const bField = b[sortField];
+    if (aField < bField) return sortOrder === "asc" ? -1 : 1;
+    if (aField > bField) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
 
   return (
     <div className="space-y-6">
@@ -264,15 +276,33 @@ export function DocumentGrid() {
       </div>
 
       {/* Loading State */}
-      {loading && (
+      {documentsLoading && (
         <div className="text-center py-8">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <p className="mt-2 text-muted-foreground">Chargement des documents...</p>
         </div>
       )}
 
+      {/* Error State */}
+      {documentsError && (
+        <div className="text-center py-8">
+          <div className="mx-auto h-10 w-10 text-destructive">❌</div>
+          <h3 className="mt-2 text-lg font-semibold">Erreur de chargement</h3>
+          <p className="mt-1 text-muted-foreground">
+            {documentsErrorDetails?.message || "Une erreur est survenue lors du chargement des documents."}
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+          >
+            Réessayer
+          </Button>
+        </div>
+      )}
+
       {/* Grille */}
-      {!loading && sortedDocuments.length > 0 && (
+      {!documentsLoading && !documentsError && sortedDocuments.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedDocuments.map((doc) => (
             <Card
@@ -334,7 +364,7 @@ export function DocumentGrid() {
       )}
 
       {/* Aucune donnée */}
-      {!loading && sortedDocuments.length === 0 && (
+      {!documentsLoading && !documentsError && sortedDocuments.length === 0 && (
         <div className="text-center text-muted-foreground py-8">
           <FileText className="mx-auto h-10 w-10 mb-4" />
           <p>Aucun document trouvé.</p>
@@ -360,7 +390,7 @@ export function DocumentGrid() {
               onClick={handleDeleteDocument}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? (
+              {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Suppression...
