@@ -7,14 +7,14 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-type Document = {
+type SupabaseDocument = {
   id: string;
   title: string;
   type: 'pdf' | 'doc' | 'img' | 'video' | 'audio';
   category: string;
   categoryId: string;
   date: string;
-  url: string; // Added URL for the document
+  url: string;
 };
 
 const iconMap = {
@@ -26,7 +26,7 @@ const iconMap = {
 };
 
 type RecentDocumentCardProps = {
-  document: Document;
+  document: SupabaseDocument;
 };
 
 function formatDate(dateString: string) {
@@ -63,13 +63,13 @@ function RecentDocumentCard({ document }: RecentDocumentCardProps) {
   const handleDownload = (url: string, title: string, e: React.MouseEvent) => {
     e.preventDefault();
     try {
-      const link = document.createElement("a");
+      const link = window.document.createElement("a");
       link.href = url;
       link.download = title;
       link.target = "_blank";
-      document.body.appendChild(link);
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
     } catch (error) {
       console.error("Erreur lors du téléchargement", error);
     }
@@ -164,7 +164,7 @@ export function RecentDocuments() {
       
       if (error) throw error;
       
-      // Transform data to match Document type
+      // Transform data to match SupabaseDocument type
       return (data || []).map(doc => ({
         id: doc.id,
         title: doc.nom,
@@ -211,3 +211,4 @@ export function RecentDocuments() {
     </div>
   );
 }
+
