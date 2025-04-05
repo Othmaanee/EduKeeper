@@ -34,11 +34,18 @@ async function generateCourse(subject: string): Promise<string> {
   
   console.log("URL de la fonction:", url);
   
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+  
+  if (!token) {
+    throw new Error("Vous devez être connecté pour générer un cours");
+  }
+  
   const response = await fetch(url, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
-      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify({ subject }),
   });
@@ -131,6 +138,10 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
 
 // Fonction pour uploader le PDF dans Supabase Storage
 const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string): Promise<string> => {
+  if (!pdfBlob || pdfBlob.size === 0) {
+    throw new Error("Le fichier PDF est invalide ou vide");
+  }
+
   const fileName = `cours-${cleanFileName(subject)}-${Date.now()}.pdf`;
   const filePath = `${userId}/${fileName}`;
   
@@ -145,6 +156,30 @@ const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string
   
   if (error) {
     console.error("Erreur lors de l'upload du PDF:", error);
+    
+    // Vérifier si l'erreur est due à un fichier existant
+    if (error.message.includes('already exists')) {
+      // Tenter de supprimer puis réuploader
+      await supabase.storage.from('documents').remove([filePath]);
+      const { data: retryData, error: retryError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, pdfBlob, {
+          contentType: 'application/pdf',
+          cacheControl: '3600'
+        });
+        
+      if (retryError) {
+        throw new Error(`Échec de la seconde tentative d'upload: ${retryError.message}`);
+      }
+      
+      // Obtenir l'URL publique après la seconde tentative
+      const { data: retryUrlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+      
+      return retryUrlData.publicUrl;
+    }
+    
     throw new Error(`Erreur lors de l'upload du PDF: ${error.message}`);
   }
   
@@ -159,6 +194,10 @@ const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string
 };
 
 async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: string) {
+  if (!pdfUrl || !subject || !userId) {
+    throw new Error("Données manquantes pour l'enregistrement du cours");
+  }
+  
   const { error } = await supabase.from("documents").insert({
     nom: `Cours : ${subject}`,
     url: pdfUrl,
@@ -167,8 +206,11 @@ async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: str
   });
 
   if (error) {
+    console.error("Erreur lors de l'enregistrement du cours dans Supabase:", error);
     throw new Error("Erreur lors de l'enregistrement du cours dans Supabase");
   }
+  
+  console.log("Cours enregistré avec succès dans la base de données");
 }
 
 const GeneratePage = () => {

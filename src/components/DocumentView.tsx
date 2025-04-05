@@ -14,7 +14,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// Detect file type from URL or name
 const detectFileType = (url: string, name: string) => {
   const extension = url.split('.').pop()?.toUpperCase() || 
                   name.split('.').pop()?.toUpperCase() || 
@@ -22,7 +21,6 @@ const detectFileType = (url: string, name: string) => {
   return extension;
 };
 
-// Format file size
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -39,7 +37,6 @@ export function DocumentView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Fetch document details
   const { 
     data: documentData, 
     isLoading: documentLoading,
@@ -61,7 +58,6 @@ export function DocumentView() {
     }
   });
 
-  // Fetch categories
   const { 
     data: categories = [],
     isLoading: categoriesLoading,
@@ -77,7 +73,6 @@ export function DocumentView() {
     }
   });
 
-  // Update category mutation
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ documentId, categoryId }: { documentId: string, categoryId: string }) => {
       const { error } = await supabase
@@ -98,17 +93,14 @@ export function DocumentView() {
     }
   });
 
-  // Delete document mutation
   const deleteMutation = useMutation({
     mutationFn: async (documentId: string) => {
       if (!documentData) throw new Error("Document data is required");
       
-      // Extract the file path from the URL
       const urlParts = documentData.url.split('/');
       const bucketName = urlParts[urlParts.length - 2];
       const fileName = urlParts[urlParts.length - 1];
       
-      // Delete the file from storage
       const { error: storageError } = await supabase
         .storage
         .from(bucketName)
@@ -118,7 +110,6 @@ export function DocumentView() {
         throw new Error(`Failed to delete file: ${storageError.message}`);
       }
       
-      // Delete the document record
       const { error: deleteError } = await supabase
         .from('documents')
         .delete()
@@ -139,7 +130,6 @@ export function DocumentView() {
     }
   });
 
-  // Set initial category state when document loads
   useEffect(() => {
     if (documentData?.category_id) {
       setCategory(documentData.category_id);
@@ -159,26 +149,19 @@ export function DocumentView() {
     if (!documentData) return;
     
     try {
-      // Utiliser directement l'URL publique stockée dans la base de données
       const documentUrl = documentData.url;
       console.log("URL du document à télécharger:", documentUrl);
       
-      // Extraire le nom de fichier à partir de l'URL
-      const fileName = documentUrl.split('/').pop() || `document-${documentData.id}.pdf`;
+      if (!documentUrl) {
+        throw new Error("L'URL du document est invalide");
+      }
       
-      // Créer un élément a pour le téléchargement
-      const link = document.createElement('a');
-      link.href = documentUrl;
-      link.download = documentData.nom || fileName;
-      link.target = "_blank"; // Ouvrir dans un nouvel onglet pour éviter les problèmes CORS
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.open(documentUrl, '_blank');
       
-      toast.success("Téléchargement démarré");
+      toast.success("Document ouvert dans un nouvel onglet");
     } catch (error: any) {
-      toast.error(`Erreur de téléchargement: ${error.message}`);
-      console.error("Erreur lors du téléchargement:", error);
+      toast.error(`Erreur d'accès au document: ${error.message}`);
+      console.error("Erreur lors de l'accès au document:", error);
     }
   };
 
@@ -199,7 +182,6 @@ export function DocumentView() {
     }
   };
 
-  // Handle loading state
   if (documentLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh]">
@@ -209,7 +191,6 @@ export function DocumentView() {
     );
   }
 
-  // Handle error state
   if (documentError || !documentData) {
     return (
       <div className="max-w-5xl mx-auto py-12">
@@ -228,15 +209,12 @@ export function DocumentView() {
     );
   }
 
-  // Get file type
   const fileType = detectFileType(documentData.url, documentData.nom);
 
-  // Find current category name
   const currentCategory = categories.find(cat => cat.id === documentData.category_id);
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
-      {/* Header with navigation */}
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link to="/documents" className="flex items-center text-muted-foreground">
@@ -246,7 +224,6 @@ export function DocumentView() {
         </Button>
       </div>
       
-      {/* Document header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{documentData.nom}</h1>
@@ -270,7 +247,6 @@ export function DocumentView() {
       
       <Separator className="my-6" />
       
-      {/* Document preview */}
       <div className="bg-card border border-border rounded-xl overflow-hidden mb-8">
         <div className="p-4 bg-secondary border-b border-border flex items-center justify-between">
           <div className="flex items-center">
@@ -305,7 +281,6 @@ export function DocumentView() {
         </div>
       </div>
       
-      {/* Actions */}
       <div className="bg-secondary/50 border border-border rounded-lg p-4">
         <h3 className="font-medium mb-4">Actions</h3>
         <div className="flex flex-wrap gap-2">
@@ -337,7 +312,6 @@ export function DocumentView() {
         </div>
       </div>
       
-      {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -365,7 +339,6 @@ export function DocumentView() {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Category Dialog */}
       <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
         <DialogContent>
           <DialogHeader>
