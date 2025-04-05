@@ -79,7 +79,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'mixtral-8x7b-32768',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Rédige un cours complet sur le sujet suivant: ${subject}` }
