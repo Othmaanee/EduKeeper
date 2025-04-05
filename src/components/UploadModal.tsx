@@ -31,7 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation } from "@tanstack/react-query";
 
 type UploadFile = {
   id: string;
@@ -39,6 +40,7 @@ type UploadFile = {
   type: string;
   size: number;
   progress: number;
+  supabaseId?: string; // Add this to keep track of the Supabase document ID
 };
 
 export function UploadComponent() {
@@ -56,6 +58,28 @@ export function UploadComponent() {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
   );
+
+  // Use React Query mutation for deleting documents
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (fileId: string) => {
+      const { error } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", fileId);
+      
+      if (error) {
+        throw new Error(`Erreur lors de la suppression: ${error.message}`);
+      }
+      
+      return fileId;
+    },
+    onSuccess: (fileId) => {
+      toast.success("Document supprimé avec succès");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -149,14 +173,18 @@ export function UploadComponent() {
 
     console.log("📎 ID de la catégorie sélectionnée :", category);
 
-    const { error: insertError } = await supabase.from("documents").insert([
-      {
-        nom: file.name,
-        url: publicUrl,
-        category_id: category || null, // ⚠️ attention ici on met bien category_id et pas categorie
-        user_id: user.id,
-      },
-    ]);
+    // Insérer dans la base de données et conserver l'ID du document
+    const { data: insertedData, error: insertError } = await supabase
+      .from("documents")
+      .insert([
+        {
+          nom: file.name,
+          url: publicUrl,
+          category_id: category || null,
+          user_id: user.id,
+        }
+      ])
+      .select('id');
 
     if (insertError) {
       console.error(
@@ -164,7 +192,19 @@ export function UploadComponent() {
         insertError.message
       );
     } else {
-      console.log("✅ Document inséré dans la base !");
+      console.log("✅ Document inséré dans la base avec ID:", insertedData?.[0]?.id);
+      
+      // Mettre à jour l'état local avec l'ID du document Supabase
+      if (insertedData && insertedData.length > 0) {
+        const fileId = `file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        setFiles((prev) => 
+          prev.map(f => 
+            f.name === file.name
+              ? { ...f, supabaseId: insertedData[0].id }
+              : f
+          )
+        );
+      }
     }
   };
 
@@ -219,11 +259,28 @@ export function UploadComponent() {
     setIsDeleting(true);
     
     try {
+      // Si nous avons un ID Supabase pour ce fichier, utilisons-le pour supprimer de la base de données
+      if (fileToDelete.supabaseId) {
+        await deleteDocumentMutation.mutateAsync(fileToDelete.supabaseId);
+      } else {
+        // Chercher l'ID du document par son nom
+        const { data: docData } = await supabase
+          .from("documents")
+          .select("id")
+          .eq("nom", fileToDelete.name)
+          .single();
+        
+        if (docData?.id) {
+          await deleteDocumentMutation.mutateAsync(docData.id);
+        }
+      }
+      
       // Supprimer du state local
       removeFile(fileToDelete.id);
       
       toast.success("Le fichier a été supprimé avec succès.");
     } catch (error: any) {
+      console.error("Erreur de suppression:", error);
       toast.error(`Erreur lors de la suppression: ${error.message}`);
     } finally {
       setIsDeleting(false);
@@ -504,3 +561,4 @@ export function UploadComponent() {
     </div>
   );
 }
+
