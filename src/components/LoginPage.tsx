@@ -101,7 +101,7 @@ const LoginPage = () => {
     }
 
     try {
-      // Créer l'utilisateur avec Supabase Auth
+      // Créer l'utilisateur avec Supabase Auth et envoyer toutes les données via les métadonnées
       const { error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
@@ -132,8 +132,11 @@ const LoginPage = () => {
       setClasse('');
       setRole('eleve');
       
-      // Basculer vers l'onglet de connexion
-      document.querySelector('[data-state="inactive"][value="login"]')?.click();
+      // Basculer vers l'onglet de connexion - Corrigé le problème de TypeScript
+      const loginTabButton = document.querySelector('[data-state="inactive"][value="login"]');
+      if (loginTabButton instanceof HTMLElement) {
+        loginTabButton.click();
+      }
       
     } catch (error: any) {
       toast({
