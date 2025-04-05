@@ -140,46 +140,57 @@ export function DocumentGrid() {
     mutationFn: async (document: any) => {
       if (!document) throw new Error("Document data is required");
       
-      // Extraire le chemin relatif depuis l'URL publique
-      const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
-
-      if (!filePath) {
-        throw new Error("Impossible de récupérer le chemin du fichier");
+      try {
+        // Extraire le chemin relatif depuis l'URL publique
+        const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
+  
+        if (!filePath) {
+          throw new Error("Impossible de récupérer le chemin du fichier");
+        }
+  
+        // 1️⃣ Supprimer le fichier du bucket
+        const { error: storageError } = await supabase.storage
+          .from("documents")
+          .remove([filePath]);
+  
+        if (storageError) {
+          console.error("❌ Erreur suppression fichier storage:", storageError);
+          throw new Error(storageError.message);
+        }
+  
+        // 2️⃣ Supprimer l'entrée dans la base de données
+        const { error: dbError } = await supabase
+          .from("documents")
+          .delete()
+          .eq("id", document.id);
+  
+        if (dbError) {
+          console.error("❌ Erreur suppression document BDD:", dbError);
+          throw new Error(dbError.message);
+        }
+  
+        return document.id;
+      } catch (error: any) {
+        console.error("💥 Erreur durant la suppression:", error);
+        throw error; // Re-throw pour que onError puisse la capturer
       }
-
-      // 1️⃣ Supprimer le fichier du bucket
-      const { error: storageError } = await supabase.storage
-        .from("documents")
-        .remove([filePath]);
-
-      if (storageError) {
-        console.error("❌ Erreur suppression fichier storage:", storageError);
-        throw new Error(storageError.message);
-      }
-
-      // 2️⃣ Supprimer l'entrée dans la base de données
-      const { error: dbError } = await supabase
-        .from("documents")
-        .delete()
-        .eq("id", document.id);
-
-      if (dbError) {
-        console.error("❌ Erreur suppression document BDD:", dbError);
-        throw new Error(dbError.message);
-      }
-
-      return document.id;
     },
     onSuccess: (documentId) => {
+      // Invalider le cache pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       toast.success("Document supprimé avec succès!");
+      
+      // Réinitialiser l'état du dialog et du document à supprimer
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("💥 Erreur inattendue:", error);
       toast.error(`Une erreur est survenue lors de la suppression: ${error.message}`);
+      
+      // Même en cas d'erreur, il faut fermer le dialog pour éviter le gel
       setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
     }
   });
 
@@ -190,6 +201,8 @@ export function DocumentGrid() {
 
   const handleDeleteDocument = () => {
     if (documentToDelete) {
+      // Il est important de ne pas attendre le résultat de cette opération
+      // car c'est la mutation qui va gérer l'état de l'interface
       deleteMutation.mutate(documentToDelete);
     }
   };
@@ -395,7 +408,16 @@ export function DocumentGrid() {
       )}
 
       {/* Dialog de confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog 
+        open={deleteDialogOpen} 
+        onOpenChange={(isOpen) => {
+          // Si le dialog se ferme sans action explicite, on réinitialise l'état
+          if (!isOpen) {
+            setDocumentToDelete(null);
+            setDeleteDialogOpen(false);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
