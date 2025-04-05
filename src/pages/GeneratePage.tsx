@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
@@ -37,12 +36,11 @@ const GeneratePage = () => {
           body: JSON.stringify({ subject }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Une erreur est survenue lors de la génération');
-        }
-
         const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Une erreur est survenue lors de la génération');
+        }
         
         if (!data.content) {
           throw new Error('Contenu vide reçu');

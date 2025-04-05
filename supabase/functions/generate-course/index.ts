@@ -20,7 +20,10 @@ serve(async (req) => {
 
     if (!subject) {
       return new Response(
-        JSON.stringify({ error: 'Aucun sujet fourni' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Aucun sujet fourni' 
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -61,7 +64,10 @@ serve(async (req) => {
     const courseContent = data.choices[0].message.content;
 
     return new Response(
-      JSON.stringify({ content: courseContent }),
+      JSON.stringify({ 
+        success: true, 
+        content: courseContent 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
@@ -69,7 +75,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Erreur dans la fonction generate-course:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Une erreur inconnue est survenue' 
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
