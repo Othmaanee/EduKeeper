@@ -5,12 +5,20 @@ import { useNavigate } from 'react-router-dom';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, BookOpen } from 'lucide-react';
+import { Loader2, BookOpen, Plus } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import html2pdf from 'html2pdf.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
 
 type FormValues = {
   subject: string;
@@ -20,6 +28,10 @@ type FormValues = {
 type Category = {
   id: string;
   nom: string;
+};
+
+type NewCategoryFormValues = {
+  categoryName: string;
 };
 
 // Fonction pour nettoyer le nom du fichier
@@ -246,7 +258,11 @@ const fetchUserCategories = async (): Promise<Category[]> => {
 
 const GeneratePage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const form = useForm<FormValues>({
     defaultValues: {
@@ -341,6 +357,69 @@ const GeneratePage = () => {
     }
   };
 
+  // Fonction pour créer une nouvelle catégorie
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un nom pour la catégorie",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingCategory(true);
+
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      
+      if (!userId) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      // Insérer la nouvelle catégorie dans Supabase
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({
+          nom: newCategoryName,
+          user_id: userId
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Succès",
+        description: `La catégorie "${newCategoryName}" a été créée`,
+      });
+
+      // Rafraîchir les catégories
+      await queryClient.invalidateQueries({ queryKey: ['userCategories'] });
+      
+      // Sélectionner automatiquement la nouvelle catégorie
+      if (data && data.id) {
+        form.setValue('categoryId', data.id);
+      }
+
+      // Réinitialiser et fermer la modal
+      setNewCategoryName('');
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      console.error("Erreur lors de la création de la catégorie:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue lors de la création de la catégorie",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container max-w-4xl mx-auto py-6">
@@ -361,8 +440,9 @@ const GeneratePage = () => {
               <Button 
                 variant="outline" 
                 className="mt-2" 
-                onClick={() => navigate("/categories")}
+                onClick={() => setIsDialogOpen(true)}
               >
+                <Plus className="mr-1 h-4 w-4" />
                 Créer une catégorie
               </Button>
             </div>
@@ -380,7 +460,7 @@ const GeneratePage = () => {
                           <Input 
                             placeholder="Par exemple : Révolution Française, Système solaire, Théorème de Pythagore..." 
                             {...field} 
-                            disabled={isGenerating || !hasCategories}
+                            disabled={isGenerating}
                           />
                         </FormControl>
                         <FormMessage />
@@ -394,30 +474,43 @@ const GeneratePage = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Catégorie</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value} 
-                          disabled={isGenerating || loadingCategories || !hasCategories}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner une catégorie" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {loadingCategories ? (
-                              <SelectItem value="loading" disabled>
-                                Chargement...
-                              </SelectItem>
-                            ) : (
-                              categories?.map((category) => (
-                                <SelectItem key={category.id} value={category.id}>
-                                  {category.nom}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value} 
+                              disabled={isGenerating || loadingCategories || !hasCategories}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Sélectionner une catégorie" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {loadingCategories ? (
+                                  <SelectItem value="loading" disabled>
+                                    Chargement...
+                                  </SelectItem>
+                                ) : (
+                                  categories?.map((category) => (
+                                    <SelectItem key={category.id} value={category.id}>
+                                      {category.nom}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setIsDialogOpen(true)}
+                            disabled={isGenerating}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -427,7 +520,7 @@ const GeneratePage = () => {
                 <div className="flex justify-end">
                   <Button
                     type="submit"
-                    disabled={isGenerating || !hasCategories || loadingCategories}
+                    disabled={isGenerating || !hasCategories && loadingCategories}
                   >
                     {isGenerating ? (
                       <>
@@ -462,6 +555,54 @@ const GeneratePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Dialog pour créer une nouvelle catégorie */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Créer une nouvelle catégorie</DialogTitle>
+            <DialogDescription>
+              Donnez un nom à votre nouvelle catégorie pour organiser vos documents.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Input
+              id="categoryName"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="Nom de la catégorie (ex: Mathématiques)"
+              className="w-full"
+              disabled={isCreatingCategory}
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isCreatingCategory}
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleCreateCategory}
+              disabled={isCreatingCategory}
+            >
+              {isCreatingCategory ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Création...</span>
+                </>
+              ) : (
+                <span>Créer</span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
