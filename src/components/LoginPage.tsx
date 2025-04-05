@@ -8,11 +8,19 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nom, setNom] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [dateNaissance, setDateNaissance] = useState('');
+  const [classe, setClasse] = useState('');
+  const [role, setRole] = useState('eleve');
   const [loading, setLoading] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
@@ -55,22 +63,78 @@ const LoginPage = () => {
     }
   };
 
+  // Déterminer si la classe est requise selon le rôle
+  const isClasseRequired = () => {
+    return role === 'eleve';
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
+    // Validation des champs
+    const trimmedEmail = email.trim();
+    const trimmedNom = nom.trim();
+    const trimmedPrenom = prenom.trim();
+    const trimmedClasse = classe.trim();
+    
+    // Vérifications de base
+    if (!trimmedEmail || !password || !trimmedNom || !trimmedPrenom || !dateNaissance) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez remplir tous les champs obligatoires.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Vérification spécifique pour la classe si l'utilisateur est un élève
+    if (isClasseRequired() && !trimmedClasse) {
+      toast({
+        title: "Erreur de validation",
+        description: "La classe est obligatoire pour les élèves.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Créer l'utilisateur avec Supabase Auth
       const { error } = await supabase.auth.signUp({
-        email,
+        email: trimmedEmail,
         password,
+        options: {
+          data: {
+            nom: trimmedNom,
+            prenom: trimmedPrenom,
+            date_naissance: dateNaissance,
+            classe: isClasseRequired() ? trimmedClasse : null,
+            role: 'user' // rôle par défaut dans la base de données
+          }
+        }
       });
 
       if (error) throw error;
       
       toast({
         title: "Inscription réussie",
-        description: "Veuillez vérifier votre email pour confirmer votre compte.",
+        description: "Compte créé avec succès, veuillez vérifier votre email.",
       });
+
+      // Réinitialiser les champs du formulaire
+      setEmail('');
+      setPassword('');
+      setNom('');
+      setPrenom('');
+      setDateNaissance('');
+      setClasse('');
+      setRole('eleve');
+      
+      // Basculer vers l'onglet de connexion
+      document.querySelector('[data-state="inactive"][value="login"]')?.click();
+      
     } catch (error: any) {
       toast({
         title: "Erreur d'inscription",
@@ -143,7 +207,7 @@ const LoginPage = () => {
             <TabsContent value="register">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="reg-email">Email</Label>
                   <Input 
                     id="reg-email" 
                     type="email" 
@@ -154,7 +218,7 @@ const LoginPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
+                  <Label htmlFor="reg-password">Mot de passe</Label>
                   <Input 
                     id="reg-password" 
                     type="password" 
@@ -164,6 +228,73 @@ const LoginPage = () => {
                     required
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom</Label>
+                    <Input 
+                      id="nom" 
+                      type="text" 
+                      placeholder="Dupont"
+                      value={nom}
+                      onChange={(e) => setNom(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="prenom">Prénom</Label>
+                    <Input 
+                      id="prenom" 
+                      type="text" 
+                      placeholder="Jean"
+                      value={prenom}
+                      onChange={(e) => setPrenom(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date-naissance">Date de naissance</Label>
+                  <Input 
+                    id="date-naissance" 
+                    type="date" 
+                    value={dateNaissance}
+                    onChange={(e) => setDateNaissance(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Vous êtes</Label>
+                  <RadioGroup 
+                    value={role} 
+                    onValueChange={setRole}
+                    className="flex space-x-4 pt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="eleve" id="eleve" />
+                      <Label htmlFor="eleve">Élève</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="enseignant" id="enseignant" />
+                      <Label htmlFor="enseignant">Enseignant</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+                
+                {isClasseRequired() && (
+                  <div className="space-y-2">
+                    <Label htmlFor="classe">Classe</Label>
+                    <Input 
+                      id="classe" 
+                      type="text" 
+                      placeholder="6ème A"
+                      value={classe}
+                      onChange={(e) => setClasse(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+                
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Création du compte...' : "S'inscrire"}
                 </Button>
