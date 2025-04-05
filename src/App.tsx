@@ -12,6 +12,7 @@ import CategoryPage from "./pages/CategoryPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import UploadPage from "./pages/UploadPage";
 import NotFound from "./pages/NotFound";
+import GeneratePage from "./pages/GeneratePage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/categories/:id" element={<CategoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
+          <Route path="/generate" element={<GeneratePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

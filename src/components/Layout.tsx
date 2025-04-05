@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  BookText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,8 @@ const navItems = [
   { label: 'Accueil', icon: Home, path: '/' },
   { label: 'Documents', icon: BookOpen, path: '/documents' },
   { label: 'Catégories', icon: FolderOpenIcon, path: '/categories' },
-  { label: 'Importer', icon: Upload, path: '/upload' }
+  { label: 'Importer', icon: Upload, path: '/upload' },
+  { label: 'Générer un cours', icon: BookText, path: '/generate' }
 ];
 
 export function Layout({ children }: LayoutProps) {
