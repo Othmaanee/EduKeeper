@@ -159,36 +159,26 @@ export function DocumentView() {
     if (!documentData) return;
     
     try {
-      // Get file path from URL
-      const urlParts = documentData.url.split('/');
-      const bucketName = urlParts[urlParts.length - 2];
-      const filePath = urlParts[urlParts.length - 1];
+      // Utiliser directement l'URL publique stockée dans la base de données
+      const documentUrl = documentData.url;
+      console.log("URL du document à télécharger:", documentUrl);
       
-      // Generate temporary signed URL
-      const { data, error } = await supabase
-        .storage
-        .from(bucketName)
-        .createSignedUrl(filePath, 60); // 60 seconds expiry
+      // Extraire le nom de fichier à partir de l'URL
+      const fileName = documentUrl.split('/').pop() || `document-${documentData.id}.pdf`;
       
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (!data?.signedUrl) {
-        throw new Error("Failed to generate download URL");
-      }
-      
-      // Create a temporary link to download the file
-      const link = window.document.createElement('a');
-      link.href = data.signedUrl;
-      link.download = documentData.nom;
-      window.document.body.appendChild(link);
+      // Créer un élément a pour le téléchargement
+      const link = document.createElement('a');
+      link.href = documentUrl;
+      link.download = documentData.nom || fileName;
+      link.target = "_blank"; // Ouvrir dans un nouvel onglet pour éviter les problèmes CORS
+      document.body.appendChild(link);
       link.click();
-      window.document.body.removeChild(link);
+      document.body.removeChild(link);
       
       toast.success("Téléchargement démarré");
     } catch (error: any) {
       toast.error(`Erreur de téléchargement: ${error.message}`);
+      console.error("Erreur lors du téléchargement:", error);
     }
   };
 
