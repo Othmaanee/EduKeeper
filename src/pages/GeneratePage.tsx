@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
@@ -26,6 +27,8 @@ const GeneratePage = () => {
   const generateMutation = useMutation({
     mutationFn: async (subject: string) => {
       try {
+        console.log("Calling generate-course function with subject:", subject);
+        
         // Appel à la fonction edge pour générer le contenu du cours
         const response = await fetch(`${window.location.origin}/functions/v1/generate-course`, {
           method: 'POST',
@@ -36,7 +39,17 @@ const GeneratePage = () => {
           body: JSON.stringify({ subject }),
         });
 
-        const data = await response.json();
+        // Log de la réponse brute pour le debugging
+        const responseText = await response.text();
+        console.log("Raw response:", responseText);
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (jsonError) {
+          console.error("JSON parsing error:", jsonError);
+          throw new Error("Erreur: La réponse du serveur n'est pas un JSON valide");
+        }
         
         if (!data.success) {
           throw new Error(data.error || 'Une erreur est survenue lors de la génération');
