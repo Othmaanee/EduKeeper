@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, X, FolderPlus, Trash, Loader2 } from "lucide-react";
@@ -106,7 +105,6 @@ export function UploadComponent() {
   };
 
   const uploadFileToSupabase = async (file: File, fileId: string) => {
-    // 1️⃣ Vérifier si une session utilisateur existe
     const { data: session } = await supabase.auth.getSession();
     console.log("Session actuelle :", session);
 
@@ -119,7 +117,6 @@ export function UploadComponent() {
     const user = session.session.user;
     console.log("✅ Utilisateur connecté :", user);
 
-    // 2️⃣ Vérifier que le fichier est bien détecté
     console.log("Tentative d'upload du fichier :", file);
     if (!file) {
       console.error("❌ Aucun fichier détecté !");
@@ -127,10 +124,9 @@ export function UploadComponent() {
     }
 
     try {
-      // 3️⃣ Envoi du fichier à Supabase Storage
       const filePath = `public/${file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("documents") // Remplace "documents" si ton bucket a un autre nom
+        .from("documents")
         .upload(filePath, file);
 
       if (uploadError) {
@@ -141,14 +137,12 @@ export function UploadComponent() {
 
       console.log("✅ Fichier uploadé avec succès :", uploadData);
 
-      // 4️⃣ Récupération de l'URL publique
       const { data: publicUrlData } = supabase.storage
         .from("documents")
         .getPublicUrl(filePath);
 
       const publicUrl = publicUrlData.publicUrl;
 
-      // 5️⃣ Enregistrement dans la table documents
       const { data: documentData, error: insertError } = await supabase
         .from("documents")
         .insert([
@@ -171,7 +165,6 @@ export function UploadComponent() {
         return;
       }
 
-      // 6️⃣ Mettre à jour l'état local avec l'ID Supabase
       setFiles((prev) =>
         prev.map((f) =>
           f.id === fileId
@@ -199,15 +192,12 @@ export function UploadComponent() {
 
     setFiles((prev) => [...prev, ...newFiles]);
 
-    // 📌 Pour chaque fichier, on va l'envoyer à Supabase
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
       const fileId = newFiles[i].id;
       
-      // Simuler le début de progression
       simulateUploadProgress(fileId);
       
-      // Upload réel
       await uploadFileToSupabase(file, fileId);
     }
   };
@@ -216,7 +206,7 @@ export function UploadComponent() {
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.floor(Math.random() * 10) + 1;
-      if (progress >= 95) { // On s'arrête à 95% pour que le succès final soit visible
+      if (progress >= 95) {
         progress = 95;
         clearInterval(interval);
       }
@@ -252,52 +242,79 @@ export function UploadComponent() {
         return;
       }
       
-      // 1. Supprimer le fichier du storage si possible
-      const storageFilePath = `public/${fileToDelete.name}`;
-      const { error: storageError } = await supabase.storage
-        .from("documents")
-        .remove([storageFilePath]);
-        
-      if (storageError) {
-        console.error("❌ Erreur suppression fichier storage :", storageError);
-        // On continue même si l'erreur de storage car peut-être le fichier n'existe plus
-      }
-      
-      // 2. Supprimer l'entrée de la base de données
-      let deleteQuery;
+      let documentToDelete;
       
       if (fileToDelete.supabaseId) {
-        // Si on a l'ID Supabase, on l'utilise (plus sûr)
-        deleteQuery = supabase
+        const { data: document, error: fetchError } = await supabase
           .from("documents")
-          .delete()
+          .select("*")
           .eq("id", fileToDelete.supabaseId)
-          .eq("user_id", userId); // Sécurité: vérifier que c'est bien son document
-      } else {
-        // Sinon on essaie de trouver par nom (moins précis)
-        deleteQuery = supabase
+          .single();
+        
+        if (fetchError) {
+          console.error("❌ Error fetching document details:", fetchError);
+        } else {
+          documentToDelete = document;
+        }
+      } 
+      
+      if (!documentToDelete) {
+        const { data: documentByName, error: nameError } = await supabase
           .from("documents")
-          .delete()
+          .select("*")
           .eq("nom", fileToDelete.name)
-          .eq("user_id", userId);
+          .eq("user_id", userId)
+          .maybeSingle();
+        
+        if (!nameError && documentByName) {
+          documentToDelete = documentByName;
+        }
       }
-      
-      const { error: dbError } = await deleteQuery;
-      
-      if (dbError) {
-        console.error("❌ Erreur suppression entrée DB :", dbError);
-        toast.error(`Erreur lors de la suppression: ${dbError.message}`);
+
+      if (!documentToDelete) {
+        console.error("❌ Could not find document to delete in the database");
+        toast.error("Impossible de trouver le document dans la base de données");
         setIsDeleting(false);
         setDeleteDialogOpen(false);
         return;
       }
       
-      // Supprimer du state local
-      removeFile(fileToDelete.id);
+      const storageFilePath = documentToDelete.url.split('/').slice(-2).join('/');
+      const bucketName = storageFilePath.split('/')[0];
+      const objectPath = storageFilePath.split('/').slice(1).join('/');
       
-      toast.success("Le fichier a été supprimé avec succès.");
+      console.log("🗑️ Deleting from storage:", bucketName, objectPath);
+      
+      const { error: storageError } = await supabase.storage
+        .from(bucketName)
+        .remove([objectPath]);
+        
+      if (storageError) {
+        console.error("❌ Error deleting from storage:", storageError);
+        toast.error(`Erreur lors de la suppression du fichier: ${storageError.message}`);
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        return;
+      }
+      
+      const { error: dbError } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", documentToDelete.id);
+      
+      if (dbError) {
+        console.error("❌ Error deleting from database:", dbError);
+        toast.error(`Le fichier a été supprimé du stockage mais pas de la base de données: ${dbError.message}`);
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        return;
+      }
+      
+      setFiles((prev) => prev.filter(file => file.id !== fileToDelete.id));
+      toast.success("Document supprimé avec succès");
     } catch (error: any) {
-      toast.error(`Erreur lors de la suppression: ${error.message}`);
+      console.error("❌ Unexpected error during deletion:", error);
+      toast.error(`Erreur inattendue lors de la suppression: ${error.message}`);
     } finally {
       setIsDeleting(false);
       setDeleteDialogOpen(false);
@@ -320,10 +337,9 @@ export function UploadComponent() {
     const userId = session?.session?.user?.id;
     if (!userId) return;
 
-    // 1️⃣ Créer la catégorie dans Supabase (avec user_id !)
     const { data: insertedCategory, error: insertError } = await supabase
       .from("categories")
-      .insert([{ nom: newCategoryName, user_id: userId }]) // 🔥 AJOUT ICI
+      .insert([{ nom: newCategoryName, user_id: userId }])
       .select()
       .single();
 
@@ -333,7 +349,6 @@ export function UploadComponent() {
       return;
     }
 
-    // 2️⃣ Lier la catégorie à l'utilisateur
     const { error: linkError } = await supabase.from("user_categories").insert([
       {
         user_id: userId,
@@ -347,7 +362,6 @@ export function UploadComponent() {
       return;
     }
 
-    // 3️⃣ Rafraîchir les catégories et sélectionner la nouvelle
     setCategories((prev) => [
       ...prev,
       { id: insertedCategory.id, name: newCategoryName },
@@ -371,7 +385,6 @@ export function UploadComponent() {
         </p>
       </div>
 
-      {/* Category Selection */}
       <div className="max-w-md mx-auto">
         <label className="block text-sm font-medium mb-2">
           Sélectionner une catégorie
@@ -401,7 +414,6 @@ export function UploadComponent() {
         </div>
       </div>
 
-      {/* Upload Area */}
       <div
         className={cn(
           "max-w-3xl mx-auto border-2 border-dashed rounded-xl p-8",
@@ -453,7 +465,6 @@ export function UploadComponent() {
         </div>
       </div>
 
-      {/* File List */}
       {files.length > 0 && (
         <div className="max-w-3xl mx-auto space-y-4 animate-fade-up">
           <h3 className="text-lg font-medium">Fichiers ({files.length})</h3>
@@ -505,7 +516,6 @@ export function UploadComponent() {
         </div>
       )}
 
-      {/* New Category Dialog */}
       <Dialog open={newCategoryDialog} onOpenChange={setNewCategoryDialog}>
         <DialogContent>
           <DialogHeader>
@@ -547,7 +557,6 @@ export function UploadComponent() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
