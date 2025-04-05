@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,13 +53,13 @@ serve(async (req) => {
       );
     }
 
-    console.log("Clé API OpenAI présente:", !!openAIApiKey);
-    if (!openAIApiKey) {
-      console.error('Clé API OpenAI manquante');
+    console.log("Clé API Groq présente:", !!groqApiKey);
+    if (!groqApiKey) {
+      console.error('Clé API Groq manquante');
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Clé API OpenAI manquante. Veuillez configurer la clé dans les secrets de la fonction Edge.' 
+          error: 'Clé API Groq manquante. Veuillez configurer la clé dans les secrets de la fonction Edge.' 
         }),
         { 
           status: 500, 
@@ -68,20 +68,14 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `
-      Tu es un professeur expert qui rédige des cours clairs et structurés.
-      Crée un cours complet sur le sujet demandé.
-      Organise le cours avec une introduction, plusieurs parties numérotées, et une conclusion.
-      Chaque partie doit contenir des informations précises et pédagogiques.
-      N'utilise pas de formatage markdown complexe, juste des paragraphes clairs.
-    `;
+    const systemPrompt = "Tu es un professeur qui génère un cours clair et pédagogique.";
 
     try {
-      console.log("Appel à l'API OpenAI...");
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      console.log("Appel à l'API Groq...");
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Authorization': `Bearer ${groqApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -97,7 +91,7 @@ serve(async (req) => {
       // Handle API errors
       if (!response.ok) {
         const errorText = await response.text();
-        let errorMessage = "Erreur de l'API OpenAI";
+        let errorMessage = "Erreur de l'API Groq";
         
         try {
           const errorData = JSON.parse(errorText);
@@ -107,12 +101,12 @@ serve(async (req) => {
           errorMessage = errorText || errorMessage;
         }
         
-        console.error('Erreur API OpenAI:', errorMessage);
+        console.error('Erreur API Groq:', errorMessage);
         
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `Erreur API OpenAI: ${errorMessage}` 
+            error: `Erreur API Groq: ${errorMessage}` 
           }),
           { 
             status: 500, 
@@ -132,12 +126,12 @@ serve(async (req) => {
         }),
         { headers: corsHeaders }
       );
-    } catch (openaiError) {
-      console.error('Erreur lors de l\'appel à l\'API OpenAI:', openaiError);
+    } catch (groqError) {
+      console.error('Erreur lors de l\'appel à l\'API Groq:', groqError);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: openaiError.message || 'Erreur lors de la génération du cours' 
+          error: groqError.message || 'Erreur lors de la génération du cours' 
         }),
         { 
           status: 500, 
