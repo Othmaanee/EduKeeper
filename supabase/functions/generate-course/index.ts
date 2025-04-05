@@ -7,6 +7,7 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json',
 };
 
 serve(async (req) => {
@@ -30,10 +31,7 @@ serve(async (req) => {
         }),
         { 
           status: 400, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+          headers: corsHeaders
         }
       );
     }
@@ -46,10 +44,7 @@ serve(async (req) => {
         }),
         { 
           status: 400, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+          headers: corsHeaders
         }
       );
     }
@@ -81,8 +76,29 @@ serve(async (req) => {
 
       // Handle API errors
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Erreur API OpenAI: ${errorData.error?.message || 'Erreur inconnue'}`);
+        const errorText = await response.text();
+        let errorMessage = "Erreur de l'API OpenAI";
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch (e) {
+          // If we can't parse the error, use the raw text
+          errorMessage = errorText || errorMessage;
+        }
+        
+        console.error('Erreur API OpenAI:', errorMessage);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Erreur API OpenAI: ${errorMessage}` 
+          }),
+          { 
+            status: 500, 
+            headers: corsHeaders
+          }
+        );
       }
 
       const data = await response.json();
@@ -93,12 +109,7 @@ serve(async (req) => {
           success: true, 
           content: courseContent 
         }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
+        { headers: corsHeaders }
       );
     } catch (openaiError) {
       console.error('Erreur lors de l\'appel à l\'API OpenAI:', openaiError);
@@ -109,10 +120,7 @@ serve(async (req) => {
         }),
         { 
           status: 500, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+          headers: corsHeaders
         }
       );
     }
@@ -125,10 +133,7 @@ serve(async (req) => {
       }),
       { 
         status: 500, 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: corsHeaders
       }
     );
   }

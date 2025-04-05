@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,106 +14,50 @@ type FormValues = {
   subject: string;
 };
 
+async function generateCourse(subject: string): Promise<string> {
+  const response = await fetch(`${window.location.origin}/functions/v1/generate-course`, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+    },
+    body: JSON.stringify({ subject }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Erreur lors de la génération du cours");
+  }
+
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error(data.error || "Erreur inconnue lors de la génération");
+  }
+
+  return data.content;
+}
+
+async function saveCourseToSupabase(courseContent: string, subject: string, userId: string) {
+  const { error } = await supabase.from("documents").insert({
+    nom: `Cours : ${subject}`,
+    url: courseContent,
+    user_id: userId,
+    created_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    throw new Error("Erreur lors de l'enregistrement du cours dans Supabase");
+  }
+}
+
 const GeneratePage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const form = useForm<FormValues>({
     defaultValues: {
       subject: '',
     },
-  });
-
-  const generateMutation = useMutation({
-    mutationFn: async (subject: string) => {
-      try {
-        console.log("Calling generate-course function with subject:", subject);
-        
-        // Appel à la fonction edge pour générer le contenu du cours
-        const response = await fetch(`${window.location.origin}/functions/v1/generate-course`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          },
-          body: JSON.stringify({ subject }),
-        });
-
-        // Log de la réponse brute pour le debugging
-        const responseText = await response.text();
-        console.log("Raw response:", responseText);
-        
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (jsonError) {
-          console.error("JSON parsing error:", jsonError);
-          throw new Error("Erreur: La réponse du serveur n'est pas un JSON valide");
-        }
-        
-        if (!data.success) {
-          throw new Error(data.error || 'Une erreur est survenue lors de la génération');
-        }
-        
-        if (!data.content) {
-          throw new Error('Contenu vide reçu');
-        }
-        
-        return data.content;
-      } catch (error: any) {
-        console.error('Erreur lors de la génération:', error);
-        throw new Error(error.message || 'Une erreur est survenue');
-      }
-    },
-    onSuccess: async (content, subject) => {
-      try {
-        // Sauvegarde dans la table documents
-        const documentName = `Cours : ${subject}`;
-        const { data: documentData, error: documentError } = await supabase
-          .from('documents')
-          .insert([
-            {
-              nom: documentName,
-              url: content, // Nous stockons directement le contenu texte dans l'URL pour ce cas spécifique
-              user_id: (await supabase.auth.getUser()).data.user?.id,
-              category_id: null
-            }
-          ])
-          .select();
-
-        if (documentError) {
-          throw documentError;
-        }
-
-        // Invalider le cache pour que la liste des documents se mette à jour
-        queryClient.invalidateQueries({ queryKey: ['documents'] });
-        
-        toast({
-          title: "Cours généré avec succès",
-          description: `Le cours sur "${subject}" a été généré et enregistré dans vos documents.`,
-        });
-        
-        // Réinitialiser le formulaire
-        form.reset();
-      } catch (error: any) {
-        console.error('Erreur lors de la sauvegarde:', error);
-        toast({
-          title: "Erreur lors de la sauvegarde",
-          description: error.message || 'Une erreur est survenue lors de la sauvegarde du cours',
-          variant: "destructive",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Échec de la génération",
-        description: error.message || 'Une erreur est survenue lors de la génération',
-        variant: "destructive",
-      });
-    },
-    onSettled: () => {
-      setIsGenerating(false);
-    }
   });
 
   const onSubmit = async (data: FormValues) => {
@@ -126,8 +70,40 @@ const GeneratePage = () => {
       return;
     }
 
-    setIsGenerating(true);
-    generateMutation.mutate(data.subject);
+    try {
+      setIsGenerating(true);
+      
+      const session = await supabase.auth.getSession();
+      const userId = session?.data?.session?.user?.id;
+
+      if (!userId) {
+        toast({
+          title: "Erreur",
+          description: "Utilisateur non connecté",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const courseContent = await generateCourse(data.subject);
+      await saveCourseToSupabase(courseContent, data.subject, userId);
+      
+      toast({
+        title: "Succès",
+        description: "Cours généré et enregistré avec succès !",
+      });
+      
+      navigate("/documents");
+    } catch (error: any) {
+      console.error('Erreur lors de la génération:', error);
+      toast({
+        title: "Échec de la génération",
+        description: error.message || 'Une erreur est survenue lors de la génération',
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
