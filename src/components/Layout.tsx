@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  BookText
+  BookText,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,35 +25,58 @@ type LayoutProps = {
   children: React.ReactNode;
 };
 
-const navItems = [
-  { label: 'Accueil', icon: Home, path: '/' },
-  { label: 'Documents', icon: BookOpen, path: '/documents' },
-  { label: 'Catégories', icon: FolderOpenIcon, path: '/categories' },
-  { label: 'Importer', icon: Upload, path: '/upload' },
-  { label: 'Générer un cours', icon: BookText, path: '/generate' }
-];
+type NavItem = {
+  label: string;
+  icon: React.ElementType;
+  path: string;
+  role?: string; // Optional role requirement
+};
 
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Define navigation items with role requirements
+  const navItems: NavItem[] = [
+    { label: 'Accueil', icon: Home, path: '/' },
+    { label: 'Documents', icon: BookOpen, path: '/documents' },
+    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories' },
+    { label: 'Importer', icon: Upload, path: '/upload' },
+    { label: 'Générer un cours', icon: BookText, path: '/generate' },
+    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant' }
+  ];
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
-      setLoading(false);
+      
+      // Fetch user role if authenticated
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      if (!session && location.pathname !== '/login') {
-        navigate('/login');
+      
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setUserRole('user');
+        setLoading(false);
+        if (location.pathname !== '/login') {
+          navigate('/login');
+        }
       }
     });
 
@@ -60,6 +84,28 @@ export function Layout({ children }: LayoutProps) {
       subscription.unsubscribe();
     };
   }, [navigate, location.pathname]);
+  
+  // Fetch user role from database
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        setUserRole('user');
+      } else if (data) {
+        setUserRole(data.role);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user role:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -108,6 +154,11 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
+  // Filter navigation items based on user role
+  const filteredNavItems = navItems.filter(item => 
+    !item.role || item.role === userRole
+  );
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
@@ -136,7 +187,7 @@ export function Layout({ children }: LayoutProps) {
           
           {/* Nav Links */}
           <nav className="flex-1 px-3 py-6 space-y-1">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link 
                 key={item.path} 
                 to={item.path}

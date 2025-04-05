@@ -13,6 +13,7 @@ import CategoriesPage from "./pages/CategoriesPage";
 import UploadPage from "./pages/UploadPage";
 import NotFound from "./pages/NotFound";
 import GeneratePage from "./pages/GeneratePage";
+import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/categories/:id" element={<CategoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/generate" element={<GeneratePage />} />
+          <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

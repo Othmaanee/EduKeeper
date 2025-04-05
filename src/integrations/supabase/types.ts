@@ -43,6 +43,7 @@ export type Database = {
           category_id: string | null
           created_at: string | null
           id: string
+          is_shared: boolean | null
           nom: string
           url: string
           user_id: string | null
@@ -51,6 +52,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           id?: string
+          is_shared?: boolean | null
           nom: string
           url: string
           user_id?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           id?: string
+          is_shared?: boolean | null
           nom?: string
           url?: string
           user_id?: string | null
