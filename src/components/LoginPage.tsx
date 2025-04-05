@@ -101,6 +101,9 @@ const LoginPage = () => {
     }
 
     try {
+      // Map le rôle sélectionné au rôle à envoyer dans les métadonnées
+      const userRole = role === 'enseignant' ? 'enseignant' : 'user';
+      
       // Créer l'utilisateur avec Supabase Auth et envoyer toutes les données via les métadonnées
       const { error } = await supabase.auth.signUp({
         email: trimmedEmail,
@@ -111,7 +114,7 @@ const LoginPage = () => {
             prenom: trimmedPrenom,
             date_naissance: dateNaissance,
             classe: isClasseRequired() ? trimmedClasse : null,
-            role: 'user' // rôle par défaut dans la base de données
+            role: userRole // Envoyer le rôle sélectionné dans les métadonnées
           }
         }
       });
@@ -268,20 +271,15 @@ const LoginPage = () => {
                 
                 <div className="space-y-2">
                   <Label>Vous êtes</Label>
-                  <RadioGroup 
-                    value={role} 
-                    onValueChange={setRole}
-                    className="flex space-x-4 pt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="eleve" id="eleve" />
-                      <Label htmlFor="eleve">Élève</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="enseignant" id="enseignant" />
-                      <Label htmlFor="enseignant">Enseignant</Label>
-                    </div>
-                  </RadioGroup>
+                  <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionnez votre profil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="eleve">Élève</SelectItem>
+                      <SelectItem value="enseignant">Enseignant</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 {isClasseRequired() && (

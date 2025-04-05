@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Download, Share2, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Card,
   CardContent,
@@ -43,6 +43,7 @@ interface Document {
   url: string;
   is_shared: boolean;
   category_id: string | null;
+  user_id: string | null;
 }
 
 export function TeacherDashboard() {
@@ -86,10 +87,10 @@ export function TeacherDashboard() {
           return;
         }
 
-        // Fetch documents for the logged in user
+        // Fetch documents for the logged in user, including is_shared field
         const { data, error } = await supabase
           .from('documents')
-          .select('*')
+          .select('id, nom, url, created_at, user_id, category_id, is_shared')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
