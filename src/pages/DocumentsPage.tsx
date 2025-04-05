@@ -4,12 +4,17 @@ import { DocumentGrid } from '../components/DocumentGrid';
 import { Suspense, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const DocumentsPage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get categoryId from URL query parameters
+  const searchParams = new URLSearchParams(location.search);
+  const categoryId = searchParams.get('category_id');
 
   // Vérifier le rôle de l'utilisateur au chargement de la page
   useEffect(() => {
@@ -82,7 +87,7 @@ const DocumentsPage = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         }>
-          <DocumentGrid />
+          <DocumentGrid initialCategoryId={categoryId} />
         </Suspense>
       </div>
     </Layout>

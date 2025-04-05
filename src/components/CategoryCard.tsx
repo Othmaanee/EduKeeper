@@ -1,7 +1,9 @@
 
 import { FolderOpenIcon, FileText } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type CategoryCardProps = {
   id: string;
@@ -12,6 +14,36 @@ type CategoryCardProps = {
 };
 
 export function CategoryCard({ id, name, count, color = "blue", className }: CategoryCardProps) {
+  const navigate = useNavigate();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Determine user role for proper navigation
+    const getUserRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (!error && data) {
+        setUserRole(data.role);
+      }
+    };
+    
+    getUserRole();
+  }, []);
+  
+  const handleCategoryClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Navigate to the appropriate route based on user role
+    navigate(`/documents?category_id=${id}`);
+  };
+
   const colorMap: Record<string, string> = {
     blue: "bg-blue-50 text-blue-600 border-blue-200",
     green: "bg-green-50 text-green-600 border-green-200",
@@ -22,7 +54,8 @@ export function CategoryCard({ id, name, count, color = "blue", className }: Cat
 
   return (
     <Link 
-      to={`/categories/${id}`}
+      to={`/documents?category_id=${id}`}
+      onClick={handleCategoryClick}
       className={cn(
         "group relative overflow-hidden rounded-xl border border-border bg-card p-5 transition-all duration-300",
         "hover:shadow-elevation hover:-translate-y-1",
@@ -44,8 +77,14 @@ export function CategoryCard({ id, name, count, color = "blue", className }: Cat
       <div className="mt-5">
         <h3 className="font-medium text-lg tracking-tight">{name}</h3>
         <div className="mt-1 text-muted-foreground text-sm line-clamp-2">
-          <FileText className="inline-block h-3.5 w-3.5 mr-1.5 align-text-bottom" />
-          Explorez tous les documents
+          {count > 0 ? (
+            <>
+              <FileText className="inline-block h-3.5 w-3.5 mr-1.5 align-text-bottom" />
+              Explorez tous les documents
+            </>
+          ) : (
+            "Aucun document disponible dans cette catégorie."
+          )}
         </div>
       </div>
 

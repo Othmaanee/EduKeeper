@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -51,15 +51,25 @@ import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function DocumentGrid() {
+type DocumentGridProps = {
+  initialCategoryId?: string | null;
+}
+
+export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState(initialCategoryId || "all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
   const queryClient = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialCategoryId) {
+      setSelectedCategory(initialCategoryId);
+    }
+  }, [initialCategoryId]);
 
   useQuery({
     queryKey: ['currentUser'],
@@ -223,7 +233,7 @@ export function DocumentGrid() {
       return matchesSearch;
     }
     
-    return matchesSearch && doc.categories?.nom === selectedCategory;
+    return matchesSearch && doc.category_id === selectedCategory;
   });
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
@@ -261,7 +271,7 @@ export function DocumentGrid() {
                 <SelectLabel>Catégories</SelectLabel>
                 <SelectItem value="all">Toutes</SelectItem>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.nom}>
+                  <SelectItem key={category.id} value={category.id}>
                     {category.nom}
                   </SelectItem>
                 ))}
@@ -318,9 +328,9 @@ export function DocumentGrid() {
         </div>
       )}
 
-      {!documentsLoading && !documentsError && sortedDocuments.length > 0 && (
+      {!documentsLoading && !documentsError && filteredDocuments.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedDocuments.map((doc) => (
+          {filteredDocuments.map((doc) => (
             <Card
               key={doc.id}
               className={`overflow-hidden hover:shadow-md transition-shadow relative ${
@@ -425,11 +435,16 @@ export function DocumentGrid() {
         </div>
       )}
 
-      {!documentsLoading && !documentsError && sortedDocuments.length === 0 && (
+      {!documentsLoading && !documentsError && filteredDocuments.length === 0 && (
         <div className="text-center text-muted-foreground py-8">
           <FileText className="mx-auto h-10 w-10 mb-4" />
-          <p>Aucun document trouvé.</p>
-          <p className="mt-2">Vous pouvez importer des documents en cliquant sur "Importer" dans la barre de navigation.</p>
+          <p>Aucun document trouvé {selectedCategory !== "all" && "dans cette catégorie"}.</p>
+          <p className="mt-2">
+            {selectedCategory !== "all" 
+              ? "Essayez une autre catégorie ou importez un document dans cette catégorie."
+              : "Vous pouvez importer des documents en cliquant sur \"Importer\" dans la barre de navigation."
+            }
+          </p>
           <Button variant="outline" className="mt-4" asChild>
             <Link to="/upload">Importer un document</Link>
           </Button>
