@@ -1,10 +1,75 @@
 
 import { Layout } from '../components/Layout';
 import { DocumentGrid } from '../components/DocumentGrid';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 const DocumentsPage = () => {
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Vérifier le rôle de l'utilisateur au chargement de la page
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        // Vérifier si l'utilisateur est connecté
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          // Rediriger vers la page de connexion si pas de session
+          navigate('/login');
+          return;
+        }
+
+        // Récupérer le rôle de l'utilisateur depuis la table users
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (error) {
+          console.error("Erreur lors de la vérification du rôle:", error);
+          navigate('/');
+          return;
+        }
+        
+        setUserRole(userData.role);
+        
+        // Rediriger vers la page d'accueil si le rôle n'est pas "user"
+        if (userData.role !== 'user') {
+          navigate('/');
+        }
+      } catch (error) {
+        console.error("Erreur:", error);
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserRole();
+  }, [navigate]);
+
+  // Afficher un écran de chargement pendant la vérification
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // N'afficher le contenu que si l'utilisateur a le rôle "user"
+  if (userRole !== 'user') {
+    return null;
+  }
+
   return (
     <Layout>
       <div className="container py-6">

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -13,7 +12,8 @@ import {
   Trash,
   Loader2,
   User,
-  Share
+  Share,
+  Eye
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function DocumentGrid() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,7 +61,6 @@ export function DocumentGrid() {
   const queryClient = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Récupérer l'ID de l'utilisateur actuel
   useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -73,7 +73,6 @@ export function DocumentGrid() {
     }
   });
 
-  // Utiliser React Query pour récupérer les documents
   const { 
     data: documents = [], 
     isLoading: documentsLoading,
@@ -84,9 +83,6 @@ export function DocumentGrid() {
     queryFn: async () => {
       console.log("🔍 Fetching documents");
       
-      // Grâce aux politiques RLS, cette requête retournera automatiquement:
-      // 1. Les documents de l'utilisateur connecté
-      // 2. Les documents partagés (is_shared = true)
       const { data, error } = await supabase
         .from("documents")
         .select("*, categories(id, nom)");
@@ -101,7 +97,6 @@ export function DocumentGrid() {
     }
   });
 
-  // Récupérer les catégories
   const {
     data: categories = [],
     isLoading: categoriesLoading,
@@ -124,25 +119,21 @@ export function DocumentGrid() {
     }
   });
 
-  // Mutation pour supprimer un document (uniquement pour les documents personnels)
   const deleteMutation = useMutation({
     mutationFn: async (document: any) => {
       if (!document) throw new Error("Document data is required");
       
-      // Vérifier que c'est bien un document appartenant à l'utilisateur
       if (document.user_id !== currentUserId) {
         throw new Error("Vous ne pouvez pas supprimer un document partagé");
       }
       
       try {
-        // Extraire le chemin relatif depuis l'URL publique
         const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
   
         if (!filePath) {
           throw new Error("Impossible de récupérer le chemin du fichier");
         }
   
-        // 1️⃣ Supprimer le fichier du bucket
         const { error: storageError } = await supabase.storage
           .from("documents")
           .remove([filePath]);
@@ -152,7 +143,6 @@ export function DocumentGrid() {
           throw new Error(storageError.message);
         }
   
-        // 2️⃣ Supprimer l'entrée dans la base de données
         const { error: dbError } = await supabase
           .from("documents")
           .delete()
@@ -186,7 +176,6 @@ export function DocumentGrid() {
   });
 
   const confirmDelete = (document: any) => {
-    // Ne permet de supprimer que les documents personnels
     if (document.user_id !== currentUserId) {
       toast.error("Vous ne pouvez pas supprimer un document partagé");
       return;
@@ -218,25 +207,25 @@ export function DocumentGrid() {
     }
   };
 
+  const handleViewDocument = (url: string) => {
+    window.open(url, '_blank');
+    toast.success("Document ouvert dans un nouvel onglet");
+  };
+
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === "asc" ? "desc" : "asc");
   };
 
-  // Filtrer les documents
   const filteredDocuments = documents.filter((doc) => {
-    // Toujours filtrer par terme de recherche
     const matchesSearch = doc.nom.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Si "all" categories est sélectionné, filtrer uniquement par terme de recherche
     if (selectedCategory === "all") {
       return matchesSearch;
     }
     
-    // Sinon, filtrer par terme de recherche et catégorie
     return matchesSearch && doc.categories?.nom === selectedCategory;
   });
 
-  // Trier les documents
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
     const aField = a[sortField];
     const bField = b[sortField];
@@ -245,14 +234,12 @@ export function DocumentGrid() {
     return 0;
   });
 
-  // Vérifier si un document appartient à l'utilisateur connecté
   const isPersonalDocument = (doc: any) => {
     return doc.user_id === currentUserId;
   };
 
   return (
     <div className="space-y-6">
-      {/* Filtres */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -307,7 +294,6 @@ export function DocumentGrid() {
         </div>
       </div>
 
-      {/* Loading State */}
       {documentsLoading && (
         <div className="text-center py-8">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
@@ -315,7 +301,6 @@ export function DocumentGrid() {
         </div>
       )}
 
-      {/* Error State */}
       {documentsError && (
         <div className="text-center py-8">
           <div className="mx-auto h-10 w-10 text-destructive">❌</div>
@@ -333,7 +318,6 @@ export function DocumentGrid() {
         </div>
       )}
 
-      {/* Grille */}
       {!documentsLoading && !documentsError && sortedDocuments.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedDocuments.map((doc) => (
@@ -357,61 +341,90 @@ export function DocumentGrid() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="p-4 pt-0 flex items-center justify-between">
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <CalendarIcon className="h-3.5 w-3.5 mr-1" />
-                  {new Date(doc.created_at).toLocaleDateString("fr-FR")}
-                </div>
-                {isPersonalDocument(doc) ? (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    Personnel
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
-                    <Share className="h-3 w-3" />
-                    Partagé
-                  </Badge>
-                )}
-              </CardFooter>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 text-muted-foreground"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={() => handleDownload(doc.url, doc.nom)}
-                    className="cursor-pointer"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger
-                  </DropdownMenuItem>
-                  
-                  {/* Option de suppression uniquement pour les documents personnels */}
-                  {isPersonalDocument(doc) && (
-                    <DropdownMenuItem 
-                      onClick={() => confirmDelete(doc)}
-                      className="cursor-pointer text-destructive"
-                    >
-                      <Trash className="h-4 w-4 mr-2" />
-                      Supprimer
-                    </DropdownMenuItem>
+              <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+                <div className="flex justify-between items-center w-full">
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                    {new Date(doc.created_at).toLocaleDateString("fr-FR")}
+                  </div>
+                  {isPersonalDocument(doc) ? (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      Personnel
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
+                      <Share className="h-3 w-3" />
+                      Partagé
+                    </Badge>
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </div>
+                
+                <div className="flex w-full gap-2 mt-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleViewDocument(doc.url)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Ouvrir le document dans un nouvel onglet</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleDownload(doc.url, doc.nom)}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Télécharger
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Télécharger le document</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  {isPersonalDocument(doc) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => confirmDelete(doc)}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Supprimer ce document</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </CardFooter>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Aucune donnée */}
       {!documentsLoading && !documentsError && sortedDocuments.length === 0 && (
         <div className="text-center text-muted-foreground py-8">
           <FileText className="mx-auto h-10 w-10 mb-4" />
@@ -423,7 +436,6 @@ export function DocumentGrid() {
         </div>
       )}
 
-      {/* Dialog de confirmation */}
       <AlertDialog 
         open={deleteDialogOpen} 
         onOpenChange={(isOpen) => {
