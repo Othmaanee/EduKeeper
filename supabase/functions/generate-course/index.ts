@@ -17,11 +17,14 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Fonction generate-course appelée");
+    
     // Parse the request body safely
     let subject;
     try {
       const body = await req.json();
       subject = body.subject;
+      console.log("Sujet reçu:", subject);
     } catch (parseError) {
       console.error('Erreur de parsing du JSON:', parseError);
       return new Response(
@@ -37,6 +40,7 @@ serve(async (req) => {
     }
 
     if (!subject) {
+      console.error('Aucun sujet fourni');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -44,6 +48,21 @@ serve(async (req) => {
         }),
         { 
           status: 400, 
+          headers: corsHeaders
+        }
+      );
+    }
+
+    console.log("Clé API OpenAI présente:", !!openAIApiKey);
+    if (!openAIApiKey) {
+      console.error('Clé API OpenAI manquante');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Clé API OpenAI manquante. Veuillez configurer la clé dans les secrets de la fonction Edge.' 
+        }),
+        { 
+          status: 500, 
           headers: corsHeaders
         }
       );
@@ -58,6 +77,7 @@ serve(async (req) => {
     `;
 
     try {
+      console.log("Appel à l'API OpenAI...");
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -103,6 +123,7 @@ serve(async (req) => {
 
       const data = await response.json();
       const courseContent = data.choices[0].message.content;
+      console.log("Cours généré avec succès");
 
       return new Response(
         JSON.stringify({ 

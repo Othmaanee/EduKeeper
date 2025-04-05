@@ -15,7 +15,15 @@ type FormValues = {
 };
 
 async function generateCourse(subject: string): Promise<string> {
-  const response = await fetch(`${window.location.origin}/functions/v1/generate-course`, {
+  console.log("Appel à la fonction generate-course avec le sujet:", subject);
+
+  // URL complète de la fonction Edge dans Supabase
+  const supabaseUrl = "https://mtbcrbfchoqterxevvft.supabase.co";
+  const url = `${supabaseUrl}/functions/v1/generate-course`;
+  
+  console.log("URL de la fonction:", url);
+  
+  const response = await fetch(url, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
@@ -24,11 +32,28 @@ async function generateCourse(subject: string): Promise<string> {
     body: JSON.stringify({ subject }),
   });
 
+  console.log("Statut de la réponse:", response.status);
+  
   if (!response.ok) {
-    throw new Error("Erreur lors de la génération du cours");
+    const errorText = await response.text();
+    console.error("Texte de l'erreur:", errorText);
+    
+    let errorMessage = "Erreur lors de la génération du cours";
+    try {
+      const errorData = JSON.parse(errorText);
+      if (errorData && errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch (e) {
+      // Si on ne peut pas parser le JSON, on garde le message d'erreur par défaut
+      console.error("Erreur lors du parsing de la réponse d'erreur:", e);
+    }
+    
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
+  console.log("Données reçues:", data);
 
   if (!data.success) {
     throw new Error(data.error || "Erreur inconnue lors de la génération");
