@@ -20,9 +20,10 @@ const LoginPage = () => {
   const [prenom, setPrenom] = useState('');
   const [dateNaissance, setDateNaissance] = useState('');
   const [classe, setClasse] = useState('');
-  const [role, setRole] = useState('eleve');
+  const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [validationError, setValidationError] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -68,9 +69,8 @@ const LoginPage = () => {
     return role === 'eleve';
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const validateForm = () => {
+    setValidationError('');
 
     // Validation des champs
     const trimmedEmail = email.trim();
@@ -80,29 +80,44 @@ const LoginPage = () => {
     
     // Vérifications de base
     if (!trimmedEmail || !password || !trimmedNom || !trimmedPrenom || !dateNaissance) {
-      toast({
-        title: "Erreur de validation",
-        description: "Veuillez remplir tous les champs obligatoires.",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
+      setValidationError("Veuillez remplir tous les champs obligatoires.");
+      return false;
+    }
+
+    // Vérification pour le rôle
+    if (!role) {
+      setValidationError("Veuillez sélectionner votre rôle pour continuer.");
+      return false;
     }
 
     // Vérification spécifique pour la classe si l'utilisateur est un élève
     if (isClasseRequired() && !trimmedClasse) {
-      toast({
-        title: "Erreur de validation",
-        description: "La classe est obligatoire pour les élèves.",
-        variant: "destructive",
-      });
-      setLoading(false);
+      setValidationError("La classe est obligatoire pour les élèves.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation du formulaire
+    if (!validateForm()) {
       return;
     }
+    
+    setLoading(true);
+
+    // Validation des champs
+    const trimmedEmail = email.trim();
+    const trimmedNom = nom.trim();
+    const trimmedPrenom = prenom.trim();
+    const trimmedClasse = classe.trim();
 
     try {
       // Map le rôle sélectionné au rôle à envoyer dans les métadonnées
-      const userRole = role === 'enseignant' ? 'enseignant' : 'user';
+      const userRole = role || 'user'; // utiliser 'user' comme valeur par défaut si aucun rôle n'est sélectionné
       
       // Créer l'utilisateur avec Supabase Auth et envoyer toutes les données via les métadonnées
       const { error } = await supabase.auth.signUp({
@@ -133,7 +148,8 @@ const LoginPage = () => {
       setPrenom('');
       setDateNaissance('');
       setClasse('');
-      setRole('eleve');
+      setRole('');
+      setValidationError('');
       
       // Basculer vers l'onglet de connexion - Corrigé le problème de TypeScript
       const loginTabButton = document.querySelector('[data-state="inactive"][value="login"]');
@@ -212,6 +228,12 @@ const LoginPage = () => {
 
             <TabsContent value="register">
               <form onSubmit={handleSignUp} className="space-y-4">
+                {validationError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                    {validationError}
+                  </div>
+                )}
+                
                 <div className="space-y-2">
                   <Label htmlFor="reg-email">Email</Label>
                   <Input 
@@ -270,8 +292,12 @@ const LoginPage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Vous êtes</Label>
-                  <Select value={role} onValueChange={setRole}>
+                  <Label htmlFor="role">Vous êtes <span className="text-red-500">*</span></Label>
+                  <Select 
+                    value={role} 
+                    onValueChange={setRole}
+                    required
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Sélectionnez votre profil" />
                     </SelectTrigger>
