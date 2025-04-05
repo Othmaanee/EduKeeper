@@ -77,7 +77,18 @@ export function TeacherDashboard() {
           .eq('id', user.id)
           .single();
 
-        if (userError || !userData || userData.role !== 'enseignant') {
+        if (userError) {
+          console.error("Error fetching user role:", userError);
+          toast({
+            title: "Erreur",
+            description: "Impossible de vérifier votre rôle: " + userError.message,
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+        
+        if (!userData || userData.role !== 'enseignant') {
           toast({
             title: "Accès refusé",
             description: "Cette page est réservée aux enseignants.",
