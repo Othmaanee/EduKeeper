@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -9,9 +9,17 @@ import { Loader2, BookOpen } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import html2pdf from 'html2pdf.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery } from '@tanstack/react-query';
 
 type FormValues = {
   subject: string;
+  categoryId: string;
+};
+
+type Category = {
+  id: string;
+  nom: string;
 };
 
 // Fonction pour nettoyer le nom du fichier
@@ -193,7 +201,7 @@ const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string
   return publicUrlData.publicUrl;
 };
 
-async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: string) {
+async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: string, categoryId: string) {
   if (!pdfUrl || !subject || !userId) {
     throw new Error("Données manquantes pour l'enregistrement du cours");
   }
@@ -202,6 +210,7 @@ async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: str
     nom: `Cours : ${subject}`,
     url: pdfUrl,
     user_id: userId,
+    category_id: categoryId,
     created_at: new Date().toISOString(),
   });
 
@@ -213,6 +222,28 @@ async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: str
   console.log("Cours enregistré avec succès dans la base de données");
 }
 
+// Fonction pour récupérer les catégories de l'utilisateur
+const fetchUserCategories = async (): Promise<Category[]> => {
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session?.session?.user?.id;
+  
+  if (!userId) {
+    throw new Error("Utilisateur non connecté");
+  }
+  
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, nom")
+    .eq("user_id", userId);
+    
+  if (error) {
+    console.error("Erreur lors de la récupération des catégories:", error);
+    throw error;
+  }
+  
+  return data || [];
+};
+
 const GeneratePage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
@@ -220,14 +251,34 @@ const GeneratePage = () => {
   const form = useForm<FormValues>({
     defaultValues: {
       subject: '',
+      categoryId: '',
     },
+    mode: 'onSubmit'
   });
+
+  // Récupérer les catégories
+  const { data: categories, isLoading: loadingCategories, error: categoriesError } = useQuery({
+    queryKey: ['userCategories'],
+    queryFn: fetchUserCategories,
+  });
+
+  // Vérifier s'il y a des catégories disponibles
+  const hasCategories = categories && categories.length > 0;
 
   const onSubmit = async (data: FormValues) => {
     if (!data.subject.trim()) {
       toast({
         title: "Erreur",
         description: "Veuillez saisir un sujet",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data.categoryId) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une catégorie",
         variant: "destructive",
       });
       return;
@@ -270,7 +321,7 @@ const GeneratePage = () => {
       const pdfUrl = await uploadPdfToStorage(pdfBlob, data.subject, userId);
       
       // Étape 4: Enregistrer dans la base de données
-      await saveCourseToSupabase(pdfUrl, data.subject, userId);
+      await saveCourseToSupabase(pdfUrl, data.subject, userId, data.categoryId);
       
       toast({
         title: "Succès",
@@ -299,43 +350,98 @@ const GeneratePage = () => {
         </div>
         
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sujet du cours</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Par exemple : Révolution Française, Système solaire, Théorème de Pythagore..." 
-                        {...field} 
-                        disabled={isGenerating}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <span>Génération en cours...</span>
-                    </>
-                  ) : (
-                    <span>Générer un cours</span>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
+          {categoriesError ? (
+            <div className="p-4 mb-4 text-red-700 bg-red-100 rounded-md">
+              Erreur de chargement des catégories. Veuillez rafraîchir la page.
+            </div>
+          ) : !hasCategories && !loadingCategories ? (
+            <div className="p-4 mb-4 text-amber-700 bg-amber-100 rounded-md">
+              <p className="font-medium">Aucune catégorie disponible</p>
+              <p>Veuillez d'abord créer une catégorie avant de générer un cours.</p>
+              <Button 
+                variant="outline" 
+                className="mt-2" 
+                onClick={() => navigate("/categories")}
+              >
+                Créer une catégorie
+              </Button>
+            </div>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sujet du cours</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Par exemple : Révolution Française, Système solaire, Théorème de Pythagore..." 
+                            {...field} 
+                            disabled={isGenerating || !hasCategories}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Catégorie</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value} 
+                          disabled={isGenerating || loadingCategories || !hasCategories}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner une catégorie" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {loadingCategories ? (
+                              <SelectItem value="loading" disabled>
+                                Chargement...
+                              </SelectItem>
+                            ) : (
+                              categories?.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.nom}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={isGenerating || !hasCategories || loadingCategories}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>Génération en cours...</span>
+                      </>
+                    ) : (
+                      <span>Générer un cours</span>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
           
           {isGenerating && (
             <div className="mt-6 p-4 bg-secondary/20 rounded-md">
@@ -349,6 +455,7 @@ const GeneratePage = () => {
             <h2 className="text-sm font-medium text-muted-foreground mb-2">Comment ça fonctionne</h2>
             <ul className="text-sm list-disc pl-5 text-muted-foreground space-y-1">
               <li>Saisissez un sujet précis pour obtenir un meilleur cours</li>
+              <li>Sélectionnez une catégorie pour organiser vos documents</li>
               <li>Le cours sera généré en format PDF et automatiquement enregistré dans vos documents</li>
               <li>Vous pourrez retrouver et consulter ce cours dans la section Documents</li>
             </ul>
