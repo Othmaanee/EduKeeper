@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMathJaxTypeset } from '@/hooks/useMathJaxTypeset';
 
 const detectFileType = (url: string, name: string) => {
   const extension = url.split('.').pop()?.toUpperCase() || 
@@ -34,8 +35,11 @@ export function DocumentView() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [category, setCategory] = useState('');
+  const [documentContent, setDocumentContent] = useState<string | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  const contentRef = useMathJaxTypeset(documentContent);
   
   const { 
     data: documentData, 
@@ -135,6 +139,33 @@ export function DocumentView() {
       setCategory(documentData.category_id);
     }
   }, [documentData]);
+  
+  useEffect(() => {
+    const fetchDocumentContent = async () => {
+      if (!documentData) return;
+      
+      const fileType = detectFileType(documentData.url, documentData.nom);
+      
+      if (['HTML', 'TXT', 'MD', 'PDF'].includes(fileType)) {
+        try {
+          if (documentData.content) {
+            setDocumentContent(documentData.content);
+            return;
+          }
+          
+          const response = await fetch(documentData.url);
+          if (response.ok) {
+            const text = await response.text();
+            setDocumentContent(text);
+          }
+        } catch (error) {
+          console.error('Error fetching document content:', error);
+        }
+      }
+    };
+    
+    fetchDocumentContent();
+  }, [documentData]);
 
   function formatDate(dateString: string) {
     const date = new Date(dateString);
@@ -210,8 +241,8 @@ export function DocumentView() {
   }
 
   const fileType = detectFileType(documentData.url, documentData.nom);
-
   const currentCategory = categories.find(cat => cat.id === documentData.category_id);
+  const hasLatexContent = documentContent && (documentContent.includes('$$') || documentContent.includes('\\('));
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
@@ -259,12 +290,18 @@ export function DocumentView() {
           </Badge>
         </div>
         
-        <div className="p-8 flex items-center justify-center min-h-[400px] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNDB2NDBoLTQweiIvPjxwYXRoIGQ9Ik00MCAyMGMwIDExLjA0Ni04Ljk1NCAyMC0yMCAyMHMtMjAtOC45NTQtMjAtMjAgOC45NTQtMjAgMjAtMjAgMjAgOC45NTQgMjAgMjB6bS0yMCAyYy0xMC40OTMgMC0xOS0zLjEzNC0xOS03cy44MzMtNyAxOS03IDE5IDMuMTM0IDE5IDctOC41MDcgNy0xOSA3eiIgZmlsbD0iI2YxZjVmOSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9nPjwvc3ZnPg==')]">
+        <div className="p-8 flex flex-col items-center justify-center min-h-[400px] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDBoNDB2NDBoLTQweiIvPjxwYXRoIGQ9Ik00MCAyMGMwIDExLjA0Ni04Ljk1NCAyMC0yMCAyMHMtMjAtOC45NTQtMjAtMjAgOC45NTQtMjAgMjAtMjAgMjAgOC45NTQgMjAgMjB6bS0yMCAyYy0xMC40OTMgMC0xOS0zLjEzNC0xOS03cy44MzMtNyAxOS03IDE5IDMuMTM0IDE5IDctOC41MDcgNy0xOSA3eiIgZmlsbD0iI2YxZjVmOSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9nPjwvc3ZnPg==')]">
           {['JPG', 'JPEG', 'PNG', 'GIF'].includes(fileType) ? (
             <img 
               src={documentData.url} 
               alt={documentData.nom} 
               className="max-h-[500px] max-w-full object-contain" 
+            />
+          ) : documentContent ? (
+            <div 
+              ref={contentRef as React.RefObject<HTMLDivElement>}
+              className="w-full px-4 prose prose-sm md:prose-base lg:prose-lg max-w-full prose-headings:text-primary prose-a:text-primary"
+              dangerouslySetInnerHTML={{ __html: documentContent }}
             />
           ) : (
             <div className="text-center">
