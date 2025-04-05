@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -62,6 +61,9 @@ export function Layout({ children }: LayoutProps) {
         fetchUserRole(session.user.id);
       } else {
         setLoading(false);
+        if (location.pathname !== '/login') {
+          navigate('/login');
+        }
       }
     });
 
@@ -100,9 +102,10 @@ export function Layout({ children }: LayoutProps) {
       } else if (data) {
         setUserRole(data.role);
       }
+      
+      setLoading(false);
     } catch (error) {
       console.error("Failed to fetch user role:", error);
-    } finally {
       setLoading(false);
     }
   };

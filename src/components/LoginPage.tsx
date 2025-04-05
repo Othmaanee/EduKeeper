@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
@@ -31,27 +30,55 @@ const LoginPage = () => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate('/', { replace: true });
+        redirectBasedOnRole(data.session.user.id);
+      } else {
+        setAuthChecked(true);
       }
-      setAuthChecked(true);
     };
     
     checkSession();
   }, [navigate]);
+
+  const redirectBasedOnRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        navigate('/', { replace: true });
+        return;
+      }
+      
+      if (data && data.role === 'enseignant') {
+        navigate('/dashboard-enseignant', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    } catch (error) {
+      console.error("Error during role-based redirection:", error);
+      navigate('/', { replace: true });
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
       
-      navigate('/', { replace: true });
+      if (data.user) {
+        await redirectBasedOnRole(data.user.id);
+      }
       
     } catch (error: any) {
       toast({
@@ -59,12 +86,10 @@ const LoginPage = () => {
         description: error.message || "Impossible de se connecter. Veuillez vérifier vos identifiants.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
 
-  // Déterminer si la classe est requise selon le rôle
   const isClasseRequired = () => {
     return role === 'eleve';
   };
@@ -72,25 +97,21 @@ const LoginPage = () => {
   const validateForm = () => {
     setValidationError('');
 
-    // Validation des champs
     const trimmedEmail = email.trim();
     const trimmedNom = nom.trim();
     const trimmedPrenom = prenom.trim();
     const trimmedClasse = classe.trim();
     
-    // Vérifications de base
     if (!trimmedEmail || !password || !trimmedNom || !trimmedPrenom || !dateNaissance) {
       setValidationError("Veuillez remplir tous les champs obligatoires.");
       return false;
     }
 
-    // Vérification pour le rôle
     if (!role) {
       setValidationError("Veuillez sélectionner votre rôle pour continuer.");
       return false;
     }
 
-    // Vérification spécifique pour la classe si l'utilisateur est un élève
     if (isClasseRequired() && !trimmedClasse) {
       setValidationError("La classe est obligatoire pour les élèves.");
       return false;
@@ -102,24 +123,20 @@ const LoginPage = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation du formulaire
     if (!validateForm()) {
       return;
     }
     
     setLoading(true);
 
-    // Validation des champs
     const trimmedEmail = email.trim();
     const trimmedNom = nom.trim();
     const trimmedPrenom = prenom.trim();
     const trimmedClasse = classe.trim();
 
     try {
-      // Map le rôle sélectionné au rôle à envoyer dans les métadonnées
-      const userRole = role || 'user'; // utiliser 'user' comme valeur par défaut si aucun rôle n'est sélectionné
+      const userRole = role || 'user';
       
-      // Créer l'utilisateur avec Supabase Auth et envoyer toutes les données via les métadonnées
       const { error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
@@ -129,7 +146,7 @@ const LoginPage = () => {
             prenom: trimmedPrenom,
             date_naissance: dateNaissance,
             classe: isClasseRequired() ? trimmedClasse : null,
-            role: userRole // Envoyer le rôle sélectionné dans les métadonnées
+            role: userRole
           }
         }
       });
@@ -141,7 +158,6 @@ const LoginPage = () => {
         description: "Compte créé avec succès, veuillez vérifier votre email.",
       });
 
-      // Réinitialiser les champs du formulaire
       setEmail('');
       setPassword('');
       setNom('');
@@ -151,7 +167,6 @@ const LoginPage = () => {
       setRole('');
       setValidationError('');
       
-      // Basculer vers l'onglet de connexion - Corrigé le problème de TypeScript
       const loginTabButton = document.querySelector('[data-state="inactive"][value="login"]');
       if (loginTabButton instanceof HTMLElement) {
         loginTabButton.click();
