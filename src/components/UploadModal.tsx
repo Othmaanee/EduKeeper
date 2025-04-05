@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 type UploadFile = {
   id: string;
@@ -39,6 +39,7 @@ type UploadFile = {
   type: string;
   size: number;
   progress: number;
+  supabaseId?: string; // Added to store the Supabase document ID
 };
 
 export function UploadComponent() {
@@ -104,7 +105,7 @@ export function UploadComponent() {
     }
   };
 
-  const uploadFileToSupabase = async (file: File) => {
+  const uploadFileToSupabase = async (file: File, fileId: string) => {
     // 1️⃣ Vérifier si une session utilisateur existe
     const { data: session } = await supabase.auth.getSession();
     console.log("Session actuelle :", session);
@@ -125,46 +126,65 @@ export function UploadComponent() {
       return;
     }
 
-    // 3️⃣ Envoi du fichier à Supabase Storage
-    const { data, error: uploadError } = await supabase.storage
-      .from("documents") // Remplace "documents" si ton bucket a un autre nom
-      .upload(`public/${file.name}`, file);
+    try {
+      // 3️⃣ Envoi du fichier à Supabase Storage
+      const filePath = `public/${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("documents") // Remplace "documents" si ton bucket a un autre nom
+        .upload(filePath, file);
 
-    if (uploadError) {
-      console.error("❌ Erreur d'upload :", uploadError);
-      toast.error("Échec de l'upload !");
-      return;
-    }
+      if (uploadError) {
+        console.error("❌ Erreur d'upload :", uploadError);
+        toast.error(`Échec de l'upload : ${uploadError.message}`);
+        return;
+      }
 
-    console.log("✅ Fichier uploadé avec succès :", data);
-    toast.success("Fichier importé avec succès !");
+      console.log("✅ Fichier uploadé avec succès :", uploadData);
 
-    const { data: publicUrlData } = supabase.storage
-      .from("documents")
-      .getPublicUrl(`public/${file.name}`);
+      // 4️⃣ Récupération de l'URL publique
+      const { data: publicUrlData } = supabase.storage
+        .from("documents")
+        .getPublicUrl(filePath);
 
-    const publicUrl = publicUrlData.publicUrl;
+      const publicUrl = publicUrlData.publicUrl;
 
-    console.log("🧪 ID de l'utilisateur :", user?.id);
+      // 5️⃣ Enregistrement dans la table documents
+      const { data: documentData, error: insertError } = await supabase
+        .from("documents")
+        .insert([
+          {
+            nom: file.name,
+            url: publicUrl,
+            category_id: category || null,
+            user_id: user.id,
+          },
+        ])
+        .select()
+        .single();
 
-    console.log("📎 ID de la catégorie sélectionnée :", category);
+      if (insertError) {
+        console.error(
+          "❌ Erreur d'insertion dans la base :",
+          insertError.message
+        );
+        toast.error(`Échec de l'enregistrement : ${insertError.message}`);
+        return;
+      }
 
-    const { error: insertError } = await supabase.from("documents").insert([
-      {
-        nom: file.name,
-        url: publicUrl,
-        category_id: category || null, // ⚠️ attention ici on met bien category_id et pas categorie
-        user_id: user.id,
-      },
-    ]);
-
-    if (insertError) {
-      console.error(
-        "❌ Erreur d'insertion dans la base :",
-        insertError.message
+      // 6️⃣ Mettre à jour l'état local avec l'ID Supabase
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === fileId
+            ? { ...f, progress: 100, supabaseId: documentData.id }
+            : f
+        )
       );
-    } else {
-      console.log("✅ Document inséré dans la base !");
+
+      console.log("✅ Document inséré dans la base !", documentData);
+      toast.success("Fichier importé avec succès !");
+    } catch (error: any) {
+      console.error("❌ Erreur lors de l'upload :", error);
+      toast.error(`Une erreur est survenue : ${error.message}`);
     }
   };
 
@@ -180,8 +200,15 @@ export function UploadComponent() {
     setFiles((prev) => [...prev, ...newFiles]);
 
     // 📌 Pour chaque fichier, on va l'envoyer à Supabase
-    for (const file of fileList) {
-      await uploadFileToSupabase(file);
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const fileId = newFiles[i].id;
+      
+      // Simuler le début de progression
+      simulateUploadProgress(fileId);
+      
+      // Upload réel
+      await uploadFileToSupabase(file, fileId);
     }
   };
 
@@ -189,13 +216,9 @@ export function UploadComponent() {
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.floor(Math.random() * 10) + 1;
-      if (progress >= 100) {
-        progress = 100;
+      if (progress >= 95) { // On s'arrête à 95% pour que le succès final soit visible
+        progress = 95;
         clearInterval(interval);
-
-        setTimeout(() => {
-          toast.success(`Le fichier a été importé avec succès.`);
-        }, 500);
       }
 
       setFiles((prev) =>
@@ -219,6 +242,56 @@ export function UploadComponent() {
     setIsDeleting(true);
     
     try {
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      
+      if (!userId) {
+        toast.error("Vous devez être connecté pour supprimer un fichier.");
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        return;
+      }
+      
+      // 1. Supprimer le fichier du storage si possible
+      const storageFilePath = `public/${fileToDelete.name}`;
+      const { error: storageError } = await supabase.storage
+        .from("documents")
+        .remove([storageFilePath]);
+        
+      if (storageError) {
+        console.error("❌ Erreur suppression fichier storage :", storageError);
+        // On continue même si l'erreur de storage car peut-être le fichier n'existe plus
+      }
+      
+      // 2. Supprimer l'entrée de la base de données
+      let deleteQuery;
+      
+      if (fileToDelete.supabaseId) {
+        // Si on a l'ID Supabase, on l'utilise (plus sûr)
+        deleteQuery = supabase
+          .from("documents")
+          .delete()
+          .eq("id", fileToDelete.supabaseId)
+          .eq("user_id", userId); // Sécurité: vérifier que c'est bien son document
+      } else {
+        // Sinon on essaie de trouver par nom (moins précis)
+        deleteQuery = supabase
+          .from("documents")
+          .delete()
+          .eq("nom", fileToDelete.name)
+          .eq("user_id", userId);
+      }
+      
+      const { error: dbError } = await deleteQuery;
+      
+      if (dbError) {
+        console.error("❌ Erreur suppression entrée DB :", dbError);
+        toast.error(`Erreur lors de la suppression: ${dbError.message}`);
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        return;
+      }
+      
       // Supprimer du state local
       removeFile(fileToDelete.id);
       
