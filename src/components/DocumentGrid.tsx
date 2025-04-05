@@ -11,7 +11,9 @@ import {
   MoreHorizontal,
   Download,
   Trash,
-  Loader2
+  Loader2,
+  User,
+  Share
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,6 +58,20 @@ export function DocumentGrid() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
   const queryClient = useQueryClient();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Récupérer l'ID de l'utilisateur actuel
+  useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      const userId = session?.user?.id || null;
+      setCurrentUserId(userId);
+      return userId;
+    }
+  });
 
   // Utiliser React Query pour récupérer les documents
   const { 
@@ -67,26 +83,13 @@ export function DocumentGrid() {
     queryKey: ['documents'],
     queryFn: async () => {
       console.log("🔍 Fetching documents");
-      const { data: session, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError) {
-        console.error("❌ Session error:", sessionError);
-        throw new Error(sessionError.message);
-      }
-      
-      const userId = session?.session?.user?.id;
-      console.log("👤 User ID:", userId);
-      
-      // For now, we'll fetch all documents if we can't get a user ID
-      const query = supabase
+      // Grâce aux politiques RLS, cette requête retournera automatiquement:
+      // 1. Les documents de l'utilisateur connecté
+      // 2. Les documents partagés (is_shared = true)
+      const { data, error } = await supabase
         .from("documents")
-        .select("id, nom, url, created_at, user_id, category_id, categories(id, nom)");
-      
-      if (userId) {
-        query.eq("user_id", userId);
-      }
-      
-      const { data, error } = await query;
+        .select("*, categories(id, nom)");
       
       if (error) {
         console.error("❌ Error fetching documents:", error);
@@ -106,24 +109,10 @@ export function DocumentGrid() {
     queryKey: ['categories'],
     queryFn: async () => {
       console.log("🔍 Fetching categories");
-      const { data: session, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError) {
-        console.error("❌ Session error:", sessionError);
-        throw new Error(sessionError.message);
-      }
-      
-      const userId = session?.session?.user?.id;
-      console.log("👤 User ID for categories:", userId);
-      
-      // For now, we'll fetch all categories if we can't get a user ID
-      const query = supabase.from("categories").select("id, nom");
-      
-      if (userId) {
-        query.eq("user_id", userId);
-      }
-      
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, nom");
       
       if (error) {
         console.error("❌ Error fetching categories:", error);
@@ -135,10 +124,15 @@ export function DocumentGrid() {
     }
   });
 
-  // Mutation pour supprimer un document
+  // Mutation pour supprimer un document (uniquement pour les documents personnels)
   const deleteMutation = useMutation({
     mutationFn: async (document: any) => {
       if (!document) throw new Error("Document data is required");
+      
+      // Vérifier que c'est bien un document appartenant à l'utilisateur
+      if (document.user_id !== currentUserId) {
+        throw new Error("Vous ne pouvez pas supprimer un document partagé");
+      }
       
       try {
         // Extraire le chemin relatif depuis l'URL publique
@@ -172,15 +166,13 @@ export function DocumentGrid() {
         return document.id;
       } catch (error: any) {
         console.error("💥 Erreur durant la suppression:", error);
-        throw error; // Re-throw pour que onError puisse la capturer
+        throw error;
       }
     },
     onSuccess: (documentId) => {
-      // Invalider le cache pour forcer le rechargement des données
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       toast.success("Document supprimé avec succès!");
       
-      // Réinitialiser l'état du dialog et du document à supprimer
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
     },
@@ -188,21 +180,24 @@ export function DocumentGrid() {
       console.error("💥 Erreur inattendue:", error);
       toast.error(`Une erreur est survenue lors de la suppression: ${error.message}`);
       
-      // Même en cas d'erreur, il faut fermer le dialog pour éviter le gel
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
     }
   });
 
   const confirmDelete = (document: any) => {
+    // Ne permet de supprimer que les documents personnels
+    if (document.user_id !== currentUserId) {
+      toast.error("Vous ne pouvez pas supprimer un document partagé");
+      return;
+    }
+    
     setDocumentToDelete(document);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteDocument = () => {
     if (documentToDelete) {
-      // Il est important de ne pas attendre le résultat de cette opération
-      // car c'est la mutation qui va gérer l'état de l'interface
       deleteMutation.mutate(documentToDelete);
     }
   };
@@ -249,6 +244,11 @@ export function DocumentGrid() {
     if (aField > bField) return sortOrder === "asc" ? 1 : -1;
     return 0;
   });
+
+  // Vérifier si un document appartient à l'utilisateur connecté
+  const isPersonalDocument = (doc: any) => {
+    return doc.user_id === currentUserId;
+  };
 
   return (
     <div className="space-y-6">
@@ -339,7 +339,9 @@ export function DocumentGrid() {
           {sortedDocuments.map((doc) => (
             <Card
               key={doc.id}
-              className="overflow-hidden hover:shadow-md transition-shadow relative"
+              className={`overflow-hidden hover:shadow-md transition-shadow relative ${
+                isPersonalDocument(doc) ? "border-primary/20" : "border-secondary"
+              }`}
             >
               <CardContent className="p-0">
                 <div className="h-36 bg-secondary/30 flex items-center justify-center">
@@ -360,7 +362,17 @@ export function DocumentGrid() {
                   <CalendarIcon className="h-3.5 w-3.5 mr-1" />
                   {new Date(doc.created_at).toLocaleDateString("fr-FR")}
                 </div>
-                <Badge variant="secondary">FICHIER</Badge>
+                {isPersonalDocument(doc) ? (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    Personnel
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 flex items-center gap-1">
+                    <Share className="h-3 w-3" />
+                    Partagé
+                  </Badge>
+                )}
               </CardFooter>
               
               <DropdownMenu>
@@ -381,13 +393,17 @@ export function DocumentGrid() {
                     <Download className="h-4 w-4 mr-2" />
                     Télécharger
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => confirmDelete(doc)}
-                    className="cursor-pointer text-destructive"
-                  >
-                    <Trash className="h-4 w-4 mr-2" />
-                    Supprimer
-                  </DropdownMenuItem>
+                  
+                  {/* Option de suppression uniquement pour les documents personnels */}
+                  {isPersonalDocument(doc) && (
+                    <DropdownMenuItem 
+                      onClick={() => confirmDelete(doc)}
+                      className="cursor-pointer text-destructive"
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </Card>
@@ -411,7 +427,6 @@ export function DocumentGrid() {
       <AlertDialog 
         open={deleteDialogOpen} 
         onOpenChange={(isOpen) => {
-          // Si le dialog se ferme sans action explicite, on réinitialise l'état
           if (!isOpen) {
             setDocumentToDelete(null);
             setDeleteDialogOpen(false);
