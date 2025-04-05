@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, X, FolderPlus, Trash, Loader2 } from "lucide-react";
@@ -104,6 +105,30 @@ export function UploadComponent() {
     }
   };
 
+  // Fonction pour nettoyer le nom de fichier et ajouter un identifiant unique
+  const cleanFileName = (fileName: string): string => {
+    // Récupérer l'extension du fichier
+    const extension = fileName.split('.').pop() || '';
+    
+    // Récupérer le nom sans extension
+    const nameWithoutExtension = fileName.substring(0, fileName.lastIndexOf('.'));
+    
+    // Nettoyer le nom: supprimer les caractères spéciaux et espaces
+    const cleanName = nameWithoutExtension
+      .normalize('NFD') // décomposer les caractères accentués
+      .replace(/[\u0300-\u036f]/g, '') // supprimer les accents
+      .replace(/[^a-zA-Z0-9]/g, '-') // remplacer les caractères spéciaux par des tirets
+      .replace(/-+/g, '-') // remplacer les séquences de tirets par un seul tiret
+      .replace(/^-|-$/g, '') // supprimer les tirets au début et à la fin
+      .toLowerCase();
+    
+    // Ajouter un timestamp unique
+    const uniqueId = Date.now().toString();
+    
+    // Retourner le nom nettoyé avec l'ID unique et l'extension
+    return `${cleanName}-${uniqueId}.${extension}`;
+  };
+
   const uploadFileToSupabase = async (file: File, fileId: string) => {
     const { data: session } = await supabase.auth.getSession();
     console.log("Session actuelle :", session);
@@ -124,7 +149,27 @@ export function UploadComponent() {
     }
 
     try {
-      const filePath = `public/${file.name}`;
+      // Nettoyage du nom du fichier et ajout d'un identifiant unique
+      const cleanedFileName = cleanFileName(file.name);
+      console.log(`Nom de fichier nettoyé: ${cleanedFileName}`);
+      
+      const filePath = `public/${cleanedFileName}`;
+      
+      // Vérifier si un fichier avec le même nom existe déjà
+      const { data: existingFiles } = await supabase.storage
+        .from("documents")
+        .list("public", {
+          search: cleanedFileName
+        });
+      
+      if (existingFiles && existingFiles.length > 0) {
+        console.log("Fichier existant trouvé, suppression avant réupload:", existingFiles);
+        const existingPath = `public/${existingFiles[0].name}`;
+        await supabase.storage.from("documents").remove([existingPath]);
+        console.log("Ancien fichier supprimé:", existingPath);
+      }
+
+      // Upload du fichier avec le nom nettoyé
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("documents")
         .upload(filePath, file);
@@ -147,7 +192,7 @@ export function UploadComponent() {
         .from("documents")
         .insert([
           {
-            nom: file.name,
+            nom: file.name, // Garder le nom original dans la base de données pour l'affichage
             url: publicUrl,
             category_id: category || null,
             user_id: user.id,
