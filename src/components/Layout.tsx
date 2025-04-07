@@ -1,38 +1,24 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Home,
   FolderOpenIcon,
   Upload,
-  LogOut,
-  Menu,
-  X,
-  ChevronRight,
   BookText,
   Users,
   FileText,
   FileSearch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { SearchBar } from './SearchBar';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Sidebar } from './Navigation/Sidebar';
+import { Header } from './Navigation/Header';
+import { NavItem } from './Navigation/NavigationItem';
 
 type LayoutProps = {
   children: React.ReactNode;
-};
-
-type NavItem = {
-  label: string;
-  icon: React.ElementType;
-  path: string;
-  role?: string | string[]; // Modified to accept an array of roles
-  showOrder?: number; // Added to control display order
 };
 
 export function Layout({ children }: LayoutProps) {
@@ -45,7 +31,6 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Fixed: Define navItems as an array of NavItem objects
   const navItems: NavItem[] = [
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
     { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
@@ -152,7 +137,6 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
-  // Now filteredNavItems works properly with the correctly typed navItems array
   const filteredNavItems = navItems
     .filter(item => {
       if (!item.role) return true; // If no role is specified, show for everyone
@@ -163,86 +147,21 @@ export function Layout({ children }: LayoutProps) {
       
       return item.role === userRole;
     })
-    .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99)); // Sort by showOrder
+    .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99));
 
   console.info("Current user role:", userRole);
   console.info("Filtered nav items:", filteredNavItems);
 
   return (
     <div className="min-h-screen flex bg-background">
-      <aside 
-        className={cn(
-          "fixed inset-y-0 left-0 z-20 w-64 bg-white shadow-subtle border-r border-border transition-all duration-300 ease-in-out",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex flex-col h-full">
-          <div className="px-6 py-8 flex items-center">
-            <BookOpen className="h-8 w-8 text-primary mr-2" />
-            <h1 className="text-xl font-semibold tracking-tight">EduKeeper</h1>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-auto md:hidden"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <Separator />
-          
-          <nav className="flex-1 px-3 py-6 space-y-1">
-            {filteredNavItems.map((item) => (
-              <Link 
-                key={item.path} 
-                to={item.path}
-                className={cn(
-                  "flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  location.pathname === item.path 
-                    ? "bg-primary/10 text-primary" 
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                <item.icon className="h-5 w-5 mr-3" />
-                <span>{item.label}</span>
-                {location.pathname === item.path && (
-                  <ChevronRight className="h-4 w-4 ml-auto" />
-                )}
-              </Link>
-            ))}
-          </nav>
-          
-          <div className="p-4 mt-auto">
-            <Separator className="mb-4" />
-            <div className="flex items-center">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                  {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="ml-3">
-                <p className="text-sm font-medium">
-                  {user?.email ? user.email.split('@')[0] : 'Utilisateur'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {user?.email || 'utilisateur@exemple.com'}
-                </p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="ml-auto text-muted-foreground hover:text-destructive"
-                onClick={handleLogout}
-                disabled={loggingOut}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <Sidebar 
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        navItems={filteredNavItems}
+        user={user}
+        onLogout={handleLogout}
+        loggingOut={loggingOut}
+      />
       
       <div 
         className={cn(
@@ -256,41 +175,7 @@ export function Layout({ children }: LayoutProps) {
         "flex-1 transition-all duration-300 ease-in-out",
         sidebarOpen ? "md:ml-64" : "ml-0"
       )}>
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border">
-          <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mr-2"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <SearchBar />
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-                <Link to="/upload">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Importer
-                </Link>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="md:hidden bg-primary/10 text-primary"
-                asChild
-              >
-                <Link to="/upload">
-                  <Upload className="h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </header>
+        <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         
         <div className="px-4 sm:px-6 lg:px-8 py-6 pb-24">
           {children}
