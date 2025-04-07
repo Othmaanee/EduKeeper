@@ -13,7 +13,8 @@ import {
   BookText,
   Users,
   FileText,
-  FileDigit
+  FileDigit,
+  Dumbbell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Importer', icon: Upload, path: '/upload' },
     { label: 'Générer un cours', icon: BookText, path: '/generate' },
     { label: 'Résumer un document', icon: FileDigit, path: '/resume-document' },
+    { label: 'Générer des exercices', icon: Dumbbell, path: '/generate-exercises' },
     { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant' }
   ];
 

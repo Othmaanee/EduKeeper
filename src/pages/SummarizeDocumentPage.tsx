@@ -1,284 +1,251 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
 } from '@/components/ui/card';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-const SummarizeDocumentPage = () => {
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [summary, setSummary] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string>('user');
-  const [errorDialogOpen, setErrorDialogOpen] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
+interface Document {
+  id: string;
+  nom: string;
+  url: string;
+  user_id: string;
+  is_shared: boolean;
+}
 
-  // Fetch user role
-  const { data: userData } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error('Session not found');
-      }
+interface User {
+  id: string;
+  role: string;
+}
 
-      const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+const SummarizeDocumentPage: React.FC = () => {
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [selectedDocId, setSelectedDocId] = useState<string>('');
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [summary, setSummary] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [regenerating, setRegenerating] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingDocuments, setLoadingDocuments] = useState<boolean>(true);
 
-      if (error) throw error;
-      setUserRole(data.role);
-      return data;
-    }
-  });
-
-  // Fetch documents
-  const { data: documents = [], isLoading: isLoadingDocuments } = useQuery({
-    queryKey: ['summarize-documents', userRole],
-    queryFn: async () => {
+  // Fetch current user
+  useEffect(() => {
+    const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session?.user) {
-        throw new Error('User not authenticated');
+      if (session && session.user) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, role')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching user:', error);
+          return;
+        }
+        
+        setUser(data as User);
       }
+    };
+    
+    fetchUser();
+  }, []);
 
-      // Different queries based on user role
-      let query = supabase
-        .from("documents")
-        .select("*, categories(id, nom)");
-
-      if (userRole === 'user') {
-        // For students: own documents + shared documents
-        query = query.or(`user_id.eq.${session.user.id},is_shared.eq.true`);
-      } else if (userRole === 'enseignant') {
-        // For teachers: only own documents
-        query = query.eq('user_id', session.user.id);
+  // Fetch documents based on user role
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (!user) return;
+      
+      setLoadingDocuments(true);
+      
+      let query = supabase.from('documents').select('*');
+      
+      if (user.role === 'enseignant') {
+        // Teachers can only see their own documents
+        query = query.eq('user_id', user.id);
+      } else {
+        // Students can see their own documents or shared documents
+        query = query.or(`user_id.eq.${user.id},is_shared.eq.true`);
       }
-
+      
       const { data, error } = await query;
       
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!userRole
-  });
-
-  // Generate summary mutation
-  const generateSummaryMutation = useMutation({
-    mutationFn: async (documentId: string) => {
-      try {
-        // Find the selected document
-        const selectedDoc = documents.find(doc => doc.id === documentId);
-        if (!selectedDoc) {
-          throw new Error('Document not found');
-        }
-
-        // Call the edge function to generate the summary
-        const response = await fetch(`https://mtbcrbfchoqterxevvft.supabase.co/functions/v1/summarize-document`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          },
-          body: JSON.stringify({
-            documentUrl: selectedDoc.url,
-            documentName: selectedDoc.nom,
-            userRole: userRole,
-          }),
+      if (error) {
+        console.error('Error fetching documents:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les documents.",
+          variant: "destructive",
         });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Erreur lors de la génération du résumé');
-        }
-
-        const data = await response.json();
-        return data.summary;
-      } catch (error) {
-        console.error('Error generating summary:', error);
-        throw error;
+      } else {
+        setDocuments(data as Document[]);
       }
-    },
-    onSuccess: (data) => {
-      setSummary(data);
-      toast.success('Résumé généré avec succès');
-    },
-    onError: (error: Error) => {
-      setErrorMessage(error.message || 'Impossible de générer le résumé, veuillez réessayer.');
-      setErrorDialogOpen(true);
-      toast.error('Erreur lors de la génération du résumé');
-    }
-  });
+      
+      setLoadingDocuments(false);
+    };
+    
+    fetchDocuments();
+  }, [user]);
 
-  // Handle document selection
-  const handleDocumentChange = (value: string) => {
-    setSelectedDocumentId(value);
-    setSummary(null); // Reset summary when changing document
+  // Set selected document when document id changes
+  useEffect(() => {
+    if (selectedDocId && documents.length > 0) {
+      const doc = documents.find(d => d.id === selectedDocId);
+      setSelectedDocument(doc || null);
+    } else {
+      setSelectedDocument(null);
+    }
+  }, [selectedDocId, documents]);
+
+  const handleSelectDocument = (value: string) => {
+    setSelectedDocId(value);
+    setSummary('');
   };
 
-  // Handle generate summary button click
-  const handleGenerateSummary = () => {
-    if (selectedDocumentId) {
-      setSummary(null); // Reset previous summary
-      generateSummaryMutation.mutate(selectedDocumentId);
-    } else {
-      toast.error('Veuillez sélectionner un document');
+  const generateSummary = async () => {
+    if (!selectedDocument) {
+      toast({
+        title: "Sélection requise",
+        description: "Veuillez sélectionner un document à résumer.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setLoading(true);
+    setSummary('');
+
+    try {
+      const response = await fetch('/api/summarize-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentUrl: selectedDocument.url,
+          userRole: user?.role
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du résumé');
+      }
+
+      const data = await response.json();
+      setSummary(data.summary);
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer le résumé, veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setRegenerating(false);
+    }
+  };
+
+  const handleRegenerate = () => {
+    setRegenerating(true);
+    generateSummary();
   };
 
   return (
     <Layout>
-      <div className="container py-6">
-        <h1 className="text-2xl font-bold mb-6">Résumer un document</h1>
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">Résumer un document</h1>
+        
+        {user && (
+          <p className="text-lg mb-6">
+            {user.role === 'enseignant' 
+              ? "Besoin de simplifier un document pour créer un support à distribuer ? Résumez votre document en quelques secondes en version professionnelle."
+              : "Besoin d'un résumé plus clair pour mieux comprendre tes cours ? Résume ton document en mots simples avec des exemples et des explications adaptées à ton niveau."
+            }
+          </p>
+        )}
 
-        {/* Different content based on user role */}
-        {userRole === 'user' ? (
-          <Card className="bg-blue-50 mb-6">
-            <CardContent className="pt-6">
-              <p className="text-blue-700">
-                Besoin d'un résumé plus clair pour mieux comprendre tes cours ? Résume ton document en mots simples avec des exemples et des explications adaptées à ton niveau.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="bg-green-50 mb-6">
-            <CardContent className="pt-6">
-              <p className="text-green-700">
-                Besoin de simplifier un document pour créer un support à distribuer ? Résumez votre document en quelques secondes en version professionnelle.
-              </p>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Sélectionner un document</CardTitle>
+            <CardDescription>
+              Choisissez le document que vous souhaitez résumer
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end">
+              <div className="w-full md:w-2/3">
+                <Select 
+                  value={selectedDocId} 
+                  onValueChange={handleSelectDocument}
+                  disabled={loadingDocuments}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionnez un document" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {documents.map(doc => (
+                      <SelectItem key={doc.id} value={doc.id}>
+                        {doc.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={generateSummary}
+                disabled={loading || !selectedDocId}
+                className="w-full md:w-auto"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {user?.role === 'enseignant' ? 'Générer un résumé professionnel' : 'Générer un résumé pédagogique'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {summary && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Résumé de {selectedDocument?.nom}</span>
+                <Button
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                >
+                  {regenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Regénérer
+                    </>
+                  )}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm md:prose-base lg:prose-lg max-w-none">
+                {summary.split('\n').map((paragraph, index) => (
+                  paragraph.trim() ? <p key={index}>{paragraph}</p> : <br key={index} />
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
-
-        <div className="grid gap-6">
-          {/* Document selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sélectionnez un document
-            </label>
-            
-            {isLoadingDocuments ? (
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                Chargement des documents...
-              </div>
-            ) : (
-              <Select 
-                value={selectedDocumentId || ''} 
-                onValueChange={handleDocumentChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sélectionner un document" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Documents disponibles</SelectLabel>
-                    {documents.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.id}>
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>
-                            {doc.nom} {doc.is_shared && userRole === 'user' && doc.user_id !== userData?.id && '(Partagé)'}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          {/* Generate button */}
-          <div>
-            <Button 
-              onClick={handleGenerateSummary} 
-              disabled={!selectedDocumentId || generateSummaryMutation.isPending}
-              className="w-full"
-            >
-              {generateSummaryMutation.isPending ? (
-                <>
-                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                  Résumé en cours...
-                </>
-              ) : (
-                <>
-                  Générer un résumé {userRole === 'user' ? 'pédagogique' : 'professionnel'}
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Summary result */}
-          {summary && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>
-                  Résumé {userRole === 'user' ? 'pédagogique' : 'professionnel'}
-                </CardTitle>
-                <CardDescription>
-                  {documents.find(doc => doc.id === selectedDocumentId)?.nom}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="whitespace-pre-line">
-                {summary}
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={handleGenerateSummary}
-                  disabled={generateSummaryMutation.isPending}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Regénérer
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </div>
-
-        {/* Error dialog */}
-        <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Erreur</AlertDialogTitle>
-              <AlertDialogDescription>{errorMessage}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction>OK</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </Layout>
   );

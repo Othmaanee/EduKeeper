@@ -14,10 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const { documentUrl, userRole } = await req.json();
+    const { 
+      documentUrl, 
+      userRole, 
+      freeFormTopic, 
+      exerciseCount, 
+      exerciseType,
+      educationLevel
+    } = await req.json();
 
-    if (!documentUrl) {
-      throw new Error('Document URL is required');
+    if (!documentUrl && !freeFormTopic) {
+      throw new Error('Either document URL or free-form topic is required');
     }
 
     // Get the appropriate API key based on availability
@@ -29,6 +36,26 @@ serve(async (req) => {
     let requestBody;
     let headers;
 
+    // Prepare the appropriate prompt based on input
+    let prompt = "";
+    if (documentUrl) {
+      // For document-based exercises
+      prompt = `Créer ${exerciseCount} exercices ${exerciseType === 'simple' ? 'simples et courts' : 'complets et approfondis'} basés sur ce document: ${documentUrl}. `;
+      prompt += userRole === 'enseignant' 
+        ? "Format professionnel adapté pour distribution aux élèves." 
+        : "Format accessible avec explications claires pour aider à la compréhension.";
+    } else {
+      // For free-form topic
+      prompt = `Créer ${exerciseCount} exercices ${exerciseType === 'simple' ? 'simples et courts' : 'complets et approfondis'} sur le sujet suivant: ${freeFormTopic}. `;
+      prompt += `Niveau: ${educationLevel}. `;
+      prompt += userRole === 'enseignant' 
+        ? "Format professionnel adapté pour distribution aux élèves." 
+        : "Format accessible avec explications claires pour aider à la compréhension.";
+    }
+    
+    // Format the exercises consistently for parsing on frontend
+    prompt += " Numérotez clairement chaque exercice. Incluez des questions et des espaces pour les réponses.";
+
     if (openAiKey) {
       apiKey = openAiKey;
       apiEndpoint = 'https://api.openai.com/v1/chat/completions';
@@ -37,14 +64,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       };
       
-      const prompt = userRole === 'enseignant' 
-        ? `Vous êtes un assistant professionnel spécialisé en éducation. Vous devez résumer de manière professionnelle et synthétique le document suivant pour un enseignant. Structurez votre résumé de façon claire et concise. Document: ${documentUrl}`
-        : `Tu es un assistant pédagogique sympathique pour les élèves. Résume le document suivant de façon simple et claire avec des exemples pédagogiques adaptés au niveau collège-lycée. Utilise un langage accessible et des explications faciles à comprendre. Document: ${documentUrl}`;
-
       requestBody = JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Vous êtes un assistant spécialisé dans la création de résumés pédagogiques.' },
+          { 
+            role: 'system', 
+            content: 'Vous êtes un assistant pédagogique spécialisé dans la création d\'exercices éducatifs adaptés au niveau demandé.' 
+          },
           { role: 'user', content: prompt }
         ],
       });
@@ -56,17 +82,16 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       };
       
-      const prompt = userRole === 'enseignant' 
-        ? `Vous êtes un assistant professionnel spécialisé en éducation. Vous devez résumer de manière professionnelle et synthétique le document suivant pour un enseignant. Structurez votre résumé de façon claire et concise. Document: ${documentUrl}`
-        : `Tu es un assistant pédagogique sympathique pour les élèves. Résume le document suivant de façon simple et claire avec des exemples pédagogiques adaptés au niveau collège-lycée. Utilise un langage accessible et des explications faciles à comprendre. Document: ${documentUrl}`;
-
       requestBody = JSON.stringify({
         model: 'llama-3.1-70b-versatile',
         messages: [
-          { role: 'system', content: 'Vous êtes un assistant spécialisé dans la création de résumés pédagogiques.' },
+          { 
+            role: 'system', 
+            content: 'Vous êtes un assistant pédagogique spécialisé dans la création d\'exercices éducatifs adaptés au niveau demandé.' 
+          },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 1000
+        max_tokens: 2000
       });
     } else {
       return new Response(
@@ -82,15 +107,15 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    const summary = openAiKey 
+    const exercises = openAiKey 
       ? data.choices[0].message.content 
       : data.choices[0].message.content;
 
-    return new Response(JSON.stringify({ summary }), {
+    return new Response(JSON.stringify({ exercises }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in summarize-document function:', error);
+    console.error('Error in generate-exercises function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
