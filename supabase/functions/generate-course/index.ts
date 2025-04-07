@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -86,6 +85,24 @@ function getThemeIllustration(subject: string): { emoji: string, decoration: str
     emoji = "🧠";
     decoration = "thought";
     backgroundColor = "#f5f0ff"; // Violet pensée très pâle
+  }
+  else if (subjectLower.includes("guerre") || subjectLower.includes("conflit") ||
+           subjectLower.includes("militaire") || subjectLower.includes("bataille")) {
+    emoji = "🛡️";
+    decoration = "military";
+    backgroundColor = "#f5f5f5"; // Gris très pâle
+  }
+  else if (subjectLower.includes("astronomie") || subjectLower.includes("espace") ||
+           subjectLower.includes("planète") || subjectLower.includes("étoile")) {
+    emoji = "🔭";
+    decoration = "astronomy";
+    backgroundColor = "#f0f5ff"; // Bleu nuit très pâle
+  }
+  else if (subjectLower.includes("architecture") || subjectLower.includes("bâtiment") ||
+           subjectLower.includes("construction") || subjectLower.includes("design")) {
+    emoji = "🏛️";
+    decoration = "architecture";
+    backgroundColor = "#f7f7f5"; // Beige architect très pâle
   }
   
   return { emoji, decoration, backgroundColor };
@@ -200,6 +217,40 @@ function getThemeSvgDecoration(decoration: string): string {
           <path d="M30,60 L100,60" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
           <circle cx="65" cy="40" r="3" fill="#1a3e72" fill-opacity="0.7"/>
           <circle cx="65" cy="80" r="3" fill="#1a3e72" fill-opacity="0.7"/>
+        </svg>
+      `;
+    case "military":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M40,50 C40,40 50,35 60,35 C70,35 80,40 80,50 L80,65 C80,70 75,75 60,75 C45,75 40,70 40,65 L40,50 Z" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M40,50 L80,50" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <path d="M50,35 L60,45 L70,35" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M45,75 L45,85" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <path d="M75,75 L75,85" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+        </svg>
+      `;
+    case "astronomy":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <circle cx="60" cy="60" r="20" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="90" cy="40" r="4" fill="#1a3e72" fill-opacity="0.7"/>
+          <circle cx="40" cy="35" r="3" fill="#1a3e72" fill-opacity="0.7"/>
+          <circle cx="75" cy="80" r="3" fill="#1a3e72" fill-opacity="0.7"/>
+          <circle cx="30" cy="70" r="2" fill="#1a3e72" fill-opacity="0.7"/>
+          <circle cx="85" cy="65" r="2" fill="#1a3e72" fill-opacity="0.7"/>
+          <path d="M50,60 C50,55 55,50 60,50 C65,50 70,55 70,60 C70,65 65,70 60,70 C55,70 50,65 50,60 Z" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7" fill="none"/>
+        </svg>
+      `;
+    case "architecture":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,90 L60,30 L90,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M40,90 L40,70 L50,70 L50,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M55,90 L55,70 L65,70 L65,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M70,90 L70,70 L80,70 L80,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M35,60 L85,60" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M40,50 L80,50" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M45,40 L75,40" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
         </svg>
       `;
     case "scroll":
