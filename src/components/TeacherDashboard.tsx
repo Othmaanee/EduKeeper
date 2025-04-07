@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Download, Share2, Trash2, Loader2 } from 'lucide-react';
+import { FileText, Download, Share2, Trash2, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -59,6 +59,11 @@ export function TeacherDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Helper function to check if a document is AI-generated
+  const isAIGenerated = (doc: Document) => {
+    return doc.nom.startsWith('Cours :');
+  };
+
   // Fetch user documents
   useEffect(() => {
     async function fetchDocuments() {
@@ -112,15 +117,18 @@ export function TeacherDashboard() {
         if (data) {
           setDocuments(data);
           
+          // Filter AI-generated documents for stats
+          const aiDocs = data.filter(doc => isAIGenerated(doc));
+          
           // Calculate stats
-          const totalDocs = data.length;
+          const totalAIDocs = aiDocs.length;
           const sharedDocs = data.filter(doc => doc.is_shared).length;
-          const latestDoc = data.length > 0 ? data[0] : null;
+          const latestAIDoc = aiDocs.length > 0 ? aiDocs[0] : null;
           
           setStats({
-            totalDocuments: totalDocs,
+            totalDocuments: totalAIDocs,
             sharedDocuments: sharedDocs,
-            latestDocument: latestDoc,
+            latestDocument: latestAIDoc,
           });
         }
       } catch (error: any) {
@@ -194,18 +202,21 @@ export function TeacherDashboard() {
       // Update local state
       const deletedDoc = documents.find(doc => doc.id === documentToDelete);
       const wasShared = deletedDoc?.is_shared || false;
+      const wasAIGenerated = deletedDoc ? isAIGenerated(deletedDoc) : false;
       
       setDocuments(docs => docs.filter(doc => doc.id !== documentToDelete));
       
-      // Update stats
-      setStats(prev => ({
-        ...prev,
-        totalDocuments: prev.totalDocuments - 1,
-        sharedDocuments: wasShared ? prev.sharedDocuments - 1 : prev.sharedDocuments,
-        latestDocument: prev.latestDocument?.id === documentToDelete 
-          ? documents.length > 1 ? documents[1] : null 
-          : prev.latestDocument
-      }));
+      // Update stats only if it was an AI-generated document
+      if (wasAIGenerated) {
+        setStats(prev => ({
+          ...prev,
+          totalDocuments: prev.totalDocuments - 1,
+          sharedDocuments: wasShared ? prev.sharedDocuments - 1 : prev.sharedDocuments,
+          latestDocument: prev.latestDocument?.id === documentToDelete 
+            ? documents.filter(d => d.id !== documentToDelete && isAIGenerated(d))[0] || null
+            : prev.latestDocument
+        }));
+      }
       
       toast({
         title: "Document supprimé",
@@ -236,6 +247,9 @@ export function TeacherDashboard() {
       </div>
     );
   }
+
+  // Filter for AI generated docs (for display in the list)
+  const aiGeneratedDocs = documents.filter(doc => isAIGenerated(doc));
 
   return (
     <div className="container py-8">
@@ -288,18 +302,158 @@ export function TeacherDashboard() {
 
         {/* Document List */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Mes documents</h2>
+          <h2 className="text-xl font-semibold mb-4">Mes documents générés</h2>
+          
+          {aiGeneratedDocs.length === 0 ? (
+            <div className="text-center p-8 bg-muted/30 rounded-lg border border-dashed">
+              <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-lg font-medium">Aucun document généré</h3>
+              <p className="text-muted-foreground mt-1">
+                Vous n'avez pas encore généré de documents avec l'IA.
+              </p>
+              <Button className="mt-4" onClick={() => navigate('/generate')}>
+                Générer un cours
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead className="hidden md:table-cell">Date de création</TableHead>
+                    <TableHead className="hidden md:table-cell">Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {aiGeneratedDocs.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <div>
+                            <span className="truncate max-w-[180px] md:max-w-xs block">
+                              {doc.nom}
+                            </span>
+                            <Badge variant="outline" className="bg-amber-100 text-amber-800 text-xs font-normal flex items-center mt-1 w-fit">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Généré IA
+                            </Badge>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {format(new Date(doc.created_at), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {doc.is_shared ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
+                            Partagé
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">
+                            Non partagé
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDownloadDocument(doc)}
+                            title="Télécharger"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          
+                          {!doc.is_shared && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleShareDocument(doc.id)}
+                              disabled={actionInProgress === doc.id}
+                              title="Partager"
+                            >
+                              {actionInProgress === doc.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Share2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                          
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => setDocumentToDelete(doc.id)}
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Confirmer la suppression</DialogTitle>
+                                <DialogDescription>
+                                  Êtes-vous sûr de vouloir supprimer le document "{doc.nom}" ?
+                                  Cette action est irréversible.
+                                </DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button variant="outline">Annuler</Button>
+                                </DialogClose>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={handleDeleteDocument}
+                                  disabled={actionInProgress === doc.id}
+                                >
+                                  {actionInProgress === doc.id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Suppression...
+                                    </>
+                                  ) : (
+                                    'Supprimer'
+                                  )}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+        
+        {/* All Documents */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Tous mes documents</h2>
           
           {documents.length === 0 ? (
             <div className="text-center p-8 bg-muted/30 rounded-lg border border-dashed">
               <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
               <h3 className="text-lg font-medium">Aucun document</h3>
               <p className="text-muted-foreground mt-1">
-                Vous n'avez pas encore généré de documents.
+                Vous n'avez pas encore de documents.
               </p>
-              <Button className="mt-4" onClick={() => navigate('/generate')}>
-                Générer un cours
-              </Button>
+              <div className="flex gap-2 justify-center mt-4">
+                <Button onClick={() => navigate('/generate')}>
+                  Générer un cours
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/upload')}>
+                  Importer un document
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="rounded-md border overflow-hidden">
@@ -318,9 +472,17 @@ export function TeacherDashboard() {
                       <TableCell className="font-medium">
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                          <span className="truncate max-w-[180px] md:max-w-xs">
-                            {doc.nom}
-                          </span>
+                          <div>
+                            <span className="truncate max-w-[180px] md:max-w-xs block">
+                              {doc.nom}
+                            </span>
+                            {isAIGenerated(doc) && (
+                              <Badge variant="outline" className="bg-amber-100 text-amber-800 text-xs font-normal flex items-center mt-1 w-fit">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Généré IA
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
