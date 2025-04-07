@@ -10,6 +10,128 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
+// Helper function to convert markdown-like content to HTML
+function formatCourseContent(content: string): string {
+  if (!content) return "";
+  
+  // First pass: clean up any markdown syntax that might not render correctly
+  let formattedContent = content
+    // Replace markdown bold with HTML bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Replace markdown italic with HTML italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Replace markdown headers
+    .replace(/^# (.*?)$/gm, '<h1 class="course-h1">$1</h1>')
+    .replace(/^## (.*?)$/gm, '<h2 class="course-h2">$1</h2>')
+    .replace(/^### (.*?)$/gm, '<h3 class="course-h3">$1</h3>')
+    // Handle bullet lists
+    .replace(/^- (.*?)$/gm, '<li>$1</li>')
+    .replace(/^[0-9]+\. (.*?)$/gm, '<li>$1</li>');
+  
+  // Second pass: structure content with proper HTML
+  
+  // Process lists: look for consecutive li elements and wrap them in ul
+  formattedContent = formattedContent.replace(/(<li>.*?<\/li>)(\s*<li>.*?<\/li>)+/gs, '<ul class="course-list">$&</ul>');
+  
+  // Split by new lines and process paragraphs
+  const lines = formattedContent.split('\n');
+  let htmlContent = '';
+  let inParagraph = false;
+  let skipLine = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    if (skipLine) {
+      skipLine = false;
+      continue;
+    }
+    
+    const line = lines[i].trim();
+    
+    // Skip empty lines
+    if (line === '') {
+      if (inParagraph) {
+        htmlContent += '</p>\n';
+        inParagraph = false;
+      }
+      continue;
+    }
+    
+    // Don't wrap elements that are already HTML
+    if (line.startsWith('<h') || line.startsWith('<ul') || line.startsWith('<li') || 
+        line.startsWith('<ol') || line.startsWith('<table') || line.includes('</ul>')) {
+      if (inParagraph) {
+        htmlContent += '</p>\n';
+        inParagraph = false;
+      }
+      htmlContent += line + '\n';
+    } 
+    else {
+      if (!inParagraph) {
+        htmlContent += '<p class="course-paragraph">';
+        inParagraph = true;
+      }
+      htmlContent += line + ' ';
+    }
+  }
+  
+  if (inParagraph) {
+    htmlContent += '</p>\n';
+  }
+  
+  // Add CSS for better formatting in the PDF
+  const styledContent = `
+    <div class="course-container">
+      <style>
+        .course-container {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .course-h1 {
+          font-size: 24px;
+          margin-top: 28px;
+          margin-bottom: 16px;
+          color: #1a3e72;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 8px;
+        }
+        .course-h2 {
+          font-size: 20px;
+          margin-top: 24px;
+          margin-bottom: 14px;
+          color: #2a5ca8;
+        }
+        .course-h3 {
+          font-size: 18px;
+          margin-top: 20px;
+          margin-bottom: 12px;
+          color: #3670cc;
+        }
+        .course-paragraph {
+          margin: 14px 0;
+          text-align: justify;
+          line-height: 1.7;
+        }
+        .course-list {
+          margin: 16px 0;
+          padding-left: 24px;
+        }
+        .course-list li {
+          margin: 8px 0;
+        }
+        strong {
+          color: #1e4b8d;
+        }
+      </style>
+      ${htmlContent}
+    </div>
+  `;
+  
+  return styledContent;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -94,7 +216,11 @@ serve(async (req) => {
 
     // Créer un prompt adapté aux options sélectionnées
     const systemPrompt = `Tu es un professeur expert qui génère un cours clair et pédagogique. 
-Ton objectif est de créer un contenu éducatif de grande qualité, adapté au niveau demandé, avec le style spécifié, et pour la durée indiquée.`;
+Ton objectif est de créer un contenu éducatif de grande qualité, adapté au niveau demandé, avec le style spécifié, et pour la durée indiquée.
+Utilise des titres principaux (# Titre), des sous-titres (## Sous-titre) et des points clés (### Point clé) pour une structure claire.
+Mets en **gras** les concepts importants.
+Organise le contenu avec des listes à puces lorsque c'est pertinent.
+Le cours doit être bien structuré pour faciliter la lecture et l'apprentissage.`;
 
     const userPrompt = `Rédige un cours sur le sujet suivant: ${subject}
     
@@ -107,6 +233,13 @@ Assure-toi que le contenu soit:
 - Structuré selon le style demandé (résumé, cours détaillé ou fiches)
 - D'une longueur permettant une lecture en ${durationText}
 - Pédagogique et engageant pour l'élève
+
+Utilise une structure claire avec:
+- Un titre principal (# Titre)
+- Des sous-sections (## Sous-titre)
+- Des points clés (### Point clé) si pertinent
+- Des listes à puces pour les énumérations
+- Du texte **en gras** pour les concepts importants
 `;
 
     try {
@@ -155,13 +288,16 @@ Assure-toi que le contenu soit:
       }
 
       const data = await response.json();
-      const courseContent = data.choices[0].message.content;
-      console.log("Cours généré avec succès");
+      const rawCourseContent = data.choices[0].message.content;
+      
+      // Format the course content for better readability
+      const formattedContent = formatCourseContent(rawCourseContent);
+      console.log("Cours généré et formaté avec succès");
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          content: courseContent 
+          content: formattedContent
         }),
         { headers: corsHeaders }
       );

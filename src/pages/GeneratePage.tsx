@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
@@ -34,7 +33,6 @@ type Category = {
   nom: string;
 };
 
-// Fonction pour nettoyer le nom du fichier
 const cleanFileName = (subject: string): string => {
   return subject
     .toLowerCase()
@@ -48,7 +46,6 @@ const cleanFileName = (subject: string): string => {
 async function generateCourse(subject: string, courseLevel: string, courseStyle: string, courseDuration: string): Promise<string> {
   console.log("Appel à la fonction generate-course avec les paramètres:", { subject, courseLevel, courseStyle, courseDuration });
 
-  // URL complète de la fonction Edge dans Supabase
   const supabaseUrl = "https://mtbcrbfchoqterxevvft.supabase.co";
   const url = `${supabaseUrl}/functions/v1/generate-course`;
   
@@ -83,7 +80,6 @@ async function generateCourse(subject: string, courseLevel: string, courseStyle:
         errorMessage = errorData.error;
       }
     } catch (e) {
-      // Si on ne peut pas parser le JSON, on garde le message d'erreur par défaut
       console.error("Erreur lors du parsing de la réponse d'erreur:", e);
     }
     
@@ -98,38 +94,39 @@ async function generateCourse(subject: string, courseLevel: string, courseStyle:
   }
 
   return data.content;
-}
+};
 
-// Fonction pour convertir le contenu HTML en PDF et obtenir un Blob
 const convertToPdf = async (content: string, subject: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
-    // Créer un élément div temporaire pour contenir le contenu du cours
     const container = document.createElement('div');
     container.className = 'pdf-container';
     container.style.padding = '20px';
-    container.style.fontFamily = 'Arial, sans-serif';
     
-    // Ajouter un titre au document
-    const title = document.createElement('h1');
-    title.textContent = `Cours: ${subject}`;
-    title.style.textAlign = 'center';
-    title.style.marginBottom = '20px';
-    container.appendChild(title);
+    const titleElement = document.createElement('h1');
+    titleElement.textContent = `Cours: ${subject}`;
+    titleElement.style.textAlign = 'center';
+    titleElement.style.marginBottom = '20px';
+    titleElement.style.color = '#1a3e72';
+    titleElement.style.fontSize = '26px';
     
-    // Ajouter le contenu du cours
-    const formattedContent = content.replace(/\n/g, '<br>');
+    const timestampElement = document.createElement('p');
+    const currentDate = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+    timestampElement.textContent = `Généré le ${currentDate}`;
+    timestampElement.style.textAlign = 'center';
+    timestampElement.style.color = '#666';
+    timestampElement.style.marginBottom = '30px';
     
-    // Wrapper le contenu dans un div avec du style de base
-    container.innerHTML += `
-      <div style="line-height: 1.5; text-align: justify;">
-        ${formattedContent}
-      </div>
-    `;
+    container.appendChild(titleElement);
+    container.appendChild(timestampElement);
     
-    // Ajouter le container temporaire au body pour le rendu
+    container.innerHTML += content;
+    
     document.body.appendChild(container);
     
-    // Options pour html2pdf
     const options = {
       margin: [15, 15],
       filename: `cours-${cleanFileName(subject)}.pdf`,
@@ -139,13 +136,11 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
     };
     
     try {
-      // Générer le PDF
       html2pdf()
         .from(container)
         .set(options)
         .outputPdf('blob')
         .then((pdfBlob: Blob) => {
-          // Nettoyer en supprimant l'élément temporaire
           document.body.removeChild(container);
           resolve(pdfBlob);
         });
@@ -156,7 +151,6 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
   });
 };
 
-// Fonction pour uploader le PDF dans Supabase Storage
 const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string): Promise<string> => {
   if (!pdfBlob || pdfBlob.size === 0) {
     throw new Error("Le fichier PDF est invalide ou vide");
@@ -177,9 +171,7 @@ const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string
   if (error) {
     console.error("Erreur lors de l'upload du PDF:", error);
     
-    // Vérifier si l'erreur est due à un fichier existant
     if (error.message.includes('already exists')) {
-      // Tenter de supprimer puis réuploader
       await supabase.storage.from('documents').remove([filePath]);
       const { data: retryData, error: retryError } = await supabase.storage
         .from('documents')
@@ -192,7 +184,6 @@ const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string
         throw new Error(`Échec de la seconde tentative d'upload: ${retryError.message}`);
       }
       
-      // Obtenir l'URL publique après la seconde tentative
       const { data: retryUrlData } = supabase.storage
         .from('documents')
         .getPublicUrl(filePath);
@@ -203,7 +194,6 @@ const uploadPdfToStorage = async (pdfBlob: Blob, subject: string, userId: string
     throw new Error(`Erreur lors de l'upload du PDF: ${error.message}`);
   }
   
-  // Obtenir l'URL publique
   const { data: publicUrlData } = supabase.storage
     .from('documents')
     .getPublicUrl(filePath);
@@ -234,7 +224,6 @@ async function saveCourseToSupabase(pdfUrl: string, subject: string, userId: str
   console.log("Cours enregistré avec succès dans la base de données");
 }
 
-// Fonction pour récupérer les catégories de l'utilisateur
 const fetchUserCategories = async (): Promise<Category[]> => {
   const { data: session } = await supabase.auth.getSession();
   const userId = session?.session?.user?.id;
@@ -275,13 +264,11 @@ const GeneratePage = () => {
     mode: 'onSubmit'
   });
 
-  // Récupérer les catégories
   const { data: categories, isLoading: loadingCategories, error: categoriesError } = useQuery({
     queryKey: ['userCategories'],
     queryFn: fetchUserCategories,
   });
 
-  // Vérifier s'il y a des catégories disponibles
   const hasCategories = categories && categories.length > 0;
 
   const onSubmit = async (data: FormValues) => {
@@ -318,7 +305,6 @@ const GeneratePage = () => {
         return;
       }
 
-      // Étape 1: Générer le contenu du cours
       toast({
         title: "En cours",
         description: "Génération du contenu...",
@@ -330,21 +316,18 @@ const GeneratePage = () => {
         data.courseDuration
       );
       
-      // Étape 2: Convertir en PDF
       toast({
         title: "En cours",
         description: "Conversion en PDF...",
       });
       const pdfBlob = await convertToPdf(courseContent, data.subject);
       
-      // Étape 3: Upload dans Supabase Storage
       toast({
         title: "En cours",
         description: "Upload du fichier...",
       });
       const pdfUrl = await uploadPdfToStorage(pdfBlob, data.subject, userId);
       
-      // Étape 4: Enregistrer dans la base de données
       await saveCourseToSupabase(pdfUrl, data.subject, userId, data.categoryId);
       
       toast({
@@ -365,7 +348,6 @@ const GeneratePage = () => {
     }
   };
 
-  // Fonction pour créer une nouvelle catégorie
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {
       toast({
@@ -386,7 +368,6 @@ const GeneratePage = () => {
         throw new Error("Utilisateur non connecté");
       }
 
-      // Insérer la nouvelle catégorie dans Supabase
       const { data, error } = await supabase
         .from("categories")
         .insert({
@@ -405,15 +386,12 @@ const GeneratePage = () => {
         description: `La catégorie "${newCategoryName}" a été créée`,
       });
 
-      // Rafraîchir les catégories
       await queryClient.invalidateQueries({ queryKey: ['userCategories'] });
       
-      // Sélectionner automatiquement la nouvelle catégorie
       if (data && data.id) {
         form.setValue('categoryId', data.id);
       }
 
-      // Réinitialiser et fermer la modal
       setNewCategoryName('');
       setIsDialogOpen(false);
     } catch (error: any) {
@@ -655,7 +633,6 @@ const GeneratePage = () => {
         </div>
       </div>
 
-      {/* Dialog pour créer une nouvelle catégorie */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
