@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -12,9 +11,7 @@ import {
   ChevronRight,
   BookText,
   Users,
-  FileText,
-  FileDigit,
-  Dumbbell
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -51,8 +48,6 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: 'user' },
     { label: 'Importer', icon: Upload, path: '/upload' },
     { label: 'Générer un cours', icon: BookText, path: '/generate' },
-    { label: 'Résumer un document', icon: FileDigit, path: '/resume-document' },
-    { label: 'Générer des exercices', icon: Dumbbell, path: '/generate-exercises' },
     { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant' }
   ];
 
