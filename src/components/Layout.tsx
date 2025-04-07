@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -44,7 +45,8 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const navItems: NavItem = [
+  // Fixed: Define navItems as an array of NavItem objects
+  const navItems: NavItem[] = [
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
     { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant', 'eleve'], showOrder: 3 },
@@ -150,6 +152,7 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
+  // Now filteredNavItems works properly with the correctly typed navItems array
   const filteredNavItems = navItems
     .filter(item => {
       if (!item.role) return true; // If no role is specified, show for everyone
