@@ -11,51 +11,208 @@ const corsHeaders = {
 };
 
 // Helper function to get a theme-appropriate illustration
-function getThemeIllustration(subject: string): { icon: string, position: string } {
-  // Default icon and positioning
-  let icon = "📚";
-  const position = "top-right";
+function getThemeIllustration(subject: string): { emoji: string, decoration: string, backgroundColor: string } {
+  // Default theme settings
+  let emoji = "📚";
+  let decoration = "scroll";
+  let backgroundColor = "#f8fafc"; // Default light blue background
   
   // Convert subject to lowercase for easier matching
   const subjectLower = subject.toLowerCase();
   
-  // Match subject to appropriate icon
+  // Match subject to appropriate theme
   if (subjectLower.includes("math") || subjectLower.includes("mathématique") || subjectLower.includes("algèbre") || 
       subjectLower.includes("géométrie") || subjectLower.includes("calcul")) {
-    icon = "🧮";
-  } else if (subjectLower.includes("physique") || subjectLower.includes("chimie") || 
-             subjectLower.includes("science") || subjectLower.includes("laboratoire")) {
-    icon = "⚗️";
-  } else if (subjectLower.includes("histoire") || subjectLower.includes("géographie") || 
-             subjectLower.includes("monde") || subjectLower.includes("civilisation")) {
-    icon = "🌍";
-  } else if (subjectLower.includes("français") || subjectLower.includes("littérature") || 
-             subjectLower.includes("écriture") || subjectLower.includes("grammaire")) {
-    icon = "✒️";
-  } else if (subjectLower.includes("biologie") || subjectLower.includes("environnement") || 
-             subjectLower.includes("nature") || subjectLower.includes("écologie")) {
-    icon = "🌿";
-  } else if (subjectLower.includes("informatique") || subjectLower.includes("programmation") || 
-             subjectLower.includes("code") || subjectLower.includes("technologie")) {
-    icon = "💻";
-  } else if (subjectLower.includes("art") || subjectLower.includes("dessin") || 
-             subjectLower.includes("peinture") || subjectLower.includes("musique")) {
-    icon = "🎨";
-  } else if (subjectLower.includes("économie") || subjectLower.includes("finance") || 
-             subjectLower.includes("business") || subjectLower.includes("commerce")) {
-    icon = "📊";
-  } else if (subjectLower.includes("sport") || subjectLower.includes("éducation physique") || 
-             subjectLower.includes("santé") || subjectLower.includes("exercice")) {
-    icon = "🏃";
-  } else if (subjectLower.includes("langue") || subjectLower.includes("anglais") || 
-             subjectLower.includes("espagnol") || subjectLower.includes("allemand")) {
-    icon = "🗣️";
-  } else if (subjectLower.includes("philosophie") || subjectLower.includes("psychologie") ||
-             subjectLower.includes("éthique") || subjectLower.includes("morale")) {
-    icon = "🧠";
+    emoji = "🧮";
+    decoration = "formula";
+    backgroundColor = "#f0f7ff"; // Très léger bleu
+  } 
+  else if (subjectLower.includes("physique") || subjectLower.includes("chimie") || 
+           subjectLower.includes("science") || subjectLower.includes("laboratoire")) {
+    emoji = "⚗️";
+    decoration = "atoms";
+    backgroundColor = "#f0f9ff"; // Bleu science très pâle
+  } 
+  else if (subjectLower.includes("histoire") || subjectLower.includes("géographie") || 
+           subjectLower.includes("monde") || subjectLower.includes("civilisation")) {
+    emoji = "🌍";
+    decoration = "map";
+    backgroundColor = "#fff8f0"; // Beige très pâle
+  } 
+  else if (subjectLower.includes("français") || subjectLower.includes("littérature") || 
+           subjectLower.includes("écriture") || subjectLower.includes("grammaire")) {
+    emoji = "✒️";
+    decoration = "book";
+    backgroundColor = "#faf5ff"; // Violet très pâle
+  } 
+  else if (subjectLower.includes("biologie") || subjectLower.includes("environnement") || 
+           subjectLower.includes("nature") || subjectLower.includes("écologie")) {
+    emoji = "🌿";
+    decoration = "leaf";
+    backgroundColor = "#f0fff4"; // Vert très pâle
+  } 
+  else if (subjectLower.includes("informatique") || subjectLower.includes("programmation") || 
+           subjectLower.includes("code") || subjectLower.includes("technologie")) {
+    emoji = "💻";
+    decoration = "code";
+    backgroundColor = "#f5f5f5"; // Gris très pâle
+  } 
+  else if (subjectLower.includes("art") || subjectLower.includes("dessin") || 
+           subjectLower.includes("peinture") || subjectLower.includes("musique")) {
+    emoji = "🎨";
+    decoration = "palette";
+    backgroundColor = "#fff0f7"; // Rose très pâle
+  } 
+  else if (subjectLower.includes("économie") || subjectLower.includes("finance") || 
+           subjectLower.includes("business") || subjectLower.includes("commerce")) {
+    emoji = "📊";
+    decoration = "chart";
+    backgroundColor = "#f0fff0"; // Vert finance très pâle
+  } 
+  else if (subjectLower.includes("sport") || subjectLower.includes("éducation physique") || 
+           subjectLower.includes("santé") || subjectLower.includes("exercice")) {
+    emoji = "🏃";
+    decoration = "medal";
+    backgroundColor = "#f0faff"; // Bleu sport très pâle
+  } 
+  else if (subjectLower.includes("langue") || subjectLower.includes("anglais") || 
+           subjectLower.includes("espagnol") || subjectLower.includes("allemand")) {
+    emoji = "🗣️";
+    decoration = "speech";
+    backgroundColor = "#fffaf0"; // Beige langue très pâle
+  } 
+  else if (subjectLower.includes("philosophie") || subjectLower.includes("psychologie") ||
+           subjectLower.includes("éthique") || subjectLower.includes("morale")) {
+    emoji = "🧠";
+    decoration = "thought";
+    backgroundColor = "#f5f0ff"; // Violet pensée très pâle
   }
   
-  return { icon, position };
+  return { emoji, decoration, backgroundColor };
+}
+
+// Helper function to get SVG decoration based on the subject theme
+function getThemeSvgDecoration(decoration: string): string {
+  switch (decoration) {
+    case "formula":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,50 L90,50" stroke="#1a3e72" stroke-width="2" stroke-opacity="0.7"/>
+          <path d="M40,65 L80,65" stroke="#1a3e72" stroke-width="2" stroke-opacity="0.7"/>
+          <path d="M50,35 L70,35" stroke="#1a3e72" stroke-width="2" stroke-opacity="0.7"/>
+          <text x="55" y="90" font-family="serif" font-size="16" fill="#1a3e72" fill-opacity="0.7">π=3.14</text>
+        </svg>
+      `;
+    case "atoms":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <ellipse cx="60" cy="60" rx="50" ry="25" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <ellipse cx="60" cy="60" rx="50" ry="25" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none" transform="rotate(60 60 60)"/>
+          <ellipse cx="60" cy="60" rx="50" ry="25" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none" transform="rotate(120 60 60)"/>
+          <circle cx="60" cy="60" r="8" fill="#1a3e72" fill-opacity="0.7"/>
+        </svg>
+      `;
+    case "map":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,30 C45,50 60,20 75,40 C90,60 100,30 110,50" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M20,60 C35,80 50,50 65,70 C80,90 95,60 110,80" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="45" cy="45" r="5" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="75" cy="65" r="5" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+        </svg>
+      `;
+    case "book":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,30 L30,90 L90,90 L90,30 L30,30" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M30,30 L60,40 L90,30" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M60,40 L60,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <path d="M40,50 L55,50" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M40,60 L55,60" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M40,70 L55,70" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M65,50 L80,50" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M65,60 L80,60" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M65,70 L80,70" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+        </svg>
+      `;
+    case "leaf":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M60,30 C90,30 90,90 60,90 C30,90 30,30 60,30 Z" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M40,60 C50,50 70,50 80,60" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M60,30 L60,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <path d="M40,45 C50,55 70,55 80,45" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M40,75 C50,65 70,65 80,75" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+        </svg>
+      `;
+    case "code":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M40,50 L20,60 L40,70" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M80,50 L100,60 L80,70" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M70,40 L50,80" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <text x="50" y="95" font-family="monospace" font-size="10" fill="#1a3e72" fill-opacity="0.7">{code}</text>
+        </svg>
+      `;
+    case "palette":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,60 C30,40 40,30 60,30 C80,30 90,40 90,60 C90,80 80,90 60,90 C40,90 30,80 30,60 Z" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="45" cy="45" r="5" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="75" cy="45" r="5" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="60" cy="75" r="5" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M30,60 L90,60" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.5"/>
+          <path d="M60,30 L60,90" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.5"/>
+        </svg>
+      `;
+    case "chart":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,90 L30,30" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <path d="M30,90 L90,90" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <path d="M40,70 L40,90" stroke="#1a3e72" stroke-width="8" stroke-opacity="0.7"/>
+          <path d="M50,50 L50,90" stroke="#1a3e72" stroke-width="8" stroke-opacity="0.7"/>
+          <path d="M60,60 L60,90" stroke="#1a3e72" stroke-width="8" stroke-opacity="0.7"/>
+          <path d="M70,40 L70,90" stroke="#1a3e72" stroke-width="8" stroke-opacity="0.7"/>
+          <path d="M80,30 L80,90" stroke="#1a3e72" stroke-width="8" stroke-opacity="0.7"/>
+        </svg>
+      `;
+    case "medal":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <circle cx="60" cy="60" r="25" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <circle cx="60" cy="60" r="20" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7" fill="none"/>
+          <path d="M60,35 L65,50 L80,50 L70,60 L75,75 L60,65 L45,75 L50,60 L40,50 L55,50 Z" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7" fill="none"/>
+        </svg>
+      `;
+    case "speech":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,50 C30,40 40,30 60,30 C80,30 90,40 90,50 C90,60 80,70 60,70 C55,70 50,69 45,68 L35,80 L35,65 C32,61 30,56 30,50 Z" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <text x="45" y="55" font-family="sans-serif" font-size="16" fill="#1a3e72" fill-opacity="0.7">A B C</text>
+        </svg>
+      `;
+    case "thought":
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M40,60 C40,45 50,35 65,35 C80,35 90,45 90,60" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M40,60 C40,75 50,85 65,85 C80,85 90,75 90,60" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M30,60 L100,60" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7"/>
+          <circle cx="65" cy="40" r="3" fill="#1a3e72" fill-opacity="0.7"/>
+          <circle cx="65" cy="80" r="3" fill="#1a3e72" fill-opacity="0.7"/>
+        </svg>
+      `;
+    case "scroll":
+    default:
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" style="position: absolute; top: 10px; right: 10px; opacity: 0.06;">
+          <path d="M30,30 C60,25 60,25 90,30 L90,80 C60,75 60,75 30,80 L30,30 Z" stroke="#1a3e72" stroke-width="1.5" stroke-opacity="0.7" fill="none"/>
+          <path d="M40,45 L80,45" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M40,55 L80,55" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+          <path d="M40,65 L80,65" stroke="#1a3e72" stroke-width="1" stroke-opacity="0.7"/>
+        </svg>
+      `;
+  }
 }
 
 // Helper function to convert markdown-like content to HTML
@@ -126,8 +283,9 @@ function formatCourseContent(content: string, subject: string): string {
     htmlContent += '</p>\n';
   }
   
-  // Get appropriate illustration based on subject
-  const { icon, position } = getThemeIllustration(subject);
+  // Get appropriate theme elements based on subject
+  const { emoji, decoration, backgroundColor } = getThemeIllustration(subject);
+  const decorationSvg = getThemeSvgDecoration(decoration);
   
   // Add CSS for better formatting in the PDF
   const styledContent = `
@@ -139,7 +297,7 @@ function formatCourseContent(content: string, subject: string): string {
           color: #333;
           max-width: 800px;
           margin: 0 auto;
-          background-color: #f8fafc;
+          background-color: ${backgroundColor};
           padding: 25px 35px 40px;
           border-radius: 8px;
           position: relative;
@@ -150,7 +308,17 @@ function formatCourseContent(content: string, subject: string): string {
           top: 20px;
           right: 25px;
           font-size: 36px;
-          opacity: 0.6;
+          opacity: 0.8;
+          z-index: 5;
+        }
+        .course-decoration {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 120px;
+          height: 120px;
+          opacity: 0.06;
+          z-index: 1;
         }
         .course-h1 {
           font-size: 24px;
@@ -191,16 +359,26 @@ function formatCourseContent(content: string, subject: string): string {
           text-align: right;
           margin-top: 30px;
           font-size: 24px;
+          opacity: 0.7;
+        }
+        .watermark {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          font-size: 12px;
+          color: #8898aa;
           opacity: 0.5;
         }
         @page {
           margin: 14mm;
-          background-color: #f8fafc;
+          background-color: ${backgroundColor};
         }
       </style>
-      <div class="course-icon">${icon}</div>
+      <div class="course-icon">${emoji}</div>
+      ${decorationSvg}
       ${htmlContent}
-      <div class="course-footer">${icon}</div>
+      <div class="course-footer">${emoji}</div>
+      <div class="watermark">Généré par IA - EduVault</div>
     </div>
   `;
   

@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -71,6 +70,87 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
+  }
+
+  /* Course document styles */
+  .course-container {
+    position: relative;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+  }
+  
+  .course-icon {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    font-size: 36px;
+    opacity: 0.8;
+    z-index: 5;
+  }
+  
+  .course-decoration {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    opacity: 0.06;
+    z-index: 1;
+  }
+  
+  .course-h1 {
+    font-size: 24px;
+    margin-top: 28px;
+    margin-bottom: 16px;
+    color: #1a3e72;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+  }
+  
+  .course-h2 {
+    font-size: 20px;
+    margin-top: 24px;
+    margin-bottom: 14px;
+    color: #2a5ca8;
+  }
+  
+  .course-h3 {
+    font-size: 18px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+    color: #3670cc;
+  }
+  
+  .course-paragraph {
+    margin: 14px 0;
+    text-align: justify;
+    line-height: 1.7;
+  }
+  
+  .course-list {
+    margin: 16px 0;
+    padding-left: 24px;
+  }
+  
+  .course-list li {
+    margin: 8px 0;
+  }
+  
+  .course-footer {
+    text-align: right;
+    margin-top: 30px;
+    font-size: 24px;
+    opacity: 0.7;
+  }
+  
+  .watermark {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 12px;
+    color: #8898aa;
+    opacity: 0.5;
   }
 
   /* PDF document styles */
