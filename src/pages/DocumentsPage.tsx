@@ -46,14 +46,7 @@ const DocumentsPage = () => {
         }
         
         setUserRole(userData.role);
-        
-        // Rediriger vers la page appropriée si le rôle n'est pas "user"
-        if (userData.role === 'enseignant') {
-          setAccessError("Cette page est réservée aux élèves. Vous allez être redirigé vers votre tableau de bord.");
-          setTimeout(() => {
-            navigate('/dashboard-enseignant');
-          }, 3000);
-        }
+        console.log("User role in DocumentsPage:", userData.role);
       } catch (error) {
         console.error("Erreur:", error);
         navigate('/');
@@ -76,22 +69,7 @@ const DocumentsPage = () => {
     );
   }
 
-  // Afficher un message d'erreur si l'accès est non autorisé
-  if (accessError) {
-    return (
-      <Layout>
-        <div className="container py-12">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Accès non autorisé</AlertTitle>
-            <AlertDescription>{accessError}</AlertDescription>
-          </Alert>
-        </div>
-      </Layout>
-    );
-  }
-
-  // N'afficher le contenu que si l'utilisateur a le rôle "user"
+  // N'afficher le contenu que si l'utilisateur a un rôle valide
   return (
     <Layout>
       <div className="container py-6">

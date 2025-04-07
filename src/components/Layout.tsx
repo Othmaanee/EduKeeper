@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -159,6 +160,10 @@ export function Layout({ children }: LayoutProps) {
       return item.role === userRole;
     })
     .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99)); // Sort by showOrder
+
+  // Add console log to debug navigation items and roles
+  console.log("Current user role:", userRole);
+  console.log("Filtered nav items:", filteredNavItems);
 
   return (
     <div className="min-h-screen flex bg-background">
