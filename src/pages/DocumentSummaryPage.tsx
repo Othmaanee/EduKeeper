@@ -23,15 +23,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Define the UserData type to ensure proper TypeScript typing
+interface UserData {
+  id: string;
+  role: string;
+}
+
 const DocumentSummaryPage = () => {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   
-  // Fetch user role
-  const { data: userData, isLoading: userLoading } = useQuery({
-    queryKey: ['currentUserRole'],
+  // Fetch user data (both id and role)
+  const { data: userData, isLoading: userLoading } = useQuery<UserData>({
+    queryKey: ['currentUser'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -39,20 +44,23 @@ const DocumentSummaryPage = () => {
       
       const { data, error } = await supabase
         .from('users')
-        .select('role')
+        .select('id, role')
         .eq('id', session.user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching user data:", error);
+        throw error;
+      }
       
-      setUserRole(data.role);
-      return data;
+      console.log("User data fetched:", data);
+      return data as UserData;
     }
   });
 
   // Fetch documents based on user role
   const { data: documents = [], isLoading: documentsLoading } = useQuery({
-    queryKey: ['documents', userRole],
+    queryKey: ['documents', userData?.role],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -61,10 +69,10 @@ const DocumentSummaryPage = () => {
       // Query depends on the user role
       let query = supabase.from("documents").select("*, categories(nom)");
       
-      if (userRole === "enseignant") {
+      if (userData?.role === "enseignant") {
         // Enseignants can only see their own documents
         query = query.eq('user_id', session.user.id);
-      } else if (userRole === "user" || userRole === "eleve") {
+      } else if (userData?.role === "user" || userData?.role === "eleve") {
         // Élèves can see their documents and shared documents
         query = query.or(`user_id.eq.${session.user.id},is_shared.eq.true`);
       }
@@ -75,7 +83,7 @@ const DocumentSummaryPage = () => {
       
       return data || [];
     },
-    enabled: !!userRole, // Only run the query when userRole is available
+    enabled: !!userData?.role, // Only run the query when userData.role is available
   });
   
   const handleGenerateSummary = () => {
