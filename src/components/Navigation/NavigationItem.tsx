@@ -11,6 +11,7 @@ export interface NavItem {
   path: string;
   role?: string | string[];
   showOrder?: number;
+  disabled?: boolean;
 }
 
 interface NavigationItemProps {
@@ -20,6 +21,21 @@ interface NavigationItemProps {
 export const NavigationItem = ({ item }: NavigationItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === item.path;
+  
+  if (item.disabled) {
+    return (
+      <div 
+        className={cn(
+          "flex items-center px-3 py-2.5 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed",
+          "text-muted-foreground"
+        )}
+      >
+        <item.icon className="h-5 w-5 mr-3" />
+        <span>{item.label}</span>
+        <span className="bg-muted text-xs rounded-full px-2 ml-auto">Bientôt</span>
+      </div>
+    );
+  }
   
   return (
     <Link 

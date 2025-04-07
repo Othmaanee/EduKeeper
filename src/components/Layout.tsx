@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -8,7 +9,8 @@ import {
   BookText,
   Users,
   FileText,
-  FileSearch
+  FileSearch,
+  Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
@@ -34,11 +36,12 @@ export function Layout({ children }: LayoutProps) {
   const navItems: NavItem[] = [
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
     { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
-    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant', 'eleve'], showOrder: 3 },
-    { label: 'Résumer Document', icon: FileSearch, path: '/summarize-document', role: ['user', 'enseignant', 'eleve'], showOrder: 4 },
+    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 2 },
+    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', showOrder: 3 },
+    { label: 'Résumer un Document', icon: FileSearch, path: '/summarize-document', showOrder: 4 },
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
     { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
-    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 7 }
+    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', disabled: true, showOrder: 7 }
   ];
 
   useEffect(() => {
@@ -148,9 +151,6 @@ export function Layout({ children }: LayoutProps) {
       return item.role === userRole;
     })
     .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99));
-
-  console.info("Current user role:", userRole);
-  console.info("Filtered nav items:", filteredNavItems);
 
   return (
     <div className="min-h-screen flex bg-background">
