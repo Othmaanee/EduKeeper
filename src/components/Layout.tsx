@@ -29,7 +29,8 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   path: string;
-  role?: string; // Optional role requirement
+  role?: string | string[]; // Modified to accept an array of roles
+  showOrder?: number; // Added to control display order
 };
 
 export function Layout({ children }: LayoutProps) {
@@ -43,12 +44,12 @@ export function Layout({ children }: LayoutProps) {
   const { toast } = useToast();
 
   const navItems: NavItem[] = [
-    { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil' },
-    { label: 'Mes Documents', icon: FileText, path: '/documents', role: 'user' },
-    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: 'user' },
-    { label: 'Importer', icon: Upload, path: '/upload' },
-    { label: 'Générer un cours', icon: BookText, path: '/generate' },
-    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant' }
+    { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
+    { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'enseignant'], showOrder: 2 },
+    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant'], showOrder: 3 },
+    { label: 'Importer', icon: Upload, path: '/upload', showOrder: 4 },
+    { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 5 },
+    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 6 }
   ];
 
   useEffect(() => {
@@ -147,9 +148,17 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
-  const filteredNavItems = navItems.filter(item => 
-    !item.role || item.role === userRole
-  );
+  const filteredNavItems = navItems
+    .filter(item => {
+      if (!item.role) return true; // If no role is specified, show for everyone
+      
+      if (Array.isArray(item.role)) {
+        return item.role.includes(userRole);
+      }
+      
+      return item.role === userRole;
+    })
+    .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99)); // Sort by showOrder
 
   return (
     <div className="min-h-screen flex bg-background">
