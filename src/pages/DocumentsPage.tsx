@@ -5,10 +5,13 @@ import { Suspense, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const DocumentsPage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -44,9 +47,12 @@ const DocumentsPage = () => {
         
         setUserRole(userData.role);
         
-        // Rediriger vers la page d'accueil si le rôle n'est pas "user"
-        if (userData.role !== 'user') {
-          navigate('/');
+        // Rediriger vers la page appropriée si le rôle n'est pas "user"
+        if (userData.role === 'enseignant') {
+          setAccessError("Cette page est réservée aux élèves. Vous allez être redirigé vers votre tableau de bord.");
+          setTimeout(() => {
+            navigate('/dashboard-enseignant');
+          }, 3000);
         }
       } catch (error) {
         console.error("Erreur:", error);
@@ -70,11 +76,22 @@ const DocumentsPage = () => {
     );
   }
 
-  // N'afficher le contenu que si l'utilisateur a le rôle "user"
-  if (userRole !== 'user') {
-    return null;
+  // Afficher un message d'erreur si l'accès est non autorisé
+  if (accessError) {
+    return (
+      <Layout>
+        <div className="container py-12">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Accès non autorisé</AlertTitle>
+            <AlertDescription>{accessError}</AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
   }
 
+  // N'afficher le contenu que si l'utilisateur a le rôle "user"
   return (
     <Layout>
       <div className="container py-6">

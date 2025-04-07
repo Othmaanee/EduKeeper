@@ -43,9 +43,9 @@ export function Layout({ children }: LayoutProps) {
 
   // Define navigation items with role requirements
   const navItems: NavItem[] = [
-    { label: 'Accueil', icon: Home, path: '/' },
-    { label: 'Documents', icon: BookOpen, path: '/documents' },
-    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories' },
+    { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil' },
+    { label: 'Documents', icon: BookOpen, path: '/documents', role: 'user' },
+    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: 'user' },
     { label: 'Importer', icon: Upload, path: '/upload' },
     { label: 'Générer un cours', icon: BookText, path: '/generate' },
     { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant' }

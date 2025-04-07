@@ -56,7 +56,7 @@ const LoginPage = () => {
       if (data && data.role === 'enseignant') {
         navigate('/dashboard-enseignant', { replace: true });
       } else {
-        navigate('/', { replace: true });
+        navigate('/accueil', { replace: true });
       }
     } catch (error) {
       console.error("Error during role-based redirection:", error);
