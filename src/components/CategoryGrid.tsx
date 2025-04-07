@@ -1,9 +1,11 @@
 
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle, FolderOpenIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { CategoryCard } from './CategoryCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { CreateCategoryDialog } from './CreateCategoryDialog';
 
 type Category = {
   id: string;
@@ -98,28 +100,46 @@ export function CategoryGrid() {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-background p-8 text-center">
         <div className="mb-4 rounded-full bg-primary/10 p-3">
-          <Loader2 className="h-6 w-6 text-primary" />
+          <FolderOpenIcon className="h-6 w-6 text-primary" />
         </div>
         <h3 className="text-lg font-medium">Aucune catégorie trouvée</h3>
         <p className="mt-2 text-muted-foreground">
-          Vous n'avez pas encore créé de catégories. Commencez par en créer une !
+          Vous n'avez pas encore créé de catégories.
         </p>
+        <div className="mt-6">
+          <CreateCategoryDialog 
+            onCategoryCreated={fetchCategories} 
+            triggerButton={
+              <Button>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Créer une catégorie
+              </Button>
+            }
+          />
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {categories.map((category, index) => (
-        <CategoryCard
-          key={category.id}
-          id={category.id}
-          name={category.nom || 'Sans nom'}
-          count={category.count}
-          color={colors[index % colors.length]}
-          onDelete={fetchCategories}
-        />
-      ))}
+    <div>
+      <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-lg font-semibold">Mes catégories</h2>
+        <CreateCategoryDialog onCategoryCreated={fetchCategories} />
+      </div>
+      
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {categories.map((category, index) => (
+          <CategoryCard
+            key={category.id}
+            id={category.id}
+            name={category.nom || 'Sans nom'}
+            count={category.count}
+            color={colors[index % colors.length]}
+            onDelete={fetchCategories}
+          />
+        ))}
+      </div>
     </div>
   );
 }

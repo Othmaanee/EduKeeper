@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { CreateCategoryDialog } from './CreateCategoryDialog';
 
 export function Dashboard() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export function Dashboard() {
   });
 
   // Récupérer les catégories et le nombre de documents associés
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       // Récupérer toutes les catégories
@@ -199,6 +200,7 @@ export function Dashboard() {
                 count={category.count}
                 color={category.color}
                 className="animate-scale-in"
+                onDelete={() => refetchCategories()}
               />
             ))}
           </div>
@@ -206,9 +208,10 @@ export function Dashboard() {
           <div className="text-center py-8 border border-dashed rounded-lg">
             <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
             <h3 className="mt-2 text-lg font-medium">Aucune catégorie disponible</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground mb-6">
               Commencez par créer des catégories pour organiser vos documents.
             </p>
+            <CreateCategoryDialog onCategoryCreated={() => refetchCategories()} />
           </div>
         )}
       </section>
