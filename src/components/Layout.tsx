@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -46,8 +45,8 @@ export function Layout({ children }: LayoutProps) {
 
   const navItems: NavItem[] = [
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
-    { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'enseignant'], showOrder: 2 },
-    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant'], showOrder: 3 },
+    { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
+    { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant', 'eleve'], showOrder: 3 },
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 4 },
     { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 5 },
     { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 6 }
@@ -162,8 +161,8 @@ export function Layout({ children }: LayoutProps) {
     .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99)); // Sort by showOrder
 
   // Add console log to debug navigation items and roles
-  console.log("Current user role:", userRole);
-  console.log("Filtered nav items:", filteredNavItems);
+  console.info("Current user role:", userRole);
+  console.info("Filtered nav items:", filteredNavItems);
 
   return (
     <div className="min-h-screen flex bg-background">
