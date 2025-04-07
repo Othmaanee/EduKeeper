@@ -10,7 +10,8 @@ import {
   X,
   ChevronRight,
   BookText,
-  Users
+  Users,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -41,10 +42,9 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Define navigation items with role requirements
   const navItems: NavItem[] = [
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil' },
-    { label: 'Documents', icon: BookOpen, path: '/documents', role: 'user' },
+    { label: 'Mes Documents', icon: FileText, path: '/documents', role: 'user' },
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: 'user' },
     { label: 'Importer', icon: Upload, path: '/upload' },
     { label: 'Générer un cours', icon: BookText, path: '/generate' },
@@ -52,11 +52,9 @@ export function Layout({ children }: LayoutProps) {
   ];
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
       
-      // Fetch user role if authenticated
       if (session?.user) {
         fetchUserRole(session.user.id);
       } else {
@@ -67,7 +65,6 @@ export function Layout({ children }: LayoutProps) {
       }
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
       
@@ -87,7 +84,6 @@ export function Layout({ children }: LayoutProps) {
     };
   }, [navigate, location.pathname]);
   
-  // Fetch user role from database
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -114,19 +110,16 @@ export function Layout({ children }: LayoutProps) {
     try {
       setLoggingOut(true); 
       
-      // Effectuer la déconnexion
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         throw error;
       }
       
-      // Notification de déconnexion réussie
       toast({
         description: "Vous avez été déconnecté avec succès.",
       });
       
-      // Redirection vers la page de connexion
       navigate('/login');
       
     } catch (error: any) {
@@ -141,30 +134,25 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
-  // Show nothing while checking authentication
   if (loading) {
     return null;
   }
 
-  // Redirect to login if no user and not already on login page
   if (!user && location.pathname !== '/login') {
     navigate('/login');
     return null;
   }
 
-  // Don't render layout for login page
   if (location.pathname === '/login') {
     return <>{children}</>;
   }
 
-  // Filter navigation items based on user role
   const filteredNavItems = navItems.filter(item => 
     !item.role || item.role === userRole
   );
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-20 w-64 bg-white shadow-subtle border-r border-border transition-all duration-300 ease-in-out",
@@ -172,7 +160,6 @@ export function Layout({ children }: LayoutProps) {
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
           <div className="px-6 py-8 flex items-center">
             <BookOpen className="h-8 w-8 text-primary mr-2" />
             <h1 className="text-xl font-semibold tracking-tight">EduKeeper</h1>
@@ -188,7 +175,6 @@ export function Layout({ children }: LayoutProps) {
           
           <Separator />
           
-          {/* Nav Links */}
           <nav className="flex-1 px-3 py-6 space-y-1">
             {filteredNavItems.map((item) => (
               <Link 
@@ -210,7 +196,6 @@ export function Layout({ children }: LayoutProps) {
             ))}
           </nav>
           
-          {/* User Section */}
           <div className="p-4 mt-auto">
             <Separator className="mb-4" />
             <div className="flex items-center">
@@ -242,20 +227,18 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </aside>
       
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-10 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-black/20 z-10 md:hidden",
+          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setSidebarOpen(false)}
+      />
       
-      {/* Main Content */}
       <main className={cn(
         "flex-1 transition-all duration-300 ease-in-out",
         sidebarOpen ? "md:ml-64" : "ml-0"
       )}>
-        {/* Top Bar */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border">
           <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center">
@@ -292,7 +275,6 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </header>
         
-        {/* Page Content */}
         <div className="px-4 sm:px-6 lg:px-8 py-6 pb-24">
           {children}
         </div>

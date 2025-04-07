@@ -19,52 +19,53 @@ export function CategoryGrid() {
   // Colors for category cards
   const colors = ["blue", "green", "purple", "amber", "rose"];
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        
-        // Get current user session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          throw new Error('Utilisateur non connecté');
-        }
-        
-        // Fetch categories for the current user
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categories')
-          .select('id, nom')
-          .eq('user_id', session.user.id);
-          
-        if (categoriesError) {
-          throw categoriesError;
-        }
-        
-        // Fetch count of documents for each category
-        const categoriesWithCount = await Promise.all(categoriesData.map(async (category) => {
-          const { count, error: countError } = await supabase
-            .from('documents')
-            .select('id', { count: 'exact', head: true })
-            .eq('category_id', category.id);
-            
-          if (countError) {
-            console.error(`Erreur lors du comptage des documents pour la catégorie ${category.nom}:`, countError);
-            return { ...category, count: 0 };
-          }
-          
-          return { ...category, count: count || 0 };
-        }));
-        
-        setCategories(categoriesWithCount);
-      } catch (err: any) {
-        console.error('Erreur lors de la récupération des catégories:', err);
-        setError(err.message || 'Une erreur est survenue');
-      } finally {
-        setLoading(false);
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      
+      // Get current user session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Utilisateur non connecté');
       }
-    };
-    
+      
+      // Fetch categories for the current user
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('id, nom')
+        .eq('user_id', session.user.id);
+        
+      if (categoriesError) {
+        throw categoriesError;
+      }
+      
+      // Fetch count of documents for each category
+      const categoriesWithCount = await Promise.all(categoriesData.map(async (category) => {
+        const { count, error: countError } = await supabase
+          .from('documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('category_id', category.id);
+          
+        if (countError) {
+          console.error(`Erreur lors du comptage des documents pour la catégorie ${category.nom}:`, countError);
+          return { ...category, count: 0 };
+        }
+        
+        return { ...category, count: count || 0 };
+      }));
+      
+      setCategories(categoriesWithCount);
+      setError(null);
+    } catch (err: any) {
+      console.error('Erreur lors de la récupération des catégories:', err);
+      setError(err.message || 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchCategories();
   }, []);
   
@@ -116,6 +117,7 @@ export function CategoryGrid() {
           name={category.nom || 'Sans nom'}
           count={category.count}
           color={colors[index % colors.length]}
+          onDelete={fetchCategories}
         />
       ))}
     </div>
