@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Download, Share2, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Download, Share2, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -59,11 +59,6 @@ export function TeacherDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if a document is AI-generated based on its name
-  const isAIGenerated = (docName: string): boolean => {
-    return docName.startsWith("Cours :");
-  };
-
   // Fetch user documents
   useEffect(() => {
     async function fetchDocuments() {
@@ -117,18 +112,15 @@ export function TeacherDashboard() {
         if (data) {
           setDocuments(data);
           
-          // Filter AI-generated documents
-          const aiGeneratedDocs = data.filter(doc => isAIGenerated(doc.nom));
-          
-          // Calculate stats for AI-generated documents only
-          const totalAIDocs = aiGeneratedDocs.length;
-          const sharedAIDocs = aiGeneratedDocs.filter(doc => doc.is_shared).length;
-          const latestAIDoc = aiGeneratedDocs.length > 0 ? aiGeneratedDocs[0] : null;
+          // Calculate stats
+          const totalDocs = data.length;
+          const sharedDocs = data.filter(doc => doc.is_shared).length;
+          const latestDoc = data.length > 0 ? data[0] : null;
           
           setStats({
-            totalDocuments: totalAIDocs,
-            sharedDocuments: sharedAIDocs,
-            latestDocument: latestAIDoc,
+            totalDocuments: totalDocs,
+            sharedDocuments: sharedDocs,
+            latestDocument: latestDoc,
           });
         }
       } catch (error: any) {
@@ -164,14 +156,11 @@ export function TeacherDashboard() {
         doc.id === docId ? { ...doc, is_shared: true } : doc
       ));
       
-      // Update stats if it's an AI-generated document
-      const doc = documents.find(d => d.id === docId);
-      if (doc && isAIGenerated(doc.nom)) {
-        setStats(prev => ({
-          ...prev,
-          sharedDocuments: prev.sharedDocuments + 1
-        }));
-      }
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        sharedDocuments: prev.sharedDocuments + 1
+      }));
       
       toast({
         title: "Document partagé",
@@ -204,24 +193,19 @@ export function TeacherDashboard() {
       
       // Update local state
       const deletedDoc = documents.find(doc => doc.id === documentToDelete);
+      const wasShared = deletedDoc?.is_shared || false;
       
-      // Check if the deleted document was an AI-generated one
-      if (deletedDoc && isAIGenerated(deletedDoc.nom)) {
-        const wasShared = deletedDoc.is_shared || false;
-        
-        // Update stats for AI-generated documents
-        setStats(prev => ({
-          ...prev,
-          totalDocuments: prev.totalDocuments - 1,
-          sharedDocuments: wasShared ? prev.sharedDocuments - 1 : prev.sharedDocuments,
-          latestDocument: prev.latestDocument?.id === documentToDelete 
-            ? documents.filter(doc => isAIGenerated(doc.nom) && doc.id !== documentToDelete)[0] || null 
-            : prev.latestDocument
-        }));
-      }
-      
-      // Remove from documents list
       setDocuments(docs => docs.filter(doc => doc.id !== documentToDelete));
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        totalDocuments: prev.totalDocuments - 1,
+        sharedDocuments: wasShared ? prev.sharedDocuments - 1 : prev.sharedDocuments,
+        latestDocument: prev.latestDocument?.id === documentToDelete 
+          ? documents.length > 1 ? documents[1] : null 
+          : prev.latestDocument
+      }));
       
       toast({
         title: "Document supprimé",
@@ -253,9 +237,6 @@ export function TeacherDashboard() {
     );
   }
 
-  // Filter AI-generated documents for the UI display
-  const aiGeneratedDocs = documents.filter(doc => isAIGenerated(doc.nom));
-
   return (
     <div className="container py-8">
       <div className="space-y-10">
@@ -274,10 +255,7 @@ export function TeacherDashboard() {
               <CardDescription>Documents générés</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-                <Sparkles className="h-4 w-4 text-amber-500" />
-              </div>
+              <FileText className="h-5 w-5 text-muted-foreground" />
             </CardContent>
           </Card>
           
@@ -310,14 +288,14 @@ export function TeacherDashboard() {
 
         {/* Document List */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Mes documents générés par IA</h2>
+          <h2 className="text-xl font-semibold mb-4">Mes documents</h2>
           
-          {aiGeneratedDocs.length === 0 ? (
+          {documents.length === 0 ? (
             <div className="text-center p-8 bg-muted/30 rounded-lg border border-dashed">
               <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <h3 className="text-lg font-medium">Aucun document généré</h3>
+              <h3 className="text-lg font-medium">Aucun document</h3>
               <p className="text-muted-foreground mt-1">
-                Vous n'avez pas encore généré de documents avec l'IA.
+                Vous n'avez pas encore généré de documents.
               </p>
               <Button className="mt-4" onClick={() => navigate('/generate')}>
                 Générer un cours
@@ -335,19 +313,14 @@ export function TeacherDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {aiGeneratedDocs.map((doc) => (
+                  {documents.map((doc) => (
                     <TableRow key={doc.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                          <div className="flex flex-col">
-                            <span className="truncate max-w-[180px] md:max-w-xs">
-                              {doc.nom}
-                            </span>
-                            <Badge variant="outline" className="text-xs flex items-center gap-1 w-fit bg-amber-50 border-amber-200 text-amber-700 mt-1">
-                              <Sparkles className="h-3 w-3" /> Généré IA
-                            </Badge>
-                          </div>
+                          <span className="truncate max-w-[180px] md:max-w-xs">
+                            {doc.nom}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
