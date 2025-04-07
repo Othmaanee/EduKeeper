@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
@@ -101,6 +102,7 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
     const container = document.createElement('div');
     container.className = 'pdf-container';
     container.style.padding = '20px';
+    container.style.backgroundColor = '#f8fafc'; // Light blue background
     
     const titleElement = document.createElement('h1');
     titleElement.textContent = `Cours: ${subject}`;
@@ -108,6 +110,8 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
     titleElement.style.marginBottom = '20px';
     titleElement.style.color = '#1a3e72';
     titleElement.style.fontSize = '26px';
+    titleElement.style.borderBottom = '1px solid #e2e8f0';
+    titleElement.style.paddingBottom = '10px';
     
     const timestampElement = document.createElement('p');
     const currentDate = new Date().toLocaleDateString('fr-FR', {
@@ -117,7 +121,7 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
     });
     timestampElement.textContent = `Généré le ${currentDate}`;
     timestampElement.style.textAlign = 'center';
-    timestampElement.style.color = '#666';
+    timestampElement.style.color = '#64748b';
     timestampElement.style.marginBottom = '30px';
     
     container.appendChild(titleElement);
@@ -131,7 +135,7 @@ const convertToPdf = async (content: string, subject: string): Promise<Blob> => 
       margin: [15, 15],
       filename: `cours-${cleanFileName(subject)}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#f8fafc' },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     

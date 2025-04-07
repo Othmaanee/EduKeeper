@@ -10,8 +10,56 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
+// Helper function to get a theme-appropriate illustration
+function getThemeIllustration(subject: string): { icon: string, position: string } {
+  // Default icon and positioning
+  let icon = "📚";
+  const position = "top-right";
+  
+  // Convert subject to lowercase for easier matching
+  const subjectLower = subject.toLowerCase();
+  
+  // Match subject to appropriate icon
+  if (subjectLower.includes("math") || subjectLower.includes("mathématique") || subjectLower.includes("algèbre") || 
+      subjectLower.includes("géométrie") || subjectLower.includes("calcul")) {
+    icon = "🧮";
+  } else if (subjectLower.includes("physique") || subjectLower.includes("chimie") || 
+             subjectLower.includes("science") || subjectLower.includes("laboratoire")) {
+    icon = "⚗️";
+  } else if (subjectLower.includes("histoire") || subjectLower.includes("géographie") || 
+             subjectLower.includes("monde") || subjectLower.includes("civilisation")) {
+    icon = "🌍";
+  } else if (subjectLower.includes("français") || subjectLower.includes("littérature") || 
+             subjectLower.includes("écriture") || subjectLower.includes("grammaire")) {
+    icon = "✒️";
+  } else if (subjectLower.includes("biologie") || subjectLower.includes("environnement") || 
+             subjectLower.includes("nature") || subjectLower.includes("écologie")) {
+    icon = "🌿";
+  } else if (subjectLower.includes("informatique") || subjectLower.includes("programmation") || 
+             subjectLower.includes("code") || subjectLower.includes("technologie")) {
+    icon = "💻";
+  } else if (subjectLower.includes("art") || subjectLower.includes("dessin") || 
+             subjectLower.includes("peinture") || subjectLower.includes("musique")) {
+    icon = "🎨";
+  } else if (subjectLower.includes("économie") || subjectLower.includes("finance") || 
+             subjectLower.includes("business") || subjectLower.includes("commerce")) {
+    icon = "📊";
+  } else if (subjectLower.includes("sport") || subjectLower.includes("éducation physique") || 
+             subjectLower.includes("santé") || subjectLower.includes("exercice")) {
+    icon = "🏃";
+  } else if (subjectLower.includes("langue") || subjectLower.includes("anglais") || 
+             subjectLower.includes("espagnol") || subjectLower.includes("allemand")) {
+    icon = "🗣️";
+  } else if (subjectLower.includes("philosophie") || subjectLower.includes("psychologie") ||
+             subjectLower.includes("éthique") || subjectLower.includes("morale")) {
+    icon = "🧠";
+  }
+  
+  return { icon, position };
+}
+
 // Helper function to convert markdown-like content to HTML
-function formatCourseContent(content: string): string {
+function formatCourseContent(content: string, subject: string): string {
   if (!content) return "";
   
   // First pass: clean up any markdown syntax that might not render correctly
@@ -78,6 +126,9 @@ function formatCourseContent(content: string): string {
     htmlContent += '</p>\n';
   }
   
+  // Get appropriate illustration based on subject
+  const { icon, position } = getThemeIllustration(subject);
+  
   // Add CSS for better formatting in the PDF
   const styledContent = `
     <div class="course-container">
@@ -88,13 +139,25 @@ function formatCourseContent(content: string): string {
           color: #333;
           max-width: 800px;
           margin: 0 auto;
+          background-color: #f8fafc;
+          padding: 25px 35px 40px;
+          border-radius: 8px;
+          position: relative;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .course-icon {
+          position: absolute;
+          top: 20px;
+          right: 25px;
+          font-size: 36px;
+          opacity: 0.6;
         }
         .course-h1 {
           font-size: 24px;
           margin-top: 28px;
           margin-bottom: 16px;
           color: #1a3e72;
-          border-bottom: 1px solid #eee;
+          border-bottom: 1px solid #e2e8f0;
           padding-bottom: 8px;
         }
         .course-h2 {
@@ -124,8 +187,20 @@ function formatCourseContent(content: string): string {
         strong {
           color: #1e4b8d;
         }
+        .course-footer {
+          text-align: right;
+          margin-top: 30px;
+          font-size: 24px;
+          opacity: 0.5;
+        }
+        @page {
+          margin: 14mm;
+          background-color: #f8fafc;
+        }
       </style>
+      <div class="course-icon">${icon}</div>
       ${htmlContent}
+      <div class="course-footer">${icon}</div>
     </div>
   `;
   
@@ -291,7 +366,7 @@ Utilise une structure claire avec:
       const rawCourseContent = data.choices[0].message.content;
       
       // Format the course content for better readability
-      const formattedContent = formatCourseContent(rawCourseContent);
+      const formattedContent = formatCourseContent(rawCourseContent, subject);
       console.log("Cours généré et formaté avec succès");
 
       return new Response(

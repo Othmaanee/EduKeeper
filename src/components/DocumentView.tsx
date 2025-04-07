@@ -145,6 +145,8 @@ export function DocumentView() {
     }).format(date);
   }
 
+  const isAIGenerated = documentData?.nom?.startsWith('Cours :');
+
   const handleDownload = async () => {
     if (!documentData) return;
     
@@ -226,7 +228,14 @@ export function DocumentView() {
       
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{documentData.nom}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {documentData.nom}
+            {isAIGenerated && (
+              <Badge variant="secondary" className="ml-2 font-normal">
+                🔥 Généré IA
+              </Badge>
+            )}
+          </h1>
           <div className="mt-2 flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-1.5" />
             <span>Importé le {formatDate(documentData.created_at)}</span>

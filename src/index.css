@@ -73,6 +73,13 @@
     gap: 1.5rem;
   }
 
+  /* PDF document styles */
+  .pdf-container {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
