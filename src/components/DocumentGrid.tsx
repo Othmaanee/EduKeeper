@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -26,6 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -50,16 +52,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  ToggleGroup,
+  ToggleGroupItem
+} from "@/components/ui/toggle-group";
 
 type DocumentGridProps = {
   initialCategoryId?: string | null;
 }
+
+type FilterStatus = "all" | "shared" | "personal";
 
 export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
   const [selectedCategory, setSelectedCategory] = useState(initialCategoryId || "all");
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
   const queryClient = useQueryClient();
@@ -229,18 +238,32 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch = doc.nom.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (selectedCategory === "all") {
-      return matchesSearch;
+    // Filter by category
+    const categoryMatch = selectedCategory === "all" || doc.category_id === selectedCategory;
+    
+    // Filter by status (shared/personal)
+    let statusMatch = true;
+    if (filterStatus === "shared") {
+      statusMatch = doc.is_shared === true;
+    } else if (filterStatus === "personal") {
+      statusMatch = doc.user_id === currentUserId;
     }
     
-    return matchesSearch && doc.category_id === selectedCategory;
+    return matchesSearch && categoryMatch && statusMatch;
   });
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
-    const aField = a[sortField];
-    const bField = b[sortField];
-    if (aField < bField) return sortOrder === "asc" ? -1 : 1;
-    if (aField > bField) return sortOrder === "asc" ? 1 : -1;
+    // Apply sort based on selected field
+    if (sortField === "nom") {
+      return sortOrder === "asc" 
+        ? a.nom.localeCompare(b.nom) 
+        : b.nom.localeCompare(a.nom);
+    } else if (sortField === "created_at") {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    }
+    
     return 0;
   });
 
@@ -288,12 +311,40 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Trier par</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setSortField("nom")}>
+              <DropdownMenuItem 
+                onClick={() => setSortField("nom")}
+                className={sortField === "nom" ? "bg-secondary" : ""}
+              >
                 Titre
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortField("created_at")}>
+              <DropdownMenuItem 
+                onClick={() => setSortField("created_at")}
+                className={sortField === "created_at" ? "bg-secondary" : ""}
+              >
                 Date d'importation
               </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Filtrer par statut</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={filterStatus === "all"}
+                onCheckedChange={() => setFilterStatus("all")}
+              >
+                Tous les documents
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filterStatus === "shared"}
+                onCheckedChange={() => setFilterStatus("shared")}
+              >
+                Documents partagés
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filterStatus === "personal"}
+                onCheckedChange={() => setFilterStatus("personal")}
+              >
+                Documents personnels
+              </DropdownMenuCheckboxItem>
+              
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={toggleSortOrder}>
                 <ArrowUpDown className="mr-2 h-4 w-4" />
@@ -302,6 +353,20 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline" className="bg-secondary/50">
+          Tri: {sortField === "nom" ? "Titre" : "Date d'importation"}
+        </Badge>
+        <Badge variant="outline" className="bg-secondary/50">
+          Ordre: {sortOrder === "asc" ? "Croissant" : "Décroissant"}
+        </Badge>
+        {filterStatus !== "all" && (
+          <Badge variant="outline" className="bg-secondary/50">
+            Statut: {filterStatus === "shared" ? "Partagés" : "Personnels"}
+          </Badge>
+        )}
       </div>
 
       {documentsLoading && (
@@ -328,9 +393,9 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         </div>
       )}
 
-      {!documentsLoading && !documentsError && filteredDocuments.length > 0 && (
+      {!documentsLoading && !documentsError && sortedDocuments.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDocuments.map((doc) => (
+          {sortedDocuments.map((doc) => (
             <Card
               key={doc.id}
               className={`overflow-hidden hover:shadow-md transition-shadow relative ${
@@ -435,7 +500,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         </div>
       )}
 
-      {!documentsLoading && !documentsError && filteredDocuments.length === 0 && (
+      {!documentsLoading && !documentsError && sortedDocuments.length === 0 && (
         <div className="text-center text-muted-foreground py-8">
           <FileText className="mx-auto h-10 w-10 mb-4" />
           <p>Aucun document trouvé {selectedCategory !== "all" && "dans cette catégorie"}.</p>
