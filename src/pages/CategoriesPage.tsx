@@ -13,20 +13,16 @@ const CategoriesPage = () => {
   const [accessError, setAccessError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Vérifier le rôle de l'utilisateur au chargement de la page
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        // Vérifier si l'utilisateur est connecté
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
-          // Rediriger vers la page de connexion si pas de session
           navigate('/login');
           return;
         }
 
-        // Récupérer le rôle de l'utilisateur depuis la table users
         const { data: userData, error } = await supabase
           .from('users')
           .select('role')
@@ -41,7 +37,6 @@ const CategoriesPage = () => {
         
         setUserRole(userData.role);
         
-        // Rediriger vers la page appropriée si le rôle n'est pas "user"
         if (userData.role === 'enseignant') {
           setAccessError("Cette page est réservée aux élèves. Vous allez être redirigé vers votre tableau de bord.");
           setTimeout(() => {
@@ -59,7 +54,6 @@ const CategoriesPage = () => {
     checkUserRole();
   }, [navigate]);
 
-  // Afficher un écran de chargement pendant la vérification
   if (loading) {
     return (
       <Layout>
@@ -70,7 +64,6 @@ const CategoriesPage = () => {
     );
   }
 
-  // Afficher un message d'erreur si l'accès est non autorisé
   if (accessError) {
     return (
       <Layout>
@@ -85,7 +78,6 @@ const CategoriesPage = () => {
     );
   }
 
-  // Contenu de la page des catégories
   return (
     <Layout>
       <div className="container py-6">
