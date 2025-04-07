@@ -11,7 +11,8 @@ import {
   ChevronRight,
   BookText,
   Users,
-  FileText
+  FileText,
+  FileSearch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -47,9 +48,10 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
     { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant', 'eleve'], showOrder: 3 },
-    { label: 'Importer', icon: Upload, path: '/upload', showOrder: 4 },
-    { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 5 },
-    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 6 }
+    { label: 'Résumer Document', icon: FileSearch, path: '/resumer-document', role: ['user', 'enseignant', 'eleve'], showOrder: 4 },
+    { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
+    { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
+    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 7 }
   ];
 
   useEffect(() => {
@@ -160,7 +162,6 @@ export function Layout({ children }: LayoutProps) {
     })
     .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99)); // Sort by showOrder
 
-  // Add console log to debug navigation items and roles
   console.info("Current user role:", userRole);
   console.info("Filtered nav items:", filteredNavItems);
 

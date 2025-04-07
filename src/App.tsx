@@ -15,6 +15,7 @@ import UploadPage from "./pages/UploadPage";
 import NotFound from "./pages/NotFound";
 import GeneratePage from "./pages/GeneratePage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import DocumentSummaryPage from "./pages/DocumentSummaryPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
+          <Route path="/resumer-document" element={<DocumentSummaryPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
