@@ -1,4 +1,5 @@
 
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,7 @@ import UploadPage from "./pages/UploadPage";
 import NotFound from "./pages/NotFound";
 import GeneratePage from "./pages/GeneratePage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import SummarizeDocumentPage from "./pages/SummarizeDocumentPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,7 @@ const App = () => (
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
+          <Route path="/resume-document" element={<SummarizeDocumentPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
@@ -43,3 +46,4 @@ const App = () => (
 );
 
 export default App;
+
