@@ -1,6 +1,5 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "http/server";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,13 +20,13 @@ serve(async (req) => {
     }
 
     // Get the appropriate API key based on availability
-    let apiKey;
-    const openAiKey = Deno.env.get('OPENAI_API_KEY');
-    const groqKey = Deno.env.get('GROQ_API_KEY');
+    const openAiKey = Deno.env.get('OPENAI_API_KEY') || "";
+    const groqKey = Deno.env.get('GROQ_API_KEY') || "";
 
     let apiEndpoint;
     let requestBody;
     let headers;
+    let apiKey;
 
     if (openAiKey) {
       apiKey = openAiKey;
@@ -82,9 +81,7 @@ serve(async (req) => {
     });
 
     const data = await response.json();
-    const summary = openAiKey 
-      ? data.choices[0].message.content 
-      : data.choices[0].message.content;
+    const summary = data.choices[0].message.content;
 
     return new Response(JSON.stringify({ summary }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
