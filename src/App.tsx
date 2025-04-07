@@ -36,7 +36,7 @@ const App = () => (
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
-          <Route path="/resumer-document" element={<DocumentSummaryPage />} />
+          <Route path="/summarize-document" element={<DocumentSummaryPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

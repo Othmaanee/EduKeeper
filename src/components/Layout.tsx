@@ -44,11 +44,11 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const navItems: NavItem[] = [
+  const navItems: NavItem = [
     { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
     { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', role: ['user', 'enseignant', 'eleve'], showOrder: 3 },
-    { label: 'Résumer Document', icon: FileSearch, path: '/resumer-document', role: ['user', 'enseignant', 'eleve'], showOrder: 4 },
+    { label: 'Résumer Document', icon: FileSearch, path: '/summarize-document', role: ['user', 'enseignant', 'eleve'], showOrder: 4 },
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
     { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
     { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 7 }
