@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { useForm } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, BookOpen, Plus } from 'lucide-react';
+import { Loader2, BookOpen, Plus, Sliders } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase';
 import html2pdf from 'html2pdf.js';
@@ -23,15 +24,14 @@ import {
 type FormValues = {
   subject: string;
   categoryId: string;
+  courseLevel: string;
+  courseStyle: string;
+  courseDuration: string;
 };
 
 type Category = {
   id: string;
   nom: string;
-};
-
-type NewCategoryFormValues = {
-  categoryName: string;
 };
 
 // Fonction pour nettoyer le nom du fichier
@@ -45,8 +45,8 @@ const cleanFileName = (subject: string): string => {
     .substring(0, 50);               // Limite la longueur
 };
 
-async function generateCourse(subject: string): Promise<string> {
-  console.log("Appel à la fonction generate-course avec le sujet:", subject);
+async function generateCourse(subject: string, courseLevel: string, courseStyle: string, courseDuration: string): Promise<string> {
+  console.log("Appel à la fonction generate-course avec les paramètres:", { subject, courseLevel, courseStyle, courseDuration });
 
   // URL complète de la fonction Edge dans Supabase
   const supabaseUrl = "https://mtbcrbfchoqterxevvft.supabase.co";
@@ -67,7 +67,7 @@ async function generateCourse(subject: string): Promise<string> {
       "Content-Type": "application/json",
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ subject }),
+    body: JSON.stringify({ subject, courseLevel, courseStyle, courseDuration }),
   });
 
   console.log("Statut de la réponse:", response.status);
@@ -268,6 +268,9 @@ const GeneratePage = () => {
     defaultValues: {
       subject: '',
       categoryId: '',
+      courseLevel: 'college',
+      courseStyle: 'detailed',
+      courseDuration: '15min',
     },
     mode: 'onSubmit'
   });
@@ -320,7 +323,12 @@ const GeneratePage = () => {
         title: "En cours",
         description: "Génération du contenu...",
       });
-      const courseContent = await generateCourse(data.subject);
+      const courseContent = await generateCourse(
+        data.subject, 
+        data.courseLevel, 
+        data.courseStyle, 
+        data.courseDuration
+      );
       
       // Étape 2: Convertir en PDF
       toast({
@@ -516,6 +524,97 @@ const GeneratePage = () => {
                     )}
                   />
                 </div>
+
+                <div className="bg-muted/30 p-4 rounded-md border border-muted">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sliders className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold">Options de personnalisation</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="courseLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Niveau du cours</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={isGenerating}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choisir un niveau" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="primary">Primaire</SelectItem>
+                              <SelectItem value="college">Collège</SelectItem>
+                              <SelectItem value="highschool">Lycée</SelectItem>
+                              <SelectItem value="university">Études supérieures</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="courseStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Style du cours</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={isGenerating}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choisir un style" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="summary">Résumé simple</SelectItem>
+                              <SelectItem value="detailed">Cours détaillé</SelectItem>
+                              <SelectItem value="flashcards">Cours sous forme de fiches</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="courseDuration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Durée estimée</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={isGenerating}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choisir une durée" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="5min">5 minutes</SelectItem>
+                              <SelectItem value="15min">15 minutes</SelectItem>
+                              <SelectItem value="30min">30 minutes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
                 
                 <div className="flex justify-end">
                   <Button
@@ -548,7 +647,7 @@ const GeneratePage = () => {
             <h2 className="text-sm font-medium text-muted-foreground mb-2">Comment ça fonctionne</h2>
             <ul className="text-sm list-disc pl-5 text-muted-foreground space-y-1">
               <li>Saisissez un sujet précis pour obtenir un meilleur cours</li>
-              <li>Sélectionnez une catégorie pour organiser vos documents</li>
+              <li>Personnalisez le cours selon vos besoins avec les options disponibles</li>
               <li>Le cours sera généré en format PDF et automatiquement enregistré dans vos documents</li>
               <li>Vous pourrez retrouver et consulter ce cours dans la section Documents</li>
             </ul>

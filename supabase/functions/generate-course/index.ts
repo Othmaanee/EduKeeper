@@ -20,11 +20,15 @@ serve(async (req) => {
     console.log("Fonction generate-course appelée");
     
     // Parse the request body safely
-    let subject;
+    let subject, courseLevel, courseStyle, courseDuration;
     try {
       const body = await req.json();
       subject = body.subject;
-      console.log("Sujet reçu:", subject);
+      courseLevel = body.courseLevel || "college";
+      courseStyle = body.courseStyle || "detailed";
+      courseDuration = body.courseDuration || "15min";
+      
+      console.log("Paramètres reçus:", { subject, courseLevel, courseStyle, courseDuration });
     } catch (parseError) {
       console.error('Erreur de parsing du JSON:', parseError);
       return new Response(
@@ -68,7 +72,42 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = "Tu es un professeur qui génère un cours clair et pédagogique.";
+    // Traduire les valeurs des options en texte compréhensible
+    const levelText = {
+      "primary": "primaire (6-10 ans)",
+      "college": "collège (11-15 ans)",
+      "highschool": "lycée (16-18 ans)",
+      "university": "études supérieures"
+    }[courseLevel] || "collège";
+
+    const styleText = {
+      "summary": "résumé simple et concis",
+      "detailed": "cours détaillé avec exemples",
+      "flashcards": "fiches de révision avec points clés"
+    }[courseStyle] || "cours détaillé";
+
+    const durationText = {
+      "5min": "environ 5 minutes de lecture",
+      "15min": "environ 15 minutes de lecture",
+      "30min": "environ 30 minutes de lecture"
+    }[courseDuration] || "15 minutes";
+
+    // Créer un prompt adapté aux options sélectionnées
+    const systemPrompt = `Tu es un professeur expert qui génère un cours clair et pédagogique. 
+Ton objectif est de créer un contenu éducatif de grande qualité, adapté au niveau demandé, avec le style spécifié, et pour la durée indiquée.`;
+
+    const userPrompt = `Rédige un cours sur le sujet suivant: ${subject}
+    
+Niveau: ${levelText}
+Style: ${styleText}
+Durée de lecture: ${durationText}
+
+Assure-toi que le contenu soit:
+- Adapté au niveau demandé, avec un vocabulaire et des explications appropriés
+- Structuré selon le style demandé (résumé, cours détaillé ou fiches)
+- D'une longueur permettant une lecture en ${durationText}
+- Pédagogique et engageant pour l'élève
+`;
 
     try {
       console.log("Appel à l'API Groq...");
@@ -82,7 +121,7 @@ serve(async (req) => {
           model: 'llama3-70b-8192',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Rédige un cours complet sur le sujet suivant: ${subject}` }
+            { role: 'user', content: userPrompt }
           ],
           temperature: 0.7,
         }),
