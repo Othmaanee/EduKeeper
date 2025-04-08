@@ -12,15 +12,16 @@ interface HeaderProps {
 export const Header = ({ onToggleSidebar }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border">
-      <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center">
+      <div className="px-6 sm:px-8 h-18 flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            className="mr-2"
+            className="text-muted-foreground hover:text-foreground"
             onClick={onToggleSidebar}
           >
             <Menu className="h-5 w-5" />
+            <span className="sr-only">Menu</span>
           </Button>
           <SearchBar />
         </div>
@@ -36,7 +37,7 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="md:hidden bg-primary/10 text-primary"
+            className="md:hidden rounded-full bg-primary/10 text-primary hover:bg-primary/20"
             asChild
           >
             <Link to="/upload">

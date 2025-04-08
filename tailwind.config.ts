@@ -20,7 +20,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Inter', 'sans-serif'],
+				sans: ['Inter', 'system-ui', 'sans-serif'],
+				raleway: ['Raleway', 'sans-serif'],
+				poppins: ['Poppins', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -139,10 +141,16 @@ export default {
 				'subtle': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1)',
 				'elevation': '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
 				'glass': '0 8px 32px rgba(0, 0, 0, 0.1)',
+				'premium': '0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 12px -4px rgba(0, 0, 0, 0.05)',
+				'premium-hover': '0 14px 30px -8px rgba(0, 0, 0, 0.12), 0 8px 20px -6px rgba(0, 0, 0, 0.08)',
 			},
 			backdropBlur: {
 				'xs': '2px',
 			},
+			spacing: {
+				'18': '4.5rem',
+				'22': '5.5rem',
+			}
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

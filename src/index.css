@@ -1,5 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,7 +9,8 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    /* Premium Color Palette */
+    --background: 210 50% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -16,16 +19,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 210 100% 66%;
+    --primary: 215 100% 50%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 80% 34%;
 
-    --muted: 210 20% 94%;
+    --muted: 210 40% 94%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 100% 66%;
+    --accent: 215 100% 50%;
     --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84% 60%;
@@ -33,18 +36,18 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 222 47% 11%;
+    --ring: 215 100% 50%;
 
-    --radius: 0.85rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 210 100% 66%;
+    --sidebar-primary: 215 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 5% 96%;
     --sidebar-accent-foreground: 240 6% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 215 100% 50%;
   }
 
   * {
@@ -55,11 +58,57 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-raleway font-medium tracking-tight;
+  }
+
+  /* Premium Card */
+  .premium-card {
+    @apply bg-white rounded-lg border border-gray-100 shadow-premium hover:shadow-premium-hover 
+           transition-all duration-300 ease-out transform hover:translate-y-[-2px];
+  }
+
+  /* Premium Button */
+  .btn-premium {
+    @apply rounded-md px-4 py-2.5 font-medium shadow-subtle transition-all duration-300 
+           bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-elevation 
+           focus:ring-2 focus:ring-primary/20 focus:outline-none;
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply rounded-md px-4 py-2.5 font-medium shadow-subtle transition-all duration-300 
+           bg-secondary text-secondary-foreground hover:bg-secondary/80
+           focus:ring-2 focus:ring-secondary/20 focus:outline-none;
+  }
+
+  /* Premium Input */
+  .input-premium {
+    @apply rounded-md border border-input bg-white px-4 py-3 text-foreground shadow-subtle
+           focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 
+           transition-all duration-300;
+  }
+
+  /* Premium Layout */
+  .premium-layout {
+    @apply p-6 lg:p-8 space-y-8;
+  }
+
+  /* Premium Headers */
+  .premium-header {
+    @apply text-2xl sm:text-3xl font-raleway font-medium tracking-tight;
+  }
+
+  .premium-subheader {
+    @apply text-lg sm:text-xl font-raleway font-normal text-gray-700;
   }
 
   /* Glass effect containers */
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-glass;
+    @apply bg-white backdrop-blur-md border border-white/30 shadow-glass;
   }
 
   .glass-card {
@@ -67,16 +116,17 @@
            hover:bg-white/95 transition-all duration-300 ease-out;
   }
 
+  /* Tile grid */
   .tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
   }
 
   /* Course document styles */
   .course-container {
     position: relative;
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', sans-serif;
     line-height: 1.6;
     color: #333;
   }
@@ -163,8 +213,8 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -200,5 +250,29 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: opacity 300ms, transform 300ms;
+  }
+}
+
+@layer components {
+  /* Amélioration des composants UI */
+  .btn {
+    @apply h-10 px-6 py-2 rounded-md font-medium shadow-subtle 
+           transition-all duration-200 ease-out transform hover:shadow-elevation;
+  }
+
+  .card-title {
+    @apply text-xl font-medium font-raleway tracking-tight;
+  }
+
+  .card-content {
+    @apply mt-2 text-muted-foreground;
+  }
+  
+  .section-title {
+    @apply text-2xl font-medium font-raleway tracking-tight mb-6;
+  }
+
+  .section-subtitle {
+    @apply text-muted-foreground text-lg mb-8;
   }
 }
