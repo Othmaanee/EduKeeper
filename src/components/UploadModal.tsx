@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { FileUpload, Book, Upload as UploadIcon, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Upload, Book, Loader2, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +72,7 @@ export const UploadComponent = ({ initialCategoryId }: UploadComponentProps) => 
         <CardHeader className="p-8 border-b bg-secondary/30">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2.5 rounded-full bg-primary/10">
-              <FileUpload className="h-6 w-6 text-primary" />
+              <Upload className="h-6 w-6 text-primary" />
             </div>
             <CardTitle className="text-2xl font-raleway font-medium">Importer un document</CardTitle>
           </div>
