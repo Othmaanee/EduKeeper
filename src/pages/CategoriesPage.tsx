@@ -9,13 +9,12 @@ import { AlertCircle } from 'lucide-react';
 import { CategoryGrid } from '@/components/CategoryGrid';
 
 const CategoriesPage = () => {
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessError, setAccessError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUserRole = async () => {
+    const checkUserAuthentication = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -23,27 +22,9 @@ const CategoriesPage = () => {
           navigate('/login');
           return;
         }
-
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (error) {
-          console.error("Erreur lors de la vérification du rôle:", error);
-          navigate('/');
-          return;
-        }
         
-        setUserRole(userData.role);
-        
-        if (userData.role === 'enseignant') {
-          setAccessError("Cette page est réservée aux élèves. Vous allez être redirigé vers votre tableau de bord.");
-          setTimeout(() => {
-            navigate('/dashboard-enseignant');
-          }, 3000);
-        }
+        // L'utilisateur est authentifié, peu importe son rôle
+        // Pas besoin de vérifier le rôle spécifiquement
       } catch (error) {
         console.error("Erreur:", error);
         navigate('/');
@@ -52,7 +33,7 @@ const CategoriesPage = () => {
       }
     };
 
-    checkUserRole();
+    checkUserAuthentication();
   }, [navigate]);
 
   if (loading) {
@@ -82,9 +63,9 @@ const CategoriesPage = () => {
   return (
     <Layout>
       <div className="container py-6">
-        <h1 className="text-2xl font-bold mb-2">Mes Catégories</h1>
+        <h1 className="text-2xl font-bold mb-2">Catégories</h1>
         <p className="text-muted-foreground mb-6">
-          Explorez vos catégories de documents
+          Explorez les catégories de documents
         </p>
         <Suspense fallback={
           <div className="flex items-center justify-center py-8">
