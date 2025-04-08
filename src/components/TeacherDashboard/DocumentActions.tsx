@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Download, Share2, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,13 +33,12 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
   actionInProgress
 }) => {
   return (
-    <div className="flex items-center justify-end gap-3">
+    <div className="flex items-center justify-end gap-2">
       <Button
         size="sm"
         variant="ghost"
         onClick={onDownload}
         title="Télécharger"
-        className="text-muted-foreground hover:text-foreground"
       >
         <Download className="h-4 w-4" />
       </Button>
@@ -51,7 +50,6 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
           onClick={onShare}
           disabled={actionInProgress === docId}
           title="Partager"
-          className="text-muted-foreground hover:text-foreground"
         >
           {actionInProgress === docId ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -66,29 +64,28 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
           <Button
             size="sm"
             variant="ghost"
-            className="text-muted-foreground hover:text-destructive"
+            className="text-destructive hover:text-destructive"
             title="Supprimer"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="premium-card">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-raleway text-xl">Confirmer la suppression</DialogTitle>
-            <DialogDescription className="pt-2">
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
               Êtes-vous sûr de vouloir supprimer le document "{docName}" ?
               Cette action est irréversible.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="pt-4">
+          <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" className="font-medium">Annuler</Button>
+              <Button variant="outline">Annuler</Button>
             </DialogClose>
             <Button 
               variant="destructive" 
               onClick={onDelete}
               disabled={actionInProgress === docId}
-              className="font-medium shadow-subtle"
             >
               {actionInProgress === docId ? (
                 <>
