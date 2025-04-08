@@ -1,6 +1,8 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const groqApiKey = Deno.env.get('GROQ_API_KEY');
 
 const corsHeaders = {
@@ -483,13 +485,20 @@ serve(async (req) => {
       );
     }
 
-    console.log("Clé API Groq présente:", !!groqApiKey);
-    if (!groqApiKey) {
-      console.error('Clé API Groq manquante');
+    // Check if we have API keys available
+    let apiToUse = null;
+    if (groqApiKey) {
+      apiToUse = "groq";
+      console.log("Clé API Groq présente, utilisation de Groq");
+    } else if (openAIApiKey) {
+      apiToUse = "openai";
+      console.log("Clé API OpenAI présente, utilisation de OpenAI");
+    } else {
+      console.error('Aucune clé API disponible (OpenAI ou Groq)');
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Clé API Groq manquante. Veuillez configurer la clé dans les secrets de la fonction Edge.' 
+          error: 'Aucune clé API disponible (OpenAI ou Groq). Veuillez configurer au moins une clé dans les secrets de la fonction Edge.' 
         }),
         { 
           status: 500, 
@@ -546,77 +555,133 @@ Utilise une structure claire avec:
 - Du texte **en gras** pour les concepts importants
 `;
 
-    try {
-      console.log("Appel à l'API Groq...");
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama3-70b-8192',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.7,
-        }),
-      });
+    let rawCourseContent = "";
+    let apiUsed = "";
 
-      // Handle API errors
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = "Erreur de l'API Groq";
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error?.message || errorMessage;
-        } catch (e) {
-          // If we can't parse the error, use the raw text
-          errorMessage = errorText || errorMessage;
-        }
-        
-        console.error('Erreur API Groq:', errorMessage);
-        
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Erreur API Groq: ${errorMessage}` 
+    // Try with the selected API
+    if (apiToUse === "groq" && groqApiKey) {
+      try {
+        console.log("Appel à l'API Groq...");
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama3-70b-8192',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
           }),
-          { 
-            status: 500, 
-            headers: corsHeaders
-          }
-        );
-      }
+        });
 
-      const data = await response.json();
-      const rawCourseContent = data.choices[0].message.content;
-      
+        // Handle API errors
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = "Erreur de l'API Groq";
+          
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error?.message || errorMessage;
+          } catch (e) {
+            // If we can't parse the error, use the raw text
+            errorMessage = errorText || errorMessage;
+          }
+          
+          console.error('Erreur API Groq:', errorMessage);
+          
+          // Try fallback to OpenAI if available
+          if (openAIApiKey) {
+            console.log("Échec de Groq, tentative de fallback vers OpenAI...");
+            apiToUse = "openai";
+          } else {
+            throw new Error(`Erreur API Groq: ${errorMessage}`);
+          }
+        } else {
+          const data = await response.json();
+          rawCourseContent = data.choices[0].message.content;
+          apiUsed = "Groq";
+          console.log("Contenu généré avec succès via Groq");
+        }
+      } catch (groqError) {
+        console.error('Erreur lors de l\'appel à l\'API Groq:', groqError);
+        
+        // Try fallback to OpenAI if available
+        if (openAIApiKey) {
+          console.log("Échec de Groq, tentative de fallback vers OpenAI...");
+          apiToUse = "openai";
+        } else {
+          throw groqError;
+        }
+      }
+    }
+
+    // If Groq failed or OpenAI was selected and content is not yet generated, try OpenAI
+    if (apiToUse === "openai" && openAIApiKey && !rawCourseContent) {
+      try {
+        console.log("Appel à l'API OpenAI...");
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        // Handle API errors
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = "Erreur de l'API OpenAI";
+          
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error?.message || errorMessage;
+          } catch (e) {
+            // If we can't parse the error, use the raw text
+            errorMessage = errorText || errorMessage;
+          }
+          
+          console.error('Erreur API OpenAI:', errorMessage);
+          throw new Error(`Erreur API OpenAI: ${errorMessage}`);
+        }
+
+        const data = await response.json();
+        rawCourseContent = data.choices[0].message.content;
+        apiUsed = "OpenAI";
+        console.log("Contenu généré avec succès via OpenAI");
+      } catch (openaiError) {
+        console.error('Erreur lors de l\'appel à l\'API OpenAI:', openaiError);
+        throw openaiError;
+      }
+    }
+
+    // If we have content, format it
+    if (rawCourseContent) {
       // Format the course content for better readability
       const formattedContent = formatCourseContent(rawCourseContent, subject);
-      console.log("Cours généré et formaté avec succès");
+      console.log(`Cours généré et formaté avec succès via ${apiUsed}`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          content: formattedContent
+          content: formattedContent,
+          apiUsed: apiUsed
         }),
         { headers: corsHeaders }
       );
-    } catch (groqError) {
-      console.error('Erreur lors de l\'appel à l\'API Groq:', groqError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: groqError.message || 'Erreur lors de la génération du cours' 
-        }),
-        { 
-          status: 500, 
-          headers: corsHeaders
-        }
-      );
+    } else {
+      throw new Error("Impossible de générer le contenu avec les APIs disponibles.");
     }
   } catch (error) {
     console.error('Erreur générale dans la fonction generate-course:', error);
