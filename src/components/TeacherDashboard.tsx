@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Download, Share2, Trash2, Loader2, Sparkles } from 'lucide-react';
@@ -59,12 +58,10 @@ export function TeacherDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Helper function to check if a document is AI-generated
   const isAIGenerated = (doc: Document) => {
     return doc.nom.startsWith('Cours :');
   };
 
-  // Fetch user documents
   useEffect(() => {
     async function fetchDocuments() {
       try {
@@ -75,7 +72,6 @@ export function TeacherDashboard() {
           return;
         }
 
-        // Get user role to check if they're a teacher
         const { data: userData, error: userError } = await supabase
           .from('users')
           .select('role')
@@ -103,7 +99,6 @@ export function TeacherDashboard() {
           return;
         }
 
-        // Fetch documents for the logged in user, including is_shared field
         const { data, error } = await supabase
           .from('documents')
           .select('id, nom, url, created_at, user_id, category_id, is_shared')
@@ -117,10 +112,8 @@ export function TeacherDashboard() {
         if (data) {
           setDocuments(data);
           
-          // Filter AI-generated documents for stats
           const aiDocs = data.filter(doc => isAIGenerated(doc));
           
-          // Calculate stats
           const totalAIDocs = aiDocs.length;
           const sharedDocs = data.filter(doc => doc.is_shared).length;
           const latestAIDoc = aiDocs.length > 0 ? aiDocs[0] : null;
@@ -146,7 +139,6 @@ export function TeacherDashboard() {
     fetchDocuments();
   }, [navigate, toast]);
 
-  // Handle document sharing
   const handleShareDocument = async (docId: string) => {
     try {
       setActionInProgress(docId);
@@ -159,12 +151,10 @@ export function TeacherDashboard() {
       
       if (error) throw error;
       
-      // Update local state
       setDocuments(docs => docs.map(doc => 
         doc.id === docId ? { ...doc, is_shared: true } : doc
       ));
       
-      // Update stats
       setStats(prev => ({
         ...prev,
         sharedDocuments: prev.sharedDocuments + 1
@@ -185,7 +175,6 @@ export function TeacherDashboard() {
     }
   };
 
-  // Handle document deletion
   const handleDeleteDocument = async () => {
     if (!documentToDelete) return;
     
@@ -199,14 +188,12 @@ export function TeacherDashboard() {
       
       if (error) throw error;
       
-      // Update local state
       const deletedDoc = documents.find(doc => doc.id === documentToDelete);
       const wasShared = deletedDoc?.is_shared || false;
       const wasAIGenerated = deletedDoc ? isAIGenerated(deletedDoc) : false;
       
       setDocuments(docs => docs.filter(doc => doc.id !== documentToDelete));
       
-      // Update stats only if it was an AI-generated document
       if (wasAIGenerated) {
         setStats(prev => ({
           ...prev,
@@ -216,6 +203,28 @@ export function TeacherDashboard() {
             ? documents.filter(d => d.id !== documentToDelete && isAIGenerated(d))[0] || null
             : prev.latestDocument
         }));
+      }
+
+      const { data: session } = await supabase.auth.getSession();
+      const userId = session?.session?.user?.id;
+      
+      if (userId && deletedDoc) {
+        console.log("📝 Tentative d'ajout dans l'historique: suppression -", deletedDoc.nom);
+        
+        const { error: historyError } = await supabase
+          .from('history')
+          .insert([{
+            user_id: userId,
+            action_type: 'suppression',
+            document_name: deletedDoc.nom,
+          }]);
+        
+        if (historyError) {
+          console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
+          console.error("Détails de l'erreur:", historyError);
+        } else {
+          console.log("✅ Action 'suppression' ajoutée à l'historique avec succès");
+        }
       }
       
       toast({
@@ -234,7 +243,6 @@ export function TeacherDashboard() {
     }
   };
 
-  // Handle document download
   const handleDownloadDocument = (doc: Document) => {
     window.open(doc.url, '_blank');
   };
@@ -248,7 +256,6 @@ export function TeacherDashboard() {
     );
   }
 
-  // Filter for AI generated docs (for display in the list)
   const aiGeneratedDocs = documents.filter(doc => isAIGenerated(doc));
 
   return (
@@ -261,7 +268,6 @@ export function TeacherDashboard() {
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
@@ -300,7 +306,6 @@ export function TeacherDashboard() {
           </Card>
         </div>
 
-        {/* Document List */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Mes documents générés</h2>
           
@@ -435,7 +440,6 @@ export function TeacherDashboard() {
           )}
         </div>
         
-        {/* All Documents */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Tous mes documents</h2>
           
