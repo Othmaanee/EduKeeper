@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -178,7 +179,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         }
         
         console.log("✅ Document supprimé avec succès de la base de données");
-        console.log("📝 Tentative d'ajout dans l'historique: delete -", document.nom);
+        console.log("📝 Tentative d'ajout dans l'historique: suppression -", document.nom);
         
         // S'assurer que currentUserId est disponible
         if (!currentUserId) {
@@ -192,7 +193,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           .insert([
             {
               user_id: currentUserId,
-              action_type: 'delete',
+              action_type: 'suppression',  // Modifié de 'delete' à 'suppression'
               document_name: document.nom,
             }
           ])
@@ -202,7 +203,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
           console.error("Détails de l'erreur:", historyError);
         } else {
-          console.log("✅ Action 'delete' ajoutée à l'historique avec succès:", historyData);
+          console.log("✅ Action 'suppression' ajoutée à l'historique avec succès:", historyData);
         }
   
         return document.id;

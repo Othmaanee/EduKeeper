@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -138,20 +139,20 @@ export function DocumentView() {
       }
       
       console.log("👤 ID utilisateur récupéré:", userId);
-      console.log("📝 Tentative d'ajout dans l'historique: delete -", documentData.nom);
+      console.log("📝 Tentative d'ajout dans l'historique: suppression -", documentData.nom);
       
       const { error: historyError } = await supabase
         .from('history')
         .insert([{
           user_id: userId,
-          action_type: 'delete',
+          action_type: 'suppression',  // Modifié de 'delete' à 'suppression'
           document_name: documentData.nom,
         }]);
       
       if (historyError) {
         console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError);
       } else {
-        console.log("✅ Action 'delete' ajoutée à l'historique avec succès");
+        console.log("✅ Action 'suppression' ajoutée à l'historique avec succès");
       }
       
       return documentId;

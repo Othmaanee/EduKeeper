@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +28,7 @@ type HistoryItem = {
 const translateActionType = (actionType: string): string => {
   const translations: Record<string, string> = {
     'import': 'Document importé',
-    'delete': 'Document supprimé',
+    'suppression': 'Document supprimé',
     'summary': 'Résumé généré',
     'generate_course': 'Cours généré',
     'generate_exercises': 'Exercices générés',
@@ -44,7 +45,7 @@ const getActionIcon = (actionType: string): React.ReactNode => {
   switch(actionType) {
     case 'import':
       return <FileText className="h-4 w-4 text-blue-500" />;
-    case 'delete':
+    case 'suppression':
       return <Trash2 className="h-4 w-4 text-red-500" />;
     case 'summary':
     case 'résumé':
@@ -65,7 +66,7 @@ const getActionBadgeVariant = (actionType: string): "default" | "secondary" | "d
   switch(actionType) {
     case 'import':
       return "default";
-    case 'delete':
+    case 'suppression':
       return "destructive";
     case 'summary':
     case 'résumé':
