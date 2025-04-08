@@ -177,5 +177,37 @@ export default {
 			},
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		// Add a custom plugin to enable opacity modifiers for all colors
+		function({ addBase, addUtilities, theme, config }) {
+			const opacityVariants = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+			
+			// Generate opacity utilities for all colors
+			const colorUtilities = {};
+			const colors = theme('colors');
+			
+			Object.entries(colors).forEach(([colorName, color]) => {
+				if (typeof color === 'object') {
+					Object.entries(color).forEach(([shade, value]) => {
+						if (shade === 'DEFAULT') {
+							opacityVariants.forEach(opacity => {
+								colorUtilities[`.text-${colorName}/${opacity}`] = {
+									color: `color-mix(in srgb, ${value} ${opacity}%, transparent)`,
+								};
+								colorUtilities[`.bg-${colorName}/${opacity}`] = {
+									backgroundColor: `color-mix(in srgb, ${value} ${opacity}%, transparent)`,
+								};
+								colorUtilities[`.border-${colorName}/${opacity}`] = {
+									borderColor: `color-mix(in srgb, ${value} ${opacity}%, transparent)`,
+								};
+							});
+						}
+					});
+				}
+			});
+			
+			addUtilities(colorUtilities);
+		}
+	],
 } satisfies Config;

@@ -168,7 +168,7 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
       </Link>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="dark:bg-card-dark dark:border-border-dark">
+        <AlertDialogContent className="dark:bg-card-dark dark:border-gray-700">
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
             <AlertDialogDescription>

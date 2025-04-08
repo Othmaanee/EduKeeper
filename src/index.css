@@ -146,7 +146,7 @@
   }
   
   .dark .premium-card {
-    @apply bg-card border-border/50 shadow-premium-dark;
+    @apply bg-card border border-gray-700/50 shadow-premium-dark;
   }
 
   /* Premium Button */
