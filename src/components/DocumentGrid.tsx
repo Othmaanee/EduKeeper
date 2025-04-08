@@ -145,6 +145,8 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         throw new Error("Vous ne pouvez pas supprimer un document partagé");
       }
       
+      console.log("🗑️ Début du processus de suppression pour le document:", document.id, document.nom);
+      
       try {
         const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
   
@@ -152,6 +154,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           throw new Error("Impossible de récupérer le chemin du fichier");
         }
   
+        console.log("📂 Tentative de suppression du fichier:", filePath);
         const { error: storageError } = await supabase.storage
           .from("documents")
           .remove([filePath]);
@@ -161,6 +164,9 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           throw new Error(storageError.message);
         }
   
+        console.log("✅ Fichier supprimé avec succès du stockage");
+        console.log("🗄️ Tentative de suppression de l'enregistrement en base de données");
+        
         const { error: dbError } = await supabase
           .from("documents")
           .delete()
@@ -171,7 +177,17 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           throw new Error(dbError.message);
         }
         
-        const { error: historyError } = await supabase
+        console.log("✅ Document supprimé avec succès de la base de données");
+        console.log("📝 Tentative d'ajout dans l'historique: delete -", document.nom);
+        
+        // S'assurer que currentUserId est disponible
+        if (!currentUserId) {
+          console.error("❌ ID utilisateur non disponible pour l'historique");
+          throw new Error("User ID is required for history tracking");
+        }
+        
+        // Insérer dans l'historique APRÈS la suppression réussie du document
+        const { data: historyData, error: historyError } = await supabase
           .from('history')
           .insert([
             {
@@ -179,12 +195,14 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
               action_type: 'delete',
               document_name: document.nom,
             }
-          ]);
+          ])
+          .select();
         
         if (historyError) {
           console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
+          console.error("Détails de l'erreur:", historyError);
         } else {
-          console.log("✅ Action 'delete' ajoutée à l'historique");
+          console.log("✅ Action 'delete' ajoutée à l'historique avec succès:", historyData);
         }
   
         return document.id;
@@ -194,8 +212,10 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
       }
     },
     onSuccess: (documentId) => {
+      console.log("🔄 Invalidation du cache pour history et documents");
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       queryClient.invalidateQueries({ queryKey: ['history'] });
+      
       toast.success("Document supprimé avec succès!");
       
       setDeleteDialogOpen(false);

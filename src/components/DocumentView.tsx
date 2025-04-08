@@ -97,54 +97,71 @@ export function DocumentView() {
     mutationFn: async (documentId: string) => {
       if (!documentData) throw new Error("Document data is required");
       
+      console.log("🗑️ Début du processus de suppression du document:", documentId);
+      
       const urlParts = documentData.url.split('/');
       const bucketName = urlParts[urlParts.length - 2];
       const fileName = urlParts[urlParts.length - 1];
       
+      console.log("📂 Tentative de suppression du fichier:", fileName, "dans le bucket:", bucketName);
       const { error: storageError } = await supabase
         .storage
         .from(bucketName)
         .remove([fileName]);
       
       if (storageError) {
+        console.error("❌ Échec de la suppression du fichier:", storageError.message);
         throw new Error(`Failed to delete file: ${storageError.message}`);
       }
       
+      console.log("✅ Fichier supprimé avec succès");
+      
+      console.log("🗄️ Tentative de suppression de l'enregistrement en base de données");
       const { error: deleteError } = await supabase
-        .from('documents')
+        .from("documents")
         .delete()
-        .eq('id', documentId);
+        .eq("id", documentId);
       
       if (deleteError) {
+        console.error("❌ Échec de la suppression en base de données:", deleteError.message);
         throw new Error(`Failed to delete document record: ${deleteError.message}`);
       }
+      
+      console.log("✅ Enregistrement supprimé avec succès");
 
       const { data: session } = await supabase.auth.getSession();
       const userId = session?.session?.user?.id;
       
-      if (userId) {
-        const { error: historyError } = await supabase
-          .from('history')
-          .insert([
-            {
-              user_id: userId,
-              action_type: 'delete',
-              document_name: documentData.nom,
-            }
-          ]);
-        
-        if (historyError) {
-          console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
-        } else {
-          console.log("✅ Action 'delete' ajoutée à l'historique");
-        }
+      if (!userId) {
+        console.error("❌ Impossible de récupérer l'ID utilisateur");
+        throw new Error("User ID is required for history tracking");
+      }
+      
+      console.log("👤 ID utilisateur récupéré:", userId);
+      console.log("📝 Tentative d'ajout dans l'historique: delete -", documentData.nom);
+      
+      const { error: historyError } = await supabase
+        .from('history')
+        .insert([{
+          user_id: userId,
+          action_type: 'delete',
+          document_name: documentData.nom,
+        }]);
+      
+      if (historyError) {
+        console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError);
+      } else {
+        console.log("✅ Action 'delete' ajoutée à l'historique avec succès");
       }
       
       return documentId;
     },
     onSuccess: () => {
       toast.success("Document supprimé");
+      
       queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      
       navigate('/documents');
     },
     onError: (error) => {

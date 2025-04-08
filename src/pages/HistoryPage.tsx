@@ -5,8 +5,19 @@ import { History, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 const HistoryPage = () => {
+  // Ajout d'un queryClient pour rafraîchir les données à l'ouverture de la page
+  const queryClient = useQueryClient();
+  
+  // Rafraîchir les données d'historique à chaque visite de la page
+  useEffect(() => {
+    // Invalider le cache pour forcer un rechargement des données
+    queryClient.invalidateQueries({ queryKey: ['history'] });
+  }, [queryClient]);
+  
   return (
     <Layout>
       <div className="container py-6 animate-fade-in">

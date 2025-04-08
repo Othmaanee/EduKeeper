@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +27,6 @@ type HistoryItem = {
 const translateActionType = (actionType: string): string => {
   const translations: Record<string, string> = {
     'import': 'Document importé',
-    'suppression': 'Document supprimé',
     'delete': 'Document supprimé',
     'summary': 'Résumé généré',
     'generate_course': 'Cours généré',
@@ -46,7 +44,6 @@ const getActionIcon = (actionType: string): React.ReactNode => {
   switch(actionType) {
     case 'import':
       return <FileText className="h-4 w-4 text-blue-500" />;
-    case 'suppression':
     case 'delete':
       return <Trash2 className="h-4 w-4 text-red-500" />;
     case 'summary':
@@ -68,7 +65,6 @@ const getActionBadgeVariant = (actionType: string): "default" | "secondary" | "d
   switch(actionType) {
     case 'import':
       return "default";
-    case 'suppression':
     case 'delete':
       return "destructive";
     case 'summary':
@@ -88,18 +84,23 @@ export const HistoryList: React.FC = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['history'],
     queryFn: async () => {
-      // Utiliser une requête SQL brute pour contourner les problèmes de typage
+      console.log("🔍 Récupération de l'historique");
+      
       const { data, error } = await supabase
         .from('history')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error("❌ Erreur lors de la récupération de l'historique:", error);
         throw error;
       }
       
+      console.log("📋 Historique récupéré:", data?.length || 0, "entrées");
       return data as HistoryItem[];
-    }
+    },
+    refetchOnMount: true, // Forcer le rechargement à chaque montage du composant
+    refetchOnWindowFocus: true // Recharger quand la fenêtre regagne le focus
   });
   
   if (isLoading) {
@@ -148,7 +149,7 @@ export const HistoryList: React.FC = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
+          {data && data.map((item) => (
             <TableRow key={item.id}>
               <TableCell className="font-medium">
                 {format(new Date(item.created_at), 'dd MMMM yyyy - HH:mm', { locale: fr })}
