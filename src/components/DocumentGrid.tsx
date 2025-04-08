@@ -14,8 +14,7 @@ import {
   Loader2,
   User,
   Share,
-  Eye,
-  X
+  Eye
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,14 +48,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -82,25 +73,12 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
   const queryClient = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [assignCategoryDialogOpen, setAssignCategoryDialogOpen] = useState(false);
-  const [documentToAssign, setDocumentToAssign] = useState<any | null>(null);
-  const [categoryToAssign, setCategoryToAssign] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialCategoryId) {
       setSelectedCategory(initialCategoryId);
     }
   }, [initialCategoryId]);
-
-  // Reset filters function
-  const resetFilters = () => {
-    setSearchTerm("");
-    setSortField("created_at");
-    setSortOrder("desc");
-    setSelectedCategory("all");
-    setFilterStatus("all");
-    toast.success("Filtres réinitialisés");
-  };
 
   useQuery({
     queryKey: ['currentUser'],
@@ -253,34 +231,6 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     }
   });
 
-  const assignCategoryMutation = useMutation({
-    mutationFn: async ({ documentId, categoryId }: { documentId: string, categoryId: string | null }) => {
-      console.log(`⏳ Assignation du document ${documentId} à la catégorie ${categoryId}`);
-      
-      const { error } = await supabase
-        .from("documents")
-        .update({ category_id: categoryId })
-        .eq("id", documentId);
-        
-      if (error) {
-        console.error("❌ Erreur lors de l'assignation:", error);
-        throw error;
-      }
-      
-      return { documentId, categoryId };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['documents'] });
-      toast.success("Catégorie mise à jour avec succès!");
-      setAssignCategoryDialogOpen(false);
-      setDocumentToAssign(null);
-      setCategoryToAssign(null);
-    },
-    onError: (error: Error) => {
-      toast.error(`Une erreur est survenue lors de l'assignation: ${error.message}`);
-    }
-  });
-
   const confirmDelete = (document: any) => {
     if (document.user_id !== currentUserId) {
       toast.error("Vous ne pouvez pas supprimer un document partagé");
@@ -290,25 +240,10 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     setDocumentToDelete(document);
     setDeleteDialogOpen(true);
   };
-  
-  const openAssignCategoryDialog = (document: any) => {
-    setDocumentToAssign(document);
-    setCategoryToAssign(document.category_id || null);
-    setAssignCategoryDialogOpen(true);
-  };
 
   const handleDeleteDocument = () => {
     if (documentToDelete) {
       deleteMutation.mutate(documentToDelete);
-    }
-  };
-  
-  const handleAssignCategory = () => {
-    if (documentToAssign) {
-      assignCategoryMutation.mutate({
-        documentId: documentToAssign.id,
-        categoryId: categoryToAssign
-      });
     }
   };
 
@@ -447,14 +382,10 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={toggleSortOrder}>
                 <ArrowUpDown className="mr-2 h-4 w-4" />
-                {sortOrder === "asc" ? "Ordre croissant" : "Ordre décroissant"}
+                {sortOrder === "asc" ? "Ordre croissant" : "Ordre d��croissant"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <Button variant="ghost" size="icon" onClick={resetFilters} title="Réinitialiser les filtres">
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -577,23 +508,6 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                     </Tooltip>
                   </TooltipProvider>
                   
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openAssignCategoryDialog(doc)}
-                        >
-                          <FolderIcon className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Assigner à une catégorie</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
                   {isPersonalDocument(doc) && (
                     <TooltipProvider>
                       <Tooltip>
@@ -670,66 +584,6 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      <Dialog
-        open={assignCategoryDialogOpen}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setAssignCategoryDialogOpen(false);
-            setDocumentToAssign(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Assigner à une catégorie</DialogTitle>
-            <DialogDescription>
-              Sélectionnez une catégorie pour ce document.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <Select 
-              value={categoryToAssign || ""} 
-              onValueChange={(value) => setCategoryToAssign(value || null)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Sans catégorie</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setAssignCategoryDialogOpen(false)}
-            >
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleAssignCategory}
-              disabled={assignCategoryMutation.isPending}
-            >
-              {assignCategoryMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                'Enregistrer'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
