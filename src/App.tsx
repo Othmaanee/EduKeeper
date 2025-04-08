@@ -1,5 +1,4 @@
 
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,50 +21,31 @@ import ExercisesPage from "./pages/ExercisesPage";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // Initialize theme from localStorage
-  useEffect(() => {
-    const theme = localStorage.getItem("theme") || "light";
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    
-    // Listen for system preference changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      if (!localStorage.getItem("theme")) {
-        document.documentElement.classList.toggle("dark", mediaQuery.matches);
-      }
-    };
-    
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/accueil" element={<AccueilPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/documents/:id" element={<DocumentPage />} />
-            <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/categories/:id" element={<CategoryPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="/generate" element={<GeneratePage />} />
-            <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
-            <Route path="/summarize-document" element={<DocumentSummaryPage />} />
-            <Route path="/historique" element={<HistoryPage />} />
-            <Route path="/exercises" element={<ExercisesPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/accueil" element={<AccueilPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/documents/:id" element={<DocumentPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/categories/:id" element={<CategoryPage />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/generate" element={<GeneratePage />} />
+          <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
+          <Route path="/summarize-document" element={<DocumentSummaryPage />} />
+          <Route path="/historique" element={<HistoryPage />} />
+          <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

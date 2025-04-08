@@ -1,40 +1,50 @@
 
 import React from 'react';
-import { MenuIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Menu, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SearchBar } from '@/components/SearchBar';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { cn } from '@/lib/utils';
+import { SearchBar } from '../SearchBar';
 
-type HeaderProps = {
+interface HeaderProps {
   onToggleSidebar: () => void;
-};
+}
 
-export function Header({ onToggleSidebar }: HeaderProps) {
+export const Header = ({ onToggleSidebar }: HeaderProps) => {
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-sm transition-all">
-      <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border">
+      <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="flex items-center">
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="mr-2"
             onClick={onToggleSidebar}
           >
-            <MenuIcon className="h-5 w-5" />
-            <span className="sr-only">Toggle Sidebar</span>
+            <Menu className="h-5 w-5" />
           </Button>
+          <SearchBar />
         </div>
         
-        <div className={cn(
-          "w-full flex gap-4 items-center justify-end"
-        )}>
-          <div className="w-full max-w-lg lg:max-w-xl">
-            <SearchBar />
-          </div>
-          <ThemeToggle />
+        <div className="flex items-center space-x-3">
+          <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
+            <Link to="/upload">
+              <Upload className="h-4 w-4 mr-2" />
+              Importer
+            </Link>
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden bg-primary/10 text-primary"
+            asChild
+          >
+            <Link to="/upload">
+              <Upload className="h-5 w-5" />
+            </Link>
+          </Button>
         </div>
       </div>
     </header>
   );
-}
+};

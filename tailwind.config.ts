@@ -23,75 +23,48 @@ export default {
 				sans: ['Inter', 'sans-serif'],
 			},
 			colors: {
-				border: {
-					DEFAULT: 'var(--border)',
-					dark: 'var(--border-dark)',
-				},
-				input: {
-					DEFAULT: 'var(--input)',
-					dark: 'var(--input-dark)',
-				},
-				ring: {
-					DEFAULT: 'var(--ring)',
-					dark: 'var(--ring-dark)',
-				},
-				background: {
-					DEFAULT: 'var(--background)',
-					dark: 'var(--background-dark)',
-				},
-				foreground: {
-					DEFAULT: 'var(--foreground)',
-					dark: 'var(--foreground-dark)',
-				},
+				border: 'hsl(var(--border))',
+				input: 'hsl(var(--input))',
+				ring: 'hsl(var(--ring))',
+				background: 'hsl(var(--background))',
+				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: 'var(--primary)',
-					foreground: 'var(--primary-foreground)',
-					dark: 'var(--primary-dark)',
-					'dark-foreground': 'var(--primary-dark-foreground)'
+					DEFAULT: 'hsl(var(--primary))',
+					foreground: 'hsl(var(--primary-foreground))'
 				},
 				secondary: {
-					DEFAULT: 'var(--secondary)',
-					foreground: 'var(--secondary-foreground)',
-					dark: 'var(--secondary-dark)',
-					'dark-foreground': 'var(--secondary-dark-foreground)'
+					DEFAULT: 'hsl(var(--secondary))',
+					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				destructive: {
-					DEFAULT: 'var(--destructive)',
-					foreground: 'var(--destructive-foreground)',
+					DEFAULT: 'hsl(var(--destructive))',
+					foreground: 'hsl(var(--destructive-foreground))'
 				},
 				muted: {
-					DEFAULT: 'var(--muted)',
-					foreground: 'var(--muted-foreground)',
-					dark: 'var(--muted-dark)',
-					'dark-foreground': 'var(--muted-dark-foreground)',
+					DEFAULT: 'hsl(var(--muted))',
+					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: 'var(--accent)',
-					foreground: 'var(--accent-foreground)',
-					dark: 'var(--accent-dark)',
-					'dark-foreground': 'var(--accent-dark-foreground)',
+					DEFAULT: 'hsl(var(--accent))',
+					foreground: 'hsl(var(--accent-foreground))'
 				},
 				popover: {
-					DEFAULT: 'var(--popover)',
-					foreground: 'var(--popover-foreground)',
-					dark: 'var(--popover-dark)',
-					'dark-foreground': 'var(--popover-dark-foreground)',
+					DEFAULT: 'hsl(var(--popover))',
+					foreground: 'hsl(var(--popover-foreground))'
 				},
 				card: {
-					DEFAULT: 'var(--card)',
-					foreground: 'var(--card-foreground)',
-					dark: 'var(--card-dark)',
-					'dark-foreground': 'var(--card-dark-foreground)',
+					DEFAULT: 'hsl(var(--card))',
+					foreground: 'hsl(var(--card-foreground))'
 				},
 				sidebar: {
-					DEFAULT: 'var(--sidebar-background)',
-					foreground: 'var(--sidebar-foreground)',
-					primary: 'var(--sidebar-primary)',
-					'primary-foreground': 'var(--sidebar-primary-foreground)',
-					accent: 'var(--sidebar-accent)',
-					'accent-foreground': 'var(--sidebar-accent-foreground)',
-					border: 'var(--sidebar-border)',
-					ring: 'var(--sidebar-ring)'
+					DEFAULT: 'hsl(var(--sidebar-background))',
+					foreground: 'hsl(var(--sidebar-foreground))',
+					primary: 'hsl(var(--sidebar-primary))',
+					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+					accent: 'hsl(var(--sidebar-accent))',
+					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+					border: 'hsl(var(--sidebar-border))',
+					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
 			borderRadius: {
@@ -166,48 +139,11 @@ export default {
 				'subtle': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1)',
 				'elevation': '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
 				'glass': '0 8px 32px rgba(0, 0, 0, 0.1)',
-				'premium': '0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-				'premium-dark': '0 10px 25px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
 			},
 			backdropBlur: {
 				'xs': '2px',
 			},
-			spacing: {
-				'premium-spacing': '2rem',
-			},
 		}
 	},
-	plugins: [
-		require("tailwindcss-animate"),
-		// Add a custom plugin to enable opacity modifiers for all colors
-		function({ addBase, addUtilities, theme, config }) {
-			const opacityVariants = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-			
-			// Generate opacity utilities for all colors
-			const colorUtilities = {};
-			const colors = theme('colors');
-			
-			Object.entries(colors).forEach(([colorName, color]) => {
-				if (typeof color === 'object') {
-					Object.entries(color).forEach(([shade, value]) => {
-						if (shade === 'DEFAULT') {
-							opacityVariants.forEach(opacity => {
-								colorUtilities[`.text-${colorName}/${opacity}`] = {
-									color: `color-mix(in srgb, ${value} ${opacity}%, transparent)`,
-								};
-								colorUtilities[`.bg-${colorName}/${opacity}`] = {
-									backgroundColor: `color-mix(in srgb, ${value} ${opacity}%, transparent)`,
-								};
-								colorUtilities[`.border-${colorName}/${opacity}`] = {
-									borderColor: `color-mix(in srgb, ${value} ${opacity}%, transparent)`,
-								};
-							});
-						}
-					});
-				}
-			});
-			
-			addUtilities(colorUtilities);
-		}
-	],
+	plugins: [require("tailwindcss-animate")],
 } satisfies Config;
