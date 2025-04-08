@@ -1,5 +1,5 @@
 
-import { FolderOpenIcon, FileText, Trash2 } from 'lucide-react';
+import { FolderOpenIcon, FileText, Trash2, FilePlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -55,6 +55,12 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
     e.preventDefault();
     e.stopPropagation();
     setIsDeleteDialogOpen(true);
+  };
+  
+  const handleAddDocument = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/upload?category_id=${id}`);
   };
 
   const confirmDelete = async () => {
@@ -145,6 +151,18 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
               "Aucun document disponible dans cette catégorie."
             )}
           </div>
+        </div>
+        
+        <div className="mt-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary hover:text-primary/80 hover:bg-primary/10 p-0 h-auto"
+            onClick={handleAddDocument}
+          >
+            <FilePlus className="h-3.5 w-3.5 mr-1.5" />
+            Ajouter un document
+          </Button>
         </div>
 
         <div className="h-2 absolute bottom-0 left-0 right-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent group-hover:opacity-100 opacity-0 transition-opacity" />
