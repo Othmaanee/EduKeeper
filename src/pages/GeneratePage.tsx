@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
+import ComingSoonOverlay from "@/components/ComingSoonOverlay";
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -412,7 +412,9 @@ const GeneratePage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto py-6">
+      <div className="container max-w-4xl mx-auto py-6 relative">
+        <ComingSoonOverlay message="Fonctionnalité bientôt disponible." />
+        
         <div className="flex items-center gap-2 mb-6">
           <BookOpen className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-semibold">Générer un cours</h1>

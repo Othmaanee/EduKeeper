@@ -1,7 +1,7 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
+import ComingSoonOverlay from "@/components/ComingSoonOverlay";
 import { 
   Card, 
   CardContent, 
@@ -23,7 +23,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Define the UserData type to ensure proper TypeScript typing
 interface UserData {
   id: string;
   role: string;
@@ -45,7 +44,6 @@ const DocumentSummaryPage = () => {
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [generatedSummary, setGeneratedSummary] = useState<string | null>(null);
   
-  // Fetch user data (both id and role)
   const { data: userData, isLoading: userLoading } = useQuery<UserData>({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -68,7 +66,6 @@ const DocumentSummaryPage = () => {
     }
   });
 
-  // Fetch documents based on user role
   const { data: documents = [], isLoading: documentsLoading } = useQuery({
     queryKey: ['documents', userData?.role],
     queryFn: async () => {
@@ -76,14 +73,11 @@ const DocumentSummaryPage = () => {
       
       if (!session) throw new Error("Utilisateur non connecté");
       
-      // Query depends on the user role
       let query = supabase.from("documents").select("*, categories(nom)");
       
       if (userData?.role === "enseignant") {
-        // Enseignants can only see their own documents
         query = query.eq('user_id', session.user.id);
       } else if (userData?.role === "user" || userData?.role === "eleve") {
-        // Élèves can see their documents and shared documents
         query = query.or(`user_id.eq.${session.user.id},is_shared.eq.true`);
       }
       
@@ -93,10 +87,9 @@ const DocumentSummaryPage = () => {
       
       return data || [];
     },
-    enabled: !!userData?.role, // Only run the query when userData.role is available
+    enabled: !!userData?.role
   });
 
-  // Fetch user categories for the dropdown
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['userCategories'],
     queryFn: async () => {
@@ -113,10 +106,9 @@ const DocumentSummaryPage = () => {
       
       return data || [];
     },
-    enabled: !!userData?.id,
+    enabled: !!userData?.id
   });
-  
-  // Mutation to save generated summary as a new document
+
   const saveSummaryMutation = useMutation({
     mutationFn: async () => {
       if (!generatedSummary || !selectedDocumentId || !userData?.id) {
@@ -157,7 +149,6 @@ const DocumentSummaryPage = () => {
     }
   });
 
-  // Function to fetch text content from a URL
   const fetchDocumentContent = async (url: string): Promise<string> => {
     try {
       const { data, error } = await supabase.storage.from('documents').download(url);
@@ -171,33 +162,26 @@ const DocumentSummaryPage = () => {
   };
   
   const handleGenerateSummary = async () => {
-    // Clear any previous errors and summaries
     setSummaryError(null);
     setGeneratedSummary(null);
     
-    // Check if a document is selected
     if (!selectedDocumentId) {
       setSummaryError("Veuillez choisir un document avant de générer un résumé.");
       return;
     }
     
-    // Start the summary generation process
     setIsGeneratingSummary(true);
     
     try {
-      // Find the selected document to get its URL
       const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
       if (!selectedDocument) {
         throw new Error("Document non trouvé");
       }
       
-      // Get document text - either directly from content or from URL
       let documentText = "";
       if (selectedDocument.url) {
         try {
-          // For Supabase Storage URLs, we'll use the document URL directly
-          // The edge function will handle fetching the content
-          documentText = ""; // We'll let the edge function fetch the content
+          documentText = "";
         } catch (error) {
           console.error("Error retrieving document content:", error);
           throw new Error("Impossible de récupérer le contenu du document");
@@ -206,7 +190,6 @@ const DocumentSummaryPage = () => {
         throw new Error("Document sans URL ni contenu");
       }
       
-      // Call the Supabase Edge Function to generate the summary
       const { data, error } = await supabase.functions.invoke("summarize-document", {
         body: {
           documentUrl: selectedDocument.url,
@@ -235,12 +218,13 @@ const DocumentSummaryPage = () => {
     }
   };
   
-  // Find the selected document
   const selectedDocument = documents?.find(doc => doc.id === selectedDocumentId);
   
   return (
     <Layout>
-      <div className="container py-6">
+      <div className="container py-6 relative">
+        <ComingSoonOverlay message="Sélectionnez un document et générez un résumé automatique. Fonctionnalité bientôt disponible." />
+        
         <h1 className="text-2xl font-bold mb-2">Résumé de Document</h1>
         <p className="text-muted-foreground mb-6">
           Sélectionnez un document et générez un résumé automatique.
@@ -329,7 +313,6 @@ const DocumentSummaryPage = () => {
           </CardFooter>
         </Card>
         
-        {/* Display the generated summary */}
         {generatedSummary && (
           <Card>
             <CardHeader>
@@ -344,7 +327,6 @@ const DocumentSummaryPage = () => {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              {/* Category selection */}
               <div className="w-full">
                 <label htmlFor="category-select" className="text-sm font-medium block mb-2">
                   Catégorie (optionnel)
@@ -367,7 +349,6 @@ const DocumentSummaryPage = () => {
                 </Select>
               </div>
               
-              {/* Save button */}
               <Button 
                 onClick={() => saveSummaryMutation.mutate()}
                 disabled={saveSummaryMutation.isPending}
