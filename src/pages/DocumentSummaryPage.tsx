@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { 
   Card, 
@@ -18,7 +18,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, AlertCircle } from "lucide-react";
+import { Loader2, FileText, AlertCircle, Save } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -29,10 +29,20 @@ interface UserData {
   role: string;
 }
 
+interface Document {
+  id: string;
+  nom: string;
+  user_id: string;
+  categories?: { nom: string };
+  content?: string;
+}
+
 const DocumentSummaryPage = () => {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [generatedSummary, setGeneratedSummary] = useState<string | null>(null);
   
   // Fetch user data (both id and role)
   const { data: userData, isLoading: userLoading } = useQuery<UserData>({
@@ -53,7 +63,6 @@ const DocumentSummaryPage = () => {
         throw error;
       }
       
-      console.log("User data fetched:", data);
       return data as UserData;
     }
   });
@@ -85,10 +94,72 @@ const DocumentSummaryPage = () => {
     },
     enabled: !!userData?.role, // Only run the query when userData.role is available
   });
+
+  // Fetch user categories for the dropdown
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['userCategories'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) throw new Error("Utilisateur non connecté");
+      
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq('user_id', session.user.id);
+      
+      if (error) throw error;
+      
+      return data || [];
+    },
+    enabled: !!userData?.id,
+  });
   
-  const handleGenerateSummary = () => {
-    // Clear any previous errors
+  // Mutation to save generated summary as a new document
+  const saveSummaryMutation = useMutation({
+    mutationFn: async () => {
+      if (!generatedSummary || !selectedDocumentId || !userData?.id) {
+        throw new Error("Informations manquantes pour l'enregistrement");
+      }
+
+      const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
+      if (!selectedDocument) {
+        throw new Error("Document non trouvé");
+      }
+
+      const newDocumentName = `${selectedDocument.nom} - Résumé`;
+      
+      const { data, error } = await supabase
+        .from("documents")
+        .insert({
+          nom: newDocumentName,
+          user_id: userData.id,
+          category_id: selectedCategoryId || null,
+          content: generatedSummary,
+          is_shared: false,
+          url: null
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Résumé enregistré avec succès !");
+      setSelectedCategoryId("");
+    },
+    onError: (error) => {
+      console.error("Error saving summary:", error);
+      toast.error("Erreur lors de l'enregistrement du résumé");
+    }
+  });
+  
+  const handleGenerateSummary = async () => {
+    // Clear any previous errors and summaries
     setSummaryError(null);
+    setGeneratedSummary(null);
     
     // Check if a document is selected
     if (!selectedDocumentId) {
@@ -96,15 +167,41 @@ const DocumentSummaryPage = () => {
       return;
     }
     
-    // Start the "fake" summary generation process
+    // Start the summary generation process
     setIsGeneratingSummary(true);
     
-    // Simulate a delay (will be replaced with actual API call later)
-    setTimeout(() => {
+    try {
+      // Find the selected document to get its content
+      const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
+      if (!selectedDocument) {
+        throw new Error("Document non trouvé");
+      }
+      
+      // Call the Supabase Edge Function to generate the summary
+      const { data, error } = await supabase.functions.invoke("summarize-document", {
+        body: {
+          documentText: selectedDocument.content || "Contenu non disponible",
+          role: userData?.role || "user"
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data.success && data.summary) {
+        setGeneratedSummary(data.summary);
+        toast.success("Résumé généré avec succès !");
+      } else {
+        throw new Error(data.error || "Erreur inconnue");
+      }
+    } catch (error: any) {
+      console.error("Error generating summary:", error);
+      setSummaryError(error.message || "Erreur lors de la génération du résumé");
+      toast.error("Échec de la génération du résumé");
+    } finally {
       setIsGeneratingSummary(false);
-      toast.success("Résumé généré avec succès !");
-      // Later we'll actually display the summary here
-    }, 3000);
+    }
   };
   
   // Find the selected document
@@ -201,17 +298,66 @@ const DocumentSummaryPage = () => {
           </CardFooter>
         </Card>
         
-        {/* Result area - will be populated later when we implement the actual AI functionality */}
-        {/*
-        <Card>
-          <CardHeader>
-            <CardTitle>Résumé généré</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* The summary will be displayed here when the AI feature is implemented */}
-        {/*</CardContent>
-        </Card>
-        */}
+        {/* Display the generated summary */}
+        {generatedSummary && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Résumé généré</CardTitle>
+              <CardDescription>
+                Voici le résumé automatique de votre document
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="whitespace-pre-line bg-muted p-4 rounded-md text-sm">
+                {generatedSummary}
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              {/* Category selection */}
+              <div className="w-full">
+                <label htmlFor="category-select" className="text-sm font-medium block mb-2">
+                  Catégorie (optionnel)
+                </label>
+                <Select 
+                  value={selectedCategoryId} 
+                  onValueChange={setSelectedCategoryId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionnez une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sans catégorie</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Save button */}
+              <Button 
+                onClick={() => saveSummaryMutation.mutate()}
+                disabled={saveSummaryMutation.isPending}
+                className="w-full"
+                variant="default"
+              >
+                {saveSummaryMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Enregistrer ce résumé
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
       </div>
     </Layout>
   );
