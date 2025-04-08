@@ -1,5 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,7 +9,7 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -16,16 +18,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 210 100% 66%;
+    --primary: 215 60% 50%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 20% 96%;
+    --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 25% 45%;
 
-    --accent: 210 100% 66%;
+    --accent: 215 60% 95%;
     --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84% 60%;
@@ -33,18 +35,57 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 222 47% 11%;
+    --ring: 215 60% 50%;
 
-    --radius: 0.85rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 210 100% 66%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 215 60% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 213 30% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 215 60% 50%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 40% 15%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 40% 15%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 215 60% 55%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 215 30% 20%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 30% 20%;
+    --muted-foreground: 215 20% 75%;
+
+    --accent: 215 30% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 30% 20%;
+    --input: 215 30% 20%;
+    --ring: 215 60% 55%;
+
+    --sidebar-background: 224 40% 15%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 215 60% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 30% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 30% 25%;
+    --sidebar-ring: 215 60% 55%;
   }
 
   * {
@@ -54,29 +95,41 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans transition-colors duration-300;
   }
 
   /* Glass effect containers */
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-glass;
+    @apply bg-white bg-opacity-70 backdrop-blur-md border border-white border-opacity-30 shadow-glass;
+  }
+
+  .dark .glass {
+    @apply bg-gray-900 bg-opacity-70 backdrop-blur-md border border-gray-800 border-opacity-30 shadow-glass;
   }
 
   .glass-card {
-    @apply bg-white/90 backdrop-blur-md border border-white/30 shadow-glass 
-           hover:bg-white/95 transition-all duration-300 ease-out;
+    @apply bg-white bg-opacity-90 backdrop-blur-md border border-white border-opacity-30 shadow-glass 
+           hover:bg-white hover:bg-opacity-95 transition-all duration-300 ease-out;
   }
 
-  .tile-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+  .dark .glass-card {
+    @apply bg-gray-900 bg-opacity-90 backdrop-blur-md border border-gray-800 border-opacity-30 shadow-glass 
+           hover:bg-gray-900 hover:bg-opacity-95 transition-all duration-300 ease-out;
+  }
+
+  /* Premium Card */
+  .premium-card {
+    @apply bg-card rounded-lg border border-border shadow-premium hover:shadow-elevation transition-all duration-300;
+  }
+  
+  .dark .premium-card {
+    @apply bg-card border border-gray-700 border-opacity-50 shadow-premium-dark;
   }
 
   /* Course document styles */
   .course-container {
     position: relative;
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', sans-serif;
     line-height: 1.6;
     color: #333;
   }
