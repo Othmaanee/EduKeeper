@@ -16,6 +16,7 @@ import {
 interface DocumentActionsProps {
   docId: string;
   docName: string;
+  docUrl: string; // Added docUrl property
   isShared: boolean;
   onDownload: () => void;
   onShare: () => void;
@@ -26,6 +27,7 @@ interface DocumentActionsProps {
 export const DocumentActions: React.FC<DocumentActionsProps> = ({
   docId,
   docName,
+  docUrl, // Added docUrl parameter
   isShared,
   onDownload,
   onShare,

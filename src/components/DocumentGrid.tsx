@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -14,7 +13,8 @@ import {
   Loader2,
   User,
   Share,
-  Eye
+  Eye,
+  FolderPlus
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,6 +71,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
+  const [isChangingCategory, setIsChangingCategory] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -231,6 +232,35 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     }
   });
 
+  const changeCategoryMutation = useMutation({
+    mutationFn: async ({ documentId, categoryId }: { documentId: string, categoryId: string }) => {
+      console.log(`🔄 Changing category for document ${documentId} to ${categoryId}`);
+      
+      const { data, error } = await supabase
+        .from("documents")
+        .update({ category_id: categoryId })
+        .eq("id", documentId)
+        .select();
+        
+      if (error) {
+        console.error("❌ Error changing category:", error);
+        throw new Error(error.message);
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      toast.success("Catégorie modifiée avec succès");
+      setIsChangingCategory(null);
+    },
+    onError: (error: Error) => {
+      toast.error(`Erreur lors du changement de catégorie: ${error.message}`);
+      setIsChangingCategory(null);
+    }
+  });
+
   const confirmDelete = (document: any) => {
     if (document.user_id !== currentUserId) {
       toast.error("Vous ne pouvez pas supprimer un document partagé");
@@ -303,6 +333,11 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
 
   const isPersonalDocument = (doc: any) => {
     return doc.user_id === currentUserId;
+  };
+
+  const handleCategoryChange = (documentId: string, categoryId: string) => {
+    setIsChangingCategory(documentId);
+    changeCategoryMutation.mutate({ documentId, categoryId });
   };
 
   return (
@@ -444,9 +479,31 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                   <h3 className="font-medium truncate pr-8" title={doc.nom}>
                     {doc.nom}
                   </h3>
-                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
-                    <FolderIcon className="h-3.5 w-3.5 mr-1" />
-                    {doc.categories?.nom || "Sans catégorie"}
+                  
+                  <div className="flex items-center mt-2 text-sm">
+                    <FolderIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                    
+                    {isChangingCategory === doc.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    ) : (
+                      <Select 
+                        value={doc.category_id || ""} 
+                        onValueChange={(value) => handleCategoryChange(doc.id, value)}
+                        disabled={!isPersonalDocument(doc)}
+                      >
+                        <SelectTrigger className="h-7 w-full max-w-[180px] text-xs border-none bg-transparent hover:bg-secondary/50 focus:ring-0">
+                          <SelectValue placeholder="Sans catégorie" />
+                        </SelectTrigger>
+                        <SelectContent align="start">
+                          <SelectItem value="">Sans catégorie</SelectItem>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.nom}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
               </CardContent>
