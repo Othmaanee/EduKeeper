@@ -43,7 +43,7 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
     { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
     { label: 'Historique', icon: History, path: '/historique', showOrder: 7 },
-    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', disabled: true, showOrder: 8 }
+    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', showOrder: 8 }
   ];
 
   useEffect(() => {
