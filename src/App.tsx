@@ -18,6 +18,7 @@ import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import DocumentSummaryPage from "./pages/DocumentSummaryPage";
 import HistoryPage from "./pages/HistoryPage";
 import ExercisesPage from "./pages/ExercisesPage";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/summarize-document" element={<DocumentSummaryPage />} />
           <Route path="/historique" element={<HistoryPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
