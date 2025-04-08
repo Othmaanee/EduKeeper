@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import ComingSoonOverlay from "@/components/ComingSoonOverlay";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, BookText, FileText } from 'lucide-react';
@@ -46,6 +45,7 @@ const ExercisesPage = () => {
   const [userRole, setUserRole] = useState<string>('user');
   const { toast } = useToast();
 
+  // Fetch user role on component mount
   useEffect(() => {
     const fetchUserRole = async () => {
       try {
@@ -72,6 +72,7 @@ const ExercisesPage = () => {
     fetchUserRole();
   }, []);
 
+  // Fetch user's documents on component mount
   useEffect(() => {
     const fetchUserDocuments = async () => {
       setIsLoading(true);
@@ -108,6 +109,7 @@ const ExercisesPage = () => {
     setGeneratedContent('');
     
     try {
+      // Prepare the prompt based on user selections
       let prompt = '';
       
       if (selectedTab === 'document') {
@@ -135,6 +137,8 @@ const ExercisesPage = () => {
         prompt = `Génère ${exerciseCount} exercices ${exerciseType === 'simple' ? 'simples' : 'complets'} de niveau ${educationLevel === 'college' ? 'collège' : 'lycée'} sur le sujet: ${freeTopicText}`;
       }
       
+      // For now we'll simulate the API call with a timeout
+      // In a real app, this would make an actual API call
       setTimeout(() => {
         const exerciseTypes = exerciseType === 'simple' ? 
           ['QCM', 'Vrai ou Faux', 'Questions courtes'] : 
@@ -192,10 +196,12 @@ const ExercisesPage = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
+      // Get topic from tab selection
       const topic = selectedTab === 'document' ? 
         documents.find(doc => doc.id === selectedDocument)?.nom || 'Document sélectionné' : 
         freeTopicText;
         
+      // Create a random URL for the document (this would actually upload the document in a real app)
       const documentUrl = `https://example.com/exercises/${Date.now()}.pdf`;
       
       const { data, error } = await supabase
@@ -217,6 +223,7 @@ const ExercisesPage = () => {
         description: "Les exercices ont été sauvegardés dans vos documents",
       });
       
+      // Log this action in history
       await supabase
         .from('history')
         .insert([
@@ -246,9 +253,7 @@ const ExercisesPage = () => {
 
   return (
     <Layout>
-      <div className="container py-8 relative">
-        <ComingSoonOverlay message="Créez des exercices personnalisés afin de vous entraîner pour votre prochain contrôle. Fonctionnalité bientôt disponible." />
-        
+      <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Générer des exercices</h1>
           <p className="text-muted-foreground mt-2">
