@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -64,7 +65,6 @@ import {
   ToggleGroup,
   ToggleGroupItem
 } from "@/components/ui/toggle-group";
-import html2pdf from 'html2pdf.js';
 
 type DocumentGridProps = {
   initialCategoryId?: string | null;
@@ -80,12 +80,11 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
+  const queryClient = useQueryClient();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [assignCategoryDialogOpen, setAssignCategoryDialogOpen] = useState(false);
   const [documentToAssign, setDocumentToAssign] = useState<any | null>(null);
   const [categoryToAssign, setCategoryToAssign] = useState<string | null>(null);
-  const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialCategoryId) {
@@ -93,6 +92,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     }
   }, [initialCategoryId]);
 
+  // Reset filters function
   const resetFilters = () => {
     setSearchTerm("");
     setSortField("created_at");
@@ -203,17 +203,19 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         console.log("✅ Document supprimé avec succès de la base de données");
         console.log("📝 Tentative d'ajout dans l'historique: suppression -", document.nom);
         
+        // S'assurer que currentUserId est disponible
         if (!currentUserId) {
           console.error("❌ ID utilisateur non disponible pour l'historique");
           throw new Error("User ID is required for history tracking");
         }
         
+        // Insérer dans l'historique APRÈS la suppression réussie du document
         const { data: historyData, error: historyError } = await supabase
           .from('history')
           .insert([
             {
               user_id: currentUserId,
-              action_type: 'suppression',
+              action_type: 'suppression',  // Modifié de 'delete' à 'suppression'
               document_name: document.nom,
             }
           ])
@@ -323,92 +325,6 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     } catch (error) {
       console.error("Erreur lors du téléchargement", error);
       toast.error("Erreur lors du téléchargement");
-    }
-  };
-
-  const handleGeneratePDF = async (doc: any) => {
-    try {
-      setDownloadingDoc(doc.id);
-      
-      const container = document.createElement('div');
-      container.style.padding = '20px';
-      container.style.fontFamily = 'Arial, sans-serif';
-      
-      const title = document.createElement('h1');
-      title.textContent = doc.nom;
-      title.style.borderBottom = '1px solid #ddd';
-      title.style.paddingBottom = '10px';
-      title.style.marginBottom = '20px';
-      container.appendChild(title);
-      
-      const metadata = document.createElement('div');
-      metadata.style.fontSize = '12px';
-      metadata.style.color = '#666';
-      metadata.style.marginBottom = '20px';
-      metadata.innerHTML = `
-        <p>Date de création: ${new Date(doc.created_at).toLocaleDateString("fr-FR")}</p>
-        <p>Catégorie: ${doc.categories?.nom || "Sans catégorie"}</p>
-        <p>Statut: ${doc.is_shared ? "Partagé" : "Personnel"}</p>
-      `;
-      container.appendChild(metadata);
-      
-      try {
-        const response = await fetch(doc.url);
-        const text = await response.text();
-        
-        if (text && !text.includes('�') && text.length < 500000) {
-          const content = document.createElement('div');
-          content.style.lineHeight = '1.6';
-          content.style.fontSize = '14px';
-          
-          if (text.includes('<html') || text.includes('<body')) {
-            const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-            content.innerHTML = bodyMatch ? bodyMatch[1] : text;
-          } else {
-            const paragraphs = text.split(/\n\s*\n/);
-            paragraphs.forEach(paragraph => {
-              if (paragraph.trim()) {
-                const p = document.createElement('p');
-                p.textContent = paragraph.trim();
-                content.appendChild(p);
-              }
-            });
-          }
-          
-          container.appendChild(content);
-        } else {
-          const placeholder = document.createElement('p');
-          placeholder.textContent = "Ce document ne peut pas être prévisualisé dans le PDF. Veuillez ouvrir le document original.";
-          container.appendChild(placeholder);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération du contenu:", error);
-        const errorMsg = document.createElement('p');
-        errorMsg.textContent = "Impossible de charger le contenu du document.";
-        container.appendChild(errorMsg);
-      }
-      
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      document.body.appendChild(container);
-      
-      const opt = {
-        margin: 10,
-        filename: `${doc.nom}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      await html2pdf().set(opt).from(container).save();
-      
-      document.body.removeChild(container);
-      toast.success("PDF téléchargé avec succès");
-    } catch (error) {
-      console.error("Erreur lors de la génération du PDF:", error);
-      toast.error("Erreur lors de la génération du PDF");
-    } finally {
-      setDownloadingDoc(null);
     }
   };
 
@@ -649,24 +565,14 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                           variant="default" 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => handleGeneratePDF(doc)}
-                          disabled={downloadingDoc === doc.id}
+                          onClick={() => handleDownload(doc.url, doc.nom)}
                         >
-                          {downloadingDoc === doc.id ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Préparation...
-                            </>
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4 mr-2" />
-                              Télécharger
-                            </>
-                          )}
+                          <Download className="h-4 w-4 mr-2" />
+                          Télécharger
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Télécharger en PDF</p>
+                        <p>Télécharger le document</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
