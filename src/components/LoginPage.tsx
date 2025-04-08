@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
@@ -74,7 +75,24 @@ const LoginPage = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Intercepte spécifiquement l'erreur "Invalid login credentials"
+        if (error.message === "Invalid login credentials") {
+          toast({
+            title: "Erreur de connexion",
+            description: "L'email ou le mot de passe est invalide.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erreur de connexion",
+            description: error.message || "Impossible de se connecter. Veuillez réessayer.",
+            variant: "destructive",
+          });
+        }
+        setLoading(false);
+        return;
+      }
       
       if (data.user) {
         await redirectBasedOnRole(data.user.id);
