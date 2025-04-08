@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -171,6 +170,22 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           console.error("❌ Erreur suppression document BDD:", dbError);
           throw new Error(dbError.message);
         }
+        
+        const { error: historyError } = await supabase
+          .from('history')
+          .insert([
+            {
+              user_id: currentUserId,
+              action_type: 'delete',
+              document_name: document.nom,
+            }
+          ]);
+        
+        if (historyError) {
+          console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
+        } else {
+          console.log("✅ Action 'delete' ajoutée à l'historique");
+        }
   
         return document.id;
       } catch (error: any) {
@@ -180,6 +195,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     },
     onSuccess: (documentId) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['history'] });
       toast.success("Document supprimé avec succès!");
       
       setDeleteDialogOpen(false);
@@ -238,10 +254,8 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch = doc.nom.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by category
     const categoryMatch = selectedCategory === "all" || doc.category_id === selectedCategory;
     
-    // Filter by status (shared/personal)
     let statusMatch = true;
     if (filterStatus === "shared") {
       statusMatch = doc.is_shared === true;
@@ -253,7 +267,6 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   });
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
-    // Apply sort based on selected field
     if (sortField === "nom") {
       return sortOrder === "asc" 
         ? a.nom.localeCompare(b.nom) 
@@ -348,7 +361,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={toggleSortOrder}>
                 <ArrowUpDown className="mr-2 h-4 w-4" />
-                {sortOrder === "asc" ? "Ordre croissant" : "Ordre décroissant"}
+                {sortOrder === "asc" ? "Ordre croissant" : "Ordre d��croissant"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

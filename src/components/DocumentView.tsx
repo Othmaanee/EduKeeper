@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -120,18 +119,16 @@ export function DocumentView() {
         throw new Error(`Failed to delete document record: ${deleteError.message}`);
       }
 
-      // Récupérer la session utilisateur pour l'ID de l'utilisateur
       const { data: session } = await supabase.auth.getSession();
       const userId = session?.session?.user?.id;
       
       if (userId) {
-        // Ajouter une entrée dans l'historique pour la suppression du document
         const { error: historyError } = await supabase
           .from('history')
           .insert([
             {
               user_id: userId,
-              action_type: 'suppression',
+              action_type: 'delete',
               document_name: documentData.nom,
             }
           ]);
@@ -139,7 +136,7 @@ export function DocumentView() {
         if (historyError) {
           console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
         } else {
-          console.log("✅ Action 'suppression' ajoutée à l'historique");
+          console.log("✅ Action 'delete' ajoutée à l'historique");
         }
       }
       
@@ -147,6 +144,7 @@ export function DocumentView() {
     },
     onSuccess: () => {
       toast.success("Document supprimé");
+      queryClient.invalidateQueries({ queryKey: ['history'] });
       navigate('/documents');
     },
     onError: (error) => {
