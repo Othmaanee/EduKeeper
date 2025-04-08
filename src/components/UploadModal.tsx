@@ -42,10 +42,14 @@ type UploadFile = {
   supabaseId?: string; // Added to store the Supabase document ID
 };
 
-export function UploadComponent() {
+type UploadComponentProps = {
+  initialCategoryId?: string | null;
+};
+
+export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<string>("");
   const [newCategoryDialog, setNewCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,6 +61,13 @@ export function UploadComponent() {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     []
   );
+
+  // Set the initial category when the component mounts or initialCategoryId changes
+  useEffect(() => {
+    if (initialCategoryId) {
+      setCategory(initialCategoryId);
+    }
+  }, [initialCategoryId]);
 
   useEffect(() => {
     const fetchCategories = async () => {
