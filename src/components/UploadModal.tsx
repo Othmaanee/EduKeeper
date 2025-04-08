@@ -137,7 +137,7 @@ export const UploadComponent = ({ initialCategoryId }: UploadComponentProps) => 
                     ) : (
                       <>
                         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                          <UploadIcon className="h-6 w-6 text-muted-foreground" />
+                          <Upload className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <div>
                           <p className="font-medium">Déposez votre fichier ici ou cliquez pour parcourir</p>
