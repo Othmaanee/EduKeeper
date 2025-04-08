@@ -14,7 +14,7 @@ import {
   User,
   Share,
   Eye,
-  FolderPlus
+  X
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -56,6 +64,7 @@ import {
   ToggleGroup,
   ToggleGroupItem
 } from "@/components/ui/toggle-group";
+import html2pdf from 'html2pdf.js';
 
 type DocumentGridProps = {
   initialCategoryId?: string | null;
@@ -71,7 +80,10 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any | null>(null);
-  const [isChangingCategory, setIsChangingCategory] = useState<string | null>(null);
+  const [assignCategoryDialogOpen, setAssignCategoryDialogOpen] = useState(false);
+  const [documentToAssign, setDocumentToAssign] = useState<any | null>(null);
+  const [categoryToAssign, setCategoryToAssign] = useState<string | null>(null);
+  const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -80,6 +92,15 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
       setSelectedCategory(initialCategoryId);
     }
   }, [initialCategoryId]);
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSortField("created_at");
+    setSortOrder("desc");
+    setSelectedCategory("all");
+    setFilterStatus("all");
+    toast.success("Filtres réinitialisés");
+  };
 
   useQuery({
     queryKey: ['currentUser'],
@@ -182,19 +203,17 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         console.log("✅ Document supprimé avec succès de la base de données");
         console.log("📝 Tentative d'ajout dans l'historique: suppression -", document.nom);
         
-        // S'assurer que currentUserId est disponible
         if (!currentUserId) {
           console.error("❌ ID utilisateur non disponible pour l'historique");
           throw new Error("User ID is required for history tracking");
         }
         
-        // Insérer dans l'historique APRÈS la suppression réussie du document
         const { data: historyData, error: historyError } = await supabase
           .from('history')
           .insert([
             {
               user_id: currentUserId,
-              action_type: 'suppression',  // Modifié de 'delete' à 'suppression'
+              action_type: 'suppression',
               document_name: document.nom,
             }
           ])
@@ -232,32 +251,31 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     }
   });
 
-  const changeCategoryMutation = useMutation({
-    mutationFn: async ({ documentId, categoryId }: { documentId: string, categoryId: string }) => {
-      console.log(`🔄 Changing category for document ${documentId} to ${categoryId}`);
+  const assignCategoryMutation = useMutation({
+    mutationFn: async ({ documentId, categoryId }: { documentId: string, categoryId: string | null }) => {
+      console.log(`⏳ Assignation du document ${documentId} à la catégorie ${categoryId}`);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("documents")
         .update({ category_id: categoryId })
-        .eq("id", documentId)
-        .select();
+        .eq("id", documentId);
         
       if (error) {
-        console.error("❌ Error changing category:", error);
-        throw new Error(error.message);
+        console.error("❌ Erreur lors de l'assignation:", error);
+        throw error;
       }
       
-      return data;
+      return { documentId, categoryId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      toast.success("Catégorie modifiée avec succès");
-      setIsChangingCategory(null);
+      toast.success("Catégorie mise à jour avec succès!");
+      setAssignCategoryDialogOpen(false);
+      setDocumentToAssign(null);
+      setCategoryToAssign(null);
     },
     onError: (error: Error) => {
-      toast.error(`Erreur lors du changement de catégorie: ${error.message}`);
-      setIsChangingCategory(null);
+      toast.error(`Une erreur est survenue lors de l'assignation: ${error.message}`);
     }
   });
 
@@ -270,10 +288,25 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     setDocumentToDelete(document);
     setDeleteDialogOpen(true);
   };
+  
+  const openAssignCategoryDialog = (document: any) => {
+    setDocumentToAssign(document);
+    setCategoryToAssign(document.category_id || null);
+    setAssignCategoryDialogOpen(true);
+  };
 
   const handleDeleteDocument = () => {
     if (documentToDelete) {
       deleteMutation.mutate(documentToDelete);
+    }
+  };
+  
+  const handleAssignCategory = () => {
+    if (documentToAssign) {
+      assignCategoryMutation.mutate({
+        documentId: documentToAssign.id,
+        categoryId: categoryToAssign
+      });
     }
   };
 
@@ -290,6 +323,92 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     } catch (error) {
       console.error("Erreur lors du téléchargement", error);
       toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  const handleGeneratePDF = async (doc: any) => {
+    try {
+      setDownloadingDoc(doc.id);
+      
+      const container = document.createElement('div');
+      container.style.padding = '20px';
+      container.style.fontFamily = 'Arial, sans-serif';
+      
+      const title = document.createElement('h1');
+      title.textContent = doc.nom;
+      title.style.borderBottom = '1px solid #ddd';
+      title.style.paddingBottom = '10px';
+      title.style.marginBottom = '20px';
+      container.appendChild(title);
+      
+      const metadata = document.createElement('div');
+      metadata.style.fontSize = '12px';
+      metadata.style.color = '#666';
+      metadata.style.marginBottom = '20px';
+      metadata.innerHTML = `
+        <p>Date de création: ${new Date(doc.created_at).toLocaleDateString("fr-FR")}</p>
+        <p>Catégorie: ${doc.categories?.nom || "Sans catégorie"}</p>
+        <p>Statut: ${doc.is_shared ? "Partagé" : "Personnel"}</p>
+      `;
+      container.appendChild(metadata);
+      
+      try {
+        const response = await fetch(doc.url);
+        const text = await response.text();
+        
+        if (text && !text.includes('�') && text.length < 500000) {
+          const content = document.createElement('div');
+          content.style.lineHeight = '1.6';
+          content.style.fontSize = '14px';
+          
+          if (text.includes('<html') || text.includes('<body')) {
+            const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            content.innerHTML = bodyMatch ? bodyMatch[1] : text;
+          } else {
+            const paragraphs = text.split(/\n\s*\n/);
+            paragraphs.forEach(paragraph => {
+              if (paragraph.trim()) {
+                const p = document.createElement('p');
+                p.textContent = paragraph.trim();
+                content.appendChild(p);
+              }
+            });
+          }
+          
+          container.appendChild(content);
+        } else {
+          const placeholder = document.createElement('p');
+          placeholder.textContent = "Ce document ne peut pas être prévisualisé dans le PDF. Veuillez ouvrir le document original.";
+          container.appendChild(placeholder);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération du contenu:", error);
+        const errorMsg = document.createElement('p');
+        errorMsg.textContent = "Impossible de charger le contenu du document.";
+        container.appendChild(errorMsg);
+      }
+      
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      document.body.appendChild(container);
+      
+      const opt = {
+        margin: 10,
+        filename: `${doc.nom}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().set(opt).from(container).save();
+      
+      document.body.removeChild(container);
+      toast.success("PDF téléchargé avec succès");
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast.error("Erreur lors de la génération du PDF");
+    } finally {
+      setDownloadingDoc(null);
     }
   };
 
@@ -333,11 +452,6 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
 
   const isPersonalDocument = (doc: any) => {
     return doc.user_id === currentUserId;
-  };
-
-  const handleCategoryChange = (documentId: string, categoryId: string) => {
-    setIsChangingCategory(documentId);
-    changeCategoryMutation.mutate({ documentId, categoryId });
   };
 
   return (
@@ -417,10 +531,14 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={toggleSortOrder}>
                 <ArrowUpDown className="mr-2 h-4 w-4" />
-                {sortOrder === "asc" ? "Ordre croissant" : "Ordre d��croissant"}
+                {sortOrder === "asc" ? "Ordre croissant" : "Ordre décroissant"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          <Button variant="ghost" size="icon" onClick={resetFilters} title="Réinitialiser les filtres">
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -479,31 +597,9 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                   <h3 className="font-medium truncate pr-8" title={doc.nom}>
                     {doc.nom}
                   </h3>
-                  
-                  <div className="flex items-center mt-2 text-sm">
-                    <FolderIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                    
-                    {isChangingCategory === doc.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                    ) : (
-                      <Select 
-                        value={doc.category_id || ""} 
-                        onValueChange={(value) => handleCategoryChange(doc.id, value)}
-                        disabled={!isPersonalDocument(doc)}
-                      >
-                        <SelectTrigger className="h-7 w-full max-w-[180px] text-xs border-none bg-transparent hover:bg-secondary/50 focus:ring-0">
-                          <SelectValue placeholder="Sans catégorie" />
-                        </SelectTrigger>
-                        <SelectContent align="start">
-                          <SelectItem value="">Sans catégorie</SelectItem>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.nom}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                    <FolderIcon className="h-3.5 w-3.5 mr-1" />
+                    {doc.categories?.nom || "Sans catégorie"}
                   </div>
                 </div>
               </CardContent>
@@ -553,14 +649,41 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                           variant="default" 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => handleDownload(doc.url, doc.nom)}
+                          onClick={() => handleGeneratePDF(doc)}
+                          disabled={downloadingDoc === doc.id}
                         >
-                          <Download className="h-4 w-4 mr-2" />
-                          Télécharger
+                          {downloadingDoc === doc.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Préparation...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger
+                            </>
+                          )}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Télécharger le document</p>
+                        <p>Télécharger en PDF</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openAssignCategoryDialog(doc)}
+                        >
+                          <FolderIcon className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Assigner à une catégorie</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -641,6 +764,66 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Dialog
+        open={assignCategoryDialogOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setAssignCategoryDialogOpen(false);
+            setDocumentToAssign(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assigner à une catégorie</DialogTitle>
+            <DialogDescription>
+              Sélectionnez une catégorie pour ce document.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <Select 
+              value={categoryToAssign || ""} 
+              onValueChange={(value) => setCategoryToAssign(value || null)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner une catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Sans catégorie</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setAssignCategoryDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleAssignCategory}
+              disabled={assignCategoryMutation.isPending}
+            >
+              {assignCategoryMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                'Enregistrer'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

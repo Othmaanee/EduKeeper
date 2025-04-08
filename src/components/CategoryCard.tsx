@@ -60,7 +60,6 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
   const handleAddDocument = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Navigate to upload page with category pre-selected
     navigate(`/upload?category_id=${id}`);
   };
 
@@ -153,12 +152,12 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
             )}
           </div>
         </div>
-
-        <div className="mt-4 flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+        
+        <div className="mt-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary hover:text-primary/80 hover:bg-primary/10 p-0 h-auto"
             onClick={handleAddDocument}
           >
             <FilePlus className="h-3.5 w-3.5 mr-1.5" />

@@ -103,7 +103,6 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                 <DocumentActions 
                   docId={doc.id}
                   docName={doc.nom}
-                  docUrl={doc.url} // Pass the url to DocumentActions
                   isShared={doc.is_shared}
                   onDownload={() => onDownload(doc)}
                   onShare={() => onShare(doc.id)}
