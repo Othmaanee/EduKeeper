@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, BookText, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
 import {
   Select,
   SelectContent,
@@ -253,7 +255,9 @@ const ExercisesPage = () => {
 
   return (
     <Layout>
-      <div className="container py-8">
+      <div className="container py-8 relative">
+        <ComingSoonOverlay message={getDescription() + ". Fonctionnalité bientôt disponible."} />
+        
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Générer des exercices</h1>
           <p className="text-muted-foreground mt-2">
