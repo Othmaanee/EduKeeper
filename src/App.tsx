@@ -17,6 +17,7 @@ import GeneratePage from "./pages/GeneratePage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import DocumentSummaryPage from "./pages/DocumentSummaryPage";
 import HistoryPage from "./pages/HistoryPage";
+import ExercisesPage from "./pages/ExercisesPage";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
           <Route path="/summarize-document" element={<DocumentSummaryPage />} />
           <Route path="/historique" element={<HistoryPage />} />
+          <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

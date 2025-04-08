@@ -1,10 +1,32 @@
 
 import { Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 
-export function SearchBar() {
+interface SearchBarProps {
+  onSearch?: (query: string) => void;
+  value?: string;
+}
+
+export function SearchBar({ onSearch, value }: SearchBarProps = {}) {
   const [focused, setFocused] = useState(false);
+  const [query, setQuery] = useState(value || '');
+  
+  // Sync with external value if provided
+  useEffect(() => {
+    if (value !== undefined) {
+      setQuery(value);
+    }
+  }, [value]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+    
+    if (onSearch) {
+      onSearch(newQuery);
+    }
+  };
 
   return (
     <div className={`
@@ -19,6 +41,8 @@ export function SearchBar() {
         className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-8 text-sm"
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
+        value={query}
+        onChange={handleSearch}
       />
     </div>
   );

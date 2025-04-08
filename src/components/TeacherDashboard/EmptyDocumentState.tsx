@@ -24,9 +24,12 @@ export const EmptyDocumentState: React.FC<EmptyDocumentStateProps> = ({
       <p className="text-muted-foreground mt-1">
         {description}
       </p>
-      <div className="flex gap-2 justify-center mt-4">
+      <div className="flex flex-wrap gap-2 justify-center mt-4">
         <Button onClick={() => navigate('/generate')}>
           Générer un cours
+        </Button>
+        <Button variant="outline" onClick={() => navigate('/exercises')}>
+          Générer des exercices
         </Button>
         {showUploadButton && (
           <Button variant="outline" onClick={() => navigate('/upload')}>
