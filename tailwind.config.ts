@@ -139,11 +139,17 @@ export default {
 				'subtle': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1)',
 				'elevation': '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
 				'glass': '0 8px 32px rgba(0, 0, 0, 0.1)',
+				'premium-dark': '0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.25)',
 			},
 			backdropBlur: {
 				'xs': '2px',
 			},
-		}
+			opacity: {
+				'15': '0.15',
+				'35': '0.35',
+				'85': '0.85',
+			}
+		},
 	},
 	plugins: [require("tailwindcss-animate")],
 } satisfies Config;

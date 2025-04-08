@@ -7,48 +7,113 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Light Mode - Premium */
+    --background: #F9FAFB;
+    --foreground: #1F2937;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: #FFFFFF;
+    --card-foreground: #1F2937;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: #FFFFFF;
+    --popover-foreground: #1F2937;
 
-    --primary: 210 100% 66%;
-    --primary-foreground: 210 40% 98%;
+    --primary: #2563EB;
+    --primary-foreground: #FFFFFF;
 
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: #F3F4F6;
+    --secondary-foreground: #1D4ED8;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 215 16% 47%;
+    --muted: #F3F4F6;
+    --muted-foreground: #4B5563;
 
-    --accent: 210 100% 66%;
-    --accent-foreground: 222 47% 11%;
+    --accent: #F3F4F6;
+    --accent-foreground: #1D4ED8;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 222 47% 11%;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #2563EB;
 
-    --radius: 0.85rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 210 100% 66%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    /* Dark Mode - Premium */
+    --background-dark: #111827;
+    --foreground-dark: #F9FAFB;
+
+    --card-dark: #1F2937;
+    --card-dark-foreground: #F9FAFB;
+
+    --popover-dark: #1F2937;
+    --popover-dark-foreground: #F9FAFB;
+
+    --primary-dark: #3B82F6;
+    --primary-dark-foreground: #FFFFFF;
+
+    --secondary-dark: #374151;
+    --secondary-dark-foreground: #60A5FA;
+
+    --muted-dark: #374151;
+    --muted-dark-foreground: #D1D5DB;
+
+    --accent-dark: #374151;
+    --accent-dark-foreground: #60A5FA;
+
+    --border-dark: #374151;
+    --input-dark: #374151;
+    --ring-dark: #3B82F6;
+
+    /* Sidebar variables (can be adjusted for dark mode separately) */
+    --sidebar-background: #FFFFFF;
+    --sidebar-foreground: #1F2937;
+    --sidebar-primary: #2563EB;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #F3F4F6;
+    --sidebar-accent-foreground: #1D4ED8;
+    --sidebar-border: #E5E7EB;
+    --sidebar-ring: #2563EB;
+  }
+
+  .dark {
+    --background: var(--background-dark);
+    --foreground: var(--foreground-dark);
+    
+    --card: var(--card-dark);
+    --card-foreground: var(--card-dark-foreground);
+    
+    --popover: var(--popover-dark);
+    --popover-foreground: var(--popover-dark-foreground);
+    
+    --primary: var(--primary-dark);
+    --primary-foreground: var(--primary-dark-foreground);
+    
+    --secondary: var(--secondary-dark);
+    --secondary-foreground: var(--secondary-dark-foreground);
+    
+    --muted: var(--muted-dark);
+    --muted-foreground: var(--muted-dark-foreground);
+    
+    --accent: var(--accent-dark);
+    --accent-foreground: var(--accent-dark-foreground);
+    
+    --border: var(--border-dark);
+    --input: var(--input-dark);
+    --ring: var(--ring-dark);
+    
+    /* Sidebar dark mode */
+    --sidebar-background: #1F2937;
+    --sidebar-foreground: #F9FAFB;
+    --sidebar-primary: #3B82F6;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #374151;
+    --sidebar-accent-foreground: #60A5FA;
+    --sidebar-border: #374151;
+    --sidebar-ring: #3B82F6;
   }
 
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-200;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -59,18 +124,62 @@
 
   /* Glass effect containers */
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-glass;
+    @apply bg-white bg-opacity-70 backdrop-blur-md border border-white border-opacity-30 shadow-glass;
+  }
+
+  .dark .glass {
+    @apply bg-gray-900 bg-opacity-70 backdrop-blur-md border border-gray-800 border-opacity-30 shadow-glass;
   }
 
   .glass-card {
-    @apply bg-white/90 backdrop-blur-md border border-white/30 shadow-glass 
-           hover:bg-white/95 transition-all duration-300 ease-out;
+    @apply bg-white bg-opacity-90 backdrop-blur-md border border-white border-opacity-30 shadow-glass 
+           hover:bg-white hover:bg-opacity-95 transition-all duration-300 ease-out;
   }
 
+  .dark .glass-card {
+    @apply bg-gray-900 bg-opacity-90 backdrop-blur-md border border-gray-800 border-opacity-30 shadow-glass 
+           hover:bg-gray-900 hover:bg-opacity-95 transition-all duration-300 ease-out;
+  }
+
+  /* Premium Card */
+  .premium-card {
+    @apply bg-card rounded-lg border border-border shadow-subtle hover:shadow-elevation transition-all duration-300;
+  }
+  
+  .dark .premium-card {
+    @apply bg-card border border-gray-700 border-opacity-50 shadow-premium-dark;
+  }
+
+  /* Premium Button */
+  .btn-premium {
+    @apply rounded-md px-4 py-2.5 font-medium shadow-sm transition-all duration-300 
+           bg-primary text-primary-foreground hover:bg-primary hover:bg-opacity-90 focus:ring-2 focus:ring-primary focus:ring-opacity-20 focus:outline-none;
+  }
+  
+  .dark .btn-premium {
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:bg-opacity-90 focus:ring-primary focus:ring-opacity-30;
+  }
+
+  /* Premium Input */
+  .input-premium {
+    @apply rounded-md border border-input bg-background bg-opacity-50 px-4 py-2.5 text-foreground shadow-sm 
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-20 focus:border-primary focus:border-opacity-50 transition-all duration-300;
+  }
+  
+  .dark .input-premium {
+    @apply bg-background bg-opacity-50 border-input focus:ring-primary focus:ring-opacity-40 focus:border-primary focus:border-opacity-60;
+  }
+
+  /* Premium spacing */
+  .premium-layout {
+    @apply p-6 space-y-8;
+  }
+
+  /* Tile grid */
   .tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.75rem;
   }
 
   /* Course document styles */
@@ -176,7 +285,7 @@
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/30;
+    @apply bg-muted-foreground bg-opacity-30;
   }
 
   /* Transitions */
@@ -200,5 +309,10 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: opacity 300ms, transform 300ms;
+  }
+
+  /* Dark Mode Transition */
+  body {
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
