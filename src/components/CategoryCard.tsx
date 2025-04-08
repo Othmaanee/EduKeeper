@@ -61,6 +61,17 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
     try {
       setIsDeleting(true);
       
+      // Étape 1: Mettre à jour les documents liés à cette catégorie pour les désassocier
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update({ category_id: null })
+        .eq('category_id', id);
+      
+      if (updateError) {
+        throw updateError;
+      }
+      
+      // Étape 2: Supprimer la catégorie après avoir désassocié les documents
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -157,6 +168,7 @@ export function CategoryCard({ id, name, count, color = "blue", className, onDel
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer cette catégorie ?
               Cette action est irréversible et supprimera la catégorie "{name}".
+              Les documents associés à cette catégorie ne seront pas supprimés, mais ils n'auront plus de catégorie attribuée.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
