@@ -10,7 +10,8 @@ import {
   Users,
   FileText,
   FileSearch,
-  Pencil
+  Pencil,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
@@ -41,7 +42,8 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Résumer un Document', icon: FileSearch, path: '/summarize-document', showOrder: 4 },
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
     { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
-    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', disabled: true, showOrder: 7 }
+    { label: 'Historique', icon: History, path: '/historique', showOrder: 7 },
+    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', disabled: true, showOrder: 8 }
   ];
 
   useEffect(() => {

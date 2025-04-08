@@ -83,6 +83,30 @@ export type Database = {
           },
         ]
       }
+      history: {
+        Row: {
+          action_type: string
+          created_at: string
+          document_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          document_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          document_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_categories: {
         Row: {
           category_id: string
