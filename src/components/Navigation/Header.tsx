@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { Menu, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '../SearchBar';
-import { ThemeToggle } from '../ThemeToggle';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -12,7 +11,7 @@ interface HeaderProps {
 
 export const Header = ({ onToggleSidebar }: HeaderProps) => {
   return (
-    <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-border">
       <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center">
           <Button
@@ -27,8 +26,6 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <ThemeToggle />
-          
           <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
             <Link to="/upload">
               <Upload className="h-4 w-4 mr-2" />

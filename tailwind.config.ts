@@ -21,8 +21,6 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['Inter', 'sans-serif'],
-				raleway: ['Raleway', 'sans-serif'],
-				poppins: ['Poppins', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -141,21 +139,17 @@ export default {
 				'subtle': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1)',
 				'elevation': '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
 				'glass': '0 8px 32px rgba(0, 0, 0, 0.1)',
-				'premium': '0 4px 20px rgba(0, 0, 0, 0.08)',
-				'premium-dark': '0 4px 20px rgba(0, 0, 0, 0.25)',
+				'premium-dark': '0 4px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.25)',
 			},
 			backdropBlur: {
 				'xs': '2px',
 			},
-			spacing: {
-				'premium-1': '0.5rem',
-				'premium-2': '1rem',
-				'premium-3': '1.5rem',
-				'premium-4': '2rem',
-				'premium-5': '3rem',
-				'premium-6': '4rem',
+			opacity: {
+				'15': '0.15',
+				'35': '0.35',
+				'85': '0.85',
 			}
-		}
+		},
 	},
 	plugins: [require("tailwindcss-animate")],
 } satisfies Config;
