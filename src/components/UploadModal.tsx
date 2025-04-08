@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, X, FolderPlus, Trash, Loader2 } from "lucide-react";
@@ -39,7 +38,7 @@ type UploadFile = {
   type: string;
   size: number;
   progress: number;
-  supabaseId?: string; // Added to store the Supabase document ID
+  supabaseId?: string;
 };
 
 type UploadComponentProps = {
@@ -62,7 +61,6 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
     []
   );
 
-  // Set the initial category when the component mounts or initialCategoryId changes
   useEffect(() => {
     if (initialCategoryId) {
       setCategory(initialCategoryId);
@@ -116,27 +114,17 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
     }
   };
 
-  // Fonction pour nettoyer le nom de fichier et ajouter un identifiant unique
   const cleanFileName = (fileName: string): string => {
-    // Récupérer l'extension du fichier
     const extension = fileName.split('.').pop() || '';
-    
-    // Récupérer le nom sans extension
     const nameWithoutExtension = fileName.substring(0, fileName.lastIndexOf('.'));
-    
-    // Nettoyer le nom: supprimer les caractères spéciaux et espaces
     const cleanName = nameWithoutExtension
-      .normalize('NFD') // décomposer les caractères accentués
-      .replace(/[\u0300-\u036f]/g, '') // supprimer les accents
-      .replace(/[^a-zA-Z0-9]/g, '-') // remplacer les caractères spéciaux par des tirets
-      .replace(/-+/g, '-') // remplacer les séquences de tirets par un seul tiret
-      .replace(/^-|-$/g, '') // supprimer les tirets au début et à la fin
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
       .toLowerCase();
-    
-    // Ajouter un timestamp unique
     const uniqueId = Date.now().toString();
-    
-    // Retourner le nom nettoyé avec l'ID unique et l'extension
     return `${cleanName}-${uniqueId}.${extension}`;
   };
 
@@ -160,13 +148,11 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
     }
 
     try {
-      // Nettoyage du nom du fichier et ajout d'un identifiant unique
       const cleanedFileName = cleanFileName(file.name);
       console.log(`Nom de fichier nettoyé: ${cleanedFileName}`);
       
       const filePath = `public/${cleanedFileName}`;
       
-      // Vérifier si un fichier avec le même nom existe déjà
       const { data: existingFiles } = await supabase.storage
         .from("documents")
         .list("public", {
@@ -180,7 +166,6 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
         console.log("Ancien fichier supprimé:", existingPath);
       }
 
-      // Upload du fichier avec le nom nettoyé
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("documents")
         .upload(filePath, file);
@@ -203,7 +188,7 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
         .from("documents")
         .insert([
           {
-            nom: file.name, // Garder le nom original dans la base de données pour l'affichage
+            nom: file.name,
             url: publicUrl,
             category_id: category || null,
             user_id: user.id,
@@ -221,7 +206,6 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
         return;
       }
 
-      // Ajouter une entrée dans l'historique pour l'import du document
       const { error: historyError } = await supabase
         .from('history')
         .insert([
@@ -383,7 +367,6 @@ export function UploadComponent({ initialCategoryId }: UploadComponentProps) {
         return;
       }
 
-      // Ajouter une entrée dans l'historique pour la suppression du document
       const { error: historyError } = await supabase
         .from('history')
         .insert([
