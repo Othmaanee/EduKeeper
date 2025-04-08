@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,38 +43,10 @@ const ExercisesPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
-  const [userRole, setUserRole] = useState<string>('user');
   const { toast } = useToast();
 
-  // Fetch user role on component mount
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) return;
-        
-        const { data, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (error) throw error;
-        
-        if (data) {
-          setUserRole(data.role);
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-      }
-    };
-
-    fetchUserRole();
-  }, []);
-
   // Fetch user's documents on component mount
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchUserDocuments = async () => {
       setIsLoading(true);
       try {
@@ -244,20 +217,13 @@ const ExercisesPage = () => {
     }
   };
 
-  const getDescription = () => {
-    if (userRole === 'eleve') {
-      return "Créez des exercices personnalisés afin de vous entraîner pour votre prochain contrôle";
-    }
-    return "Créez des exercices personnalisés pour vos élèves en quelques clics";
-  };
-
   return (
     <Layout>
       <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Générer des exercices</h1>
           <p className="text-muted-foreground mt-2">
-            {getDescription()}
+            Créez des exercices personnalisés pour vos élèves en quelques clics
           </p>
         </div>
 
