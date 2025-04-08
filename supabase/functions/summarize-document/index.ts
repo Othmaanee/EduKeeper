@@ -19,12 +19,33 @@ serve(async (req) => {
 
   try {
     // Parse the request body
-    const { documentText, role } = await req.json();
+    const { documentUrl, documentText, role } = await req.json();
+
+    // Check if we have documentText directly provided or if we need to fetch it from URL
+    let textToSummarize = documentText;
+    
+    // If documentText is not provided but URL is, try to fetch the content
+    if (!textToSummarize && documentUrl) {
+      console.log(`Fetching document content from URL: ${documentUrl}`);
+      try {
+        const response = await fetch(documentUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch document: ${response.status} ${response.statusText}`);
+        }
+        textToSummarize = await response.text();
+      } catch (error) {
+        console.error("Error fetching document from URL:", error);
+        return new Response(
+          JSON.stringify({ success: false, error: "Impossible de récupérer le contenu du document" }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
 
     // Validate inputs
-    if (!documentText) {
+    if (!textToSummarize) {
       return new Response(
-        JSON.stringify({ success: false, error: "Le texte du document est requis" }),
+        JSON.stringify({ success: false, error: "Le texte du document est requis ou l'URL n'est pas valide" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -54,7 +75,7 @@ serve(async (req) => {
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: documentText }
+          { role: 'user', content: textToSummarize }
         ],
         temperature: 0.7,
         max_tokens: 1500,

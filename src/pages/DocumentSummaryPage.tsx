@@ -34,7 +34,8 @@ interface Document {
   nom: string;
   user_id: string;
   categories?: { nom: string };
-  content?: string;
+  url: string;
+  is_shared?: boolean;
 }
 
 const DocumentSummaryPage = () => {
@@ -155,6 +156,19 @@ const DocumentSummaryPage = () => {
       toast.error("Erreur lors de l'enregistrement du résumé");
     }
   });
+
+  // Function to fetch text content from a URL
+  const fetchDocumentContent = async (url: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.storage.from('documents').download(url);
+      if (error) throw error;
+      
+      return await data.text();
+    } catch (error) {
+      console.error("Error fetching document content:", error);
+      throw new Error("Impossible de récupérer le contenu du document");
+    }
+  };
   
   const handleGenerateSummary = async () => {
     // Clear any previous errors and summaries
@@ -171,21 +185,38 @@ const DocumentSummaryPage = () => {
     setIsGeneratingSummary(true);
     
     try {
-      // Find the selected document to get its content
+      // Find the selected document to get its URL
       const selectedDocument = documents.find(doc => doc.id === selectedDocumentId);
       if (!selectedDocument) {
         throw new Error("Document non trouvé");
       }
       
+      // Get document text - either directly from content or from URL
+      let documentText = "";
+      if (selectedDocument.url) {
+        try {
+          // For Supabase Storage URLs, we'll use the document URL directly
+          // The edge function will handle fetching the content
+          documentText = ""; // We'll let the edge function fetch the content
+        } catch (error) {
+          console.error("Error retrieving document content:", error);
+          throw new Error("Impossible de récupérer le contenu du document");
+        }
+      } else {
+        throw new Error("Document sans URL ni contenu");
+      }
+      
       // Call the Supabase Edge Function to generate the summary
       const { data, error } = await supabase.functions.invoke("summarize-document", {
         body: {
-          documentText: selectedDocument.content || "Contenu non disponible",
+          documentUrl: selectedDocument.url,
+          documentText: documentText,
           role: userData?.role || "user"
         }
       });
       
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(error.message);
       }
       
