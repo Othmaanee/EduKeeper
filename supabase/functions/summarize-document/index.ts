@@ -63,39 +63,105 @@ serve(async (req) => {
       );
     }
 
-    // Call OpenAI API to generate the summary
-    console.log(`Calling OpenAI API with role: ${role}`);
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: textToSummarize }
-        ],
-        temperature: 0.7,
-        max_tokens: 1500,
-      }),
-    });
-
-    // Check if the API call was successful
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("OpenAI API error:", error);
-      throw new Error(`Erreur API: ${error.error?.message || "Échec de la génération du résumé"}`);
+    // Check if we have API keys available
+    if (!openAIApiKey && !groqApiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Aucune clé API disponible (OpenAI ou Groq)" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
-    // Parse the response from OpenAI
-    const data = await response.json();
-    const summary = data.choices[0].message.content;
+    let summary = "";
+    let apiUsed = "";
+
+    // Try OpenAI first if key is available
+    if (openAIApiKey) {
+      try {
+        console.log(`Trying OpenAI API...`);
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: textToSummarize }
+            ],
+            temperature: 0.7,
+            max_tokens: 1500,
+          }),
+        });
+
+        // Check if the API call was successful
+        if (!response.ok) {
+          const error = await response.json();
+          console.error("OpenAI API error:", error);
+          throw new Error(`Erreur API OpenAI: ${error.error?.message || "Échec de la génération du résumé"}`);
+        }
+
+        // Parse the response from OpenAI
+        const data = await response.json();
+        summary = data.choices[0].message.content;
+        apiUsed = "OpenAI";
+
+      } catch (error) {
+        console.error("Error with OpenAI API:", error);
+        
+        // If OpenAI fails and we have Groq key, try with Groq
+        if (groqApiKey) {
+          console.log("OpenAI failed, trying Groq API...");
+        } else {
+          throw error; // Re-throw if no Groq API key
+        }
+      }
+    }
+
+    // If summary is not yet generated and Groq key is available, use Groq
+    if (!summary && groqApiKey) {
+      try {
+        console.log(`Using Groq API...`);
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama3-8b-8192', // Groq's model
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: textToSummarize }
+            ],
+            temperature: 0.7,
+            max_tokens: 1500,
+          }),
+        });
+
+        // Check if the API call was successful
+        if (!response.ok) {
+          const error = await response.json();
+          console.error("Groq API error:", error);
+          throw new Error(`Erreur API Groq: ${error.error?.message || "Échec de la génération du résumé"}`);
+        }
+
+        // Parse the response from Groq
+        const data = await response.json();
+        summary = data.choices[0].message.content;
+        apiUsed = "Groq";
+        
+      } catch (error) {
+        console.error("Error with Groq API:", error);
+        throw error;
+      }
+    }
 
     // Return the summary
+    console.log(`Summary successfully generated using ${apiUsed} API`);
     return new Response(
-      JSON.stringify({ success: true, summary }),
+      JSON.stringify({ success: true, summary, apiUsed }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
