@@ -65,6 +65,7 @@ import {
   ToggleGroupItem
 } from "@/components/ui/toggle-group";
 import html2pdf from 'html2pdf.js';
+import { DocumentActions } from "@/components/TeacherDashboard/DocumentActions";
 
 type DocumentGridProps = {
   initialCategoryId?: string | null;
@@ -356,7 +357,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         const response = await fetch(doc.url);
         const text = await response.text();
         
-        if (text && !text.includes('�') && text.length < 500000) {
+        if (text && !text.includes('') && text.length < 500000) {
           const content = document.createElement('div');
           content.style.lineHeight = '1.6';
           content.style.fontSize = '14px';

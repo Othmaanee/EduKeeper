@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 interface DocumentActionsProps {
   docId: string;
   docName: string;
+  docUrl: string;
   isShared: boolean;
   onDownload: () => void;
   onShare: () => void;
@@ -28,6 +29,7 @@ interface DocumentActionsProps {
 export const DocumentActions: React.FC<DocumentActionsProps> = ({
   docId,
   docName,
+  docUrl,
   isShared,
   onDownload,
   onShare,
@@ -53,13 +55,43 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       title.style.marginBottom = '20px';
       container.appendChild(title);
       
-      // Add placeholder content (in a real app, we'd fetch the actual content)
-      const content = document.createElement('div');
-      content.innerHTML = `
-        <p style="color: #666; font-style: italic;">Document: ${docName}</p>
-        <p>Ce document a été téléchargé depuis la plateforme éducative.</p>
-      `;
-      container.appendChild(content);
+      // Fetch the actual content from the document URL
+      try {
+        const response = await fetch(docUrl);
+        const text = await response.text();
+        
+        // Add document content
+        const content = document.createElement('div');
+        content.style.lineHeight = '1.5';
+        
+        if (text && !text.includes('�') && text.length < 500000) {
+          // Check if the content is HTML
+          if (text.includes('<html') || text.includes('<body')) {
+            // Extract body content from HTML
+            const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            content.innerHTML = bodyMatch ? bodyMatch[1] : text;
+          } else {
+            // Format plain text with paragraphs
+            const paragraphs = text.split(/\n\s*\n/);
+            paragraphs.forEach(paragraph => {
+              if (paragraph.trim()) {
+                const p = document.createElement('p');
+                p.textContent = paragraph.trim();
+                content.appendChild(p);
+              }
+            });
+          }
+        } else {
+          content.textContent = "Le contenu du document n'a pas pu être chargé correctement.";
+        }
+        
+        container.appendChild(content);
+      } catch (error) {
+        console.error("Erreur lors de la récupération du contenu:", error);
+        const errorMsg = document.createElement('p');
+        errorMsg.textContent = "Impossible de charger le contenu du document.";
+        container.appendChild(errorMsg);
+      }
       
       // Add to DOM temporarily (hidden)
       container.style.position = 'absolute';
@@ -71,7 +103,7 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
         margin: 10,
         filename: `${docName}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       
@@ -79,10 +111,10 @@ export const DocumentActions: React.FC<DocumentActionsProps> = ({
       
       // Clean up
       document.body.removeChild(container);
-      toast("PDF téléchargé avec succès");
+      toast.success("PDF téléchargé avec succès");
     } catch (error) {
       console.error("Erreur lors de la génération du PDF:", error);
-      toast("Erreur lors de la génération du PDF");
+      toast.error("Erreur lors de la génération du PDF");
     } finally {
       setIsGeneratingPDF(false);
     }
