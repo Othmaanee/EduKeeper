@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -181,19 +180,17 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
         console.log("✅ Document supprimé avec succès de la base de données");
         console.log("📝 Tentative d'ajout dans l'historique: suppression -", document.nom);
         
-        // S'assurer que currentUserId est disponible
         if (!currentUserId) {
           console.error("❌ ID utilisateur non disponible pour l'historique");
           throw new Error("User ID is required for history tracking");
         }
         
-        // Insérer dans l'historique APRÈS la suppression réussie du document
         const { data: historyData, error: historyError } = await supabase
           .from('history')
           .insert([
             {
               user_id: currentUserId,
-              action_type: 'suppression',  // Modifié de 'delete' à 'suppression'
+              action_type: 'suppression',
               document_name: document.nom,
             }
           ])
