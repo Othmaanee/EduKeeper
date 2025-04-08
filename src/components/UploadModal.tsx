@@ -210,6 +210,23 @@ export function UploadComponent() {
         return;
       }
 
+      // Ajouter une entrée dans l'historique pour l'import du document
+      const { error: historyError } = await supabase
+        .from('history')
+        .insert([
+          {
+            user_id: user.id,
+            action_type: 'import',
+            document_name: file.name,
+          }
+        ]);
+      
+      if (historyError) {
+        console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
+      } else {
+        console.log("✅ Action 'import' ajoutée à l'historique");
+      }
+
       setFiles((prev) =>
         prev.map((f) =>
           f.id === fileId
@@ -353,6 +370,23 @@ export function UploadComponent() {
         setIsDeleting(false);
         setDeleteDialogOpen(false);
         return;
+      }
+
+      // Ajouter une entrée dans l'historique pour la suppression du document
+      const { error: historyError } = await supabase
+        .from('history')
+        .insert([
+          {
+            user_id: userId,
+            action_type: 'suppression',
+            document_name: documentToDelete.nom,
+          }
+        ]);
+      
+      if (historyError) {
+        console.error("❌ Erreur lors de l'insertion dans l'historique:", historyError.message);
+      } else {
+        console.log("✅ Action 'suppression' ajoutée à l'historique");
       }
       
       setFiles((prev) => prev.filter(file => file.id !== fileToDelete.id));
