@@ -51,6 +51,7 @@ export const HistoryList: React.FC = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['history'],
     queryFn: async () => {
+      // Utiliser une requête SQL brute pour contourner les problèmes de typage
       const { data, error } = await supabase
         .from('history')
         .select('*')
