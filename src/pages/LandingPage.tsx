@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
@@ -18,8 +18,15 @@ import {
   BookOpen as BookOpenIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DemoRequestDialog } from '@/components/DemoRequestDialog';
 
 const LandingPage = () => {
+  const [isDemoDialogOpen, setIsDemoDialogOpen] = useState(false);
+
+  const openDemoDialog = () => {
+    setIsDemoDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
       {/* Header Navigation */}
@@ -33,10 +40,8 @@ const LandingPage = () => {
           <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
             Connexion
           </Link>
-          <Button asChild>
-            <Link to="/login">
-              Démo gratuite
-            </Link>
+          <Button onClick={openDemoDialog}>
+            Démo gratuite
           </Button>
         </div>
         
@@ -56,7 +61,7 @@ const LandingPage = () => {
           Trouvez, envoyez et sécurisez vos ressources pédagogiques en un éclair. 
           EduKeeper rend votre organisation fluide, puissante et intelligente.
         </p>
-        <Button size="lg" className="text-base px-8 py-6 h-auto gap-3">
+        <Button size="lg" onClick={openDemoDialog} className="text-base px-8 py-6 h-auto gap-3">
           Voyez comment avec une démo gratuite
           <span className="inline-block">👉</span>
         </Button>
@@ -211,7 +216,7 @@ const LandingPage = () => {
       <section className="py-16 px-6 md:px-10 bg-primary/10">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-6">
-            Offre Irrésistible
+            🌟 Testez EduKeeper gratuitement et sans engagement
           </h2>
           
           <p className="text-center text-lg mb-10">
@@ -236,7 +241,7 @@ const LandingPage = () => {
           </div>
           
           <div className="text-center">
-            <Button size="lg" className="text-base px-8 py-6 h-auto gap-3">
+            <Button size="lg" onClick={openDemoDialog} className="text-base px-8 py-6 h-auto gap-3">
               Réserver ma démo personnalisée
               <span className="inline-block">👉</span>
             </Button>
@@ -278,14 +283,17 @@ const LandingPage = () => {
           </h2>
           <p className="text-lg mb-8">Plus rapide. Plus claire. Plus intelligente.</p>
           
-          <Button size="lg" variant="secondary" className="text-primary font-bold text-base px-8 py-6 h-auto mb-8 gap-3">
+          <Button size="lg" variant="secondary" onClick={openDemoDialog} className="text-primary font-bold text-base px-8 py-6 h-auto mb-8 gap-3">
             Demander ma démo gratuite maintenant
             <span className="inline-block">👉</span>
           </Button>
           
-          <p>Ou contactez-nous directement : <a href="mailto:contact@edukeeper.app" className="underline hover:text-primary transition-colors">contact@edukeeper.app</a></p>
+          <p>Ou contactez-nous directement : <a href="mailto:edukeeper.appli@gmail.com" className="underline hover:text-primary transition-colors">edukeeper.appli@gmail.com</a></p>
         </div>
       </section>
+
+      {/* Demo request dialog */}
+      <DemoRequestDialog open={isDemoDialogOpen} onOpenChange={setIsDemoDialogOpen} />
     </div>
   );
 };

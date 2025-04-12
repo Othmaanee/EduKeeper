@@ -14,8 +14,8 @@ const Index = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
-          // Rediriger vers la page de connexion si pas de session
-          navigate('/login');
+          // Rediriger vers la landing page si pas de session
+          navigate('/landing');
           return;
         }
         
@@ -28,7 +28,7 @@ const Index = () => {
           
         if (error) {
           console.error("Erreur lors de la vérification du rôle:", error);
-          navigate('/login');
+          navigate('/landing');
           return;
         }
         
@@ -40,7 +40,7 @@ const Index = () => {
         }
       } catch (error) {
         console.error("Erreur lors de la redirection:", error);
-        navigate('/login');
+        navigate('/landing');
       }
     };
 
