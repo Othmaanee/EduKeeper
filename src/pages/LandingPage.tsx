@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -218,10 +217,6 @@ const LandingPage = () => {
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-6">
             🌟 Testez EduKeeper gratuitement et sans engagement
           </h2>
-          
-          <p className="text-center text-lg mb-10">
-            Testez EduKeeper gratuitement et sans engagement :
-          </p>
           
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             <div className="bg-white p-6 rounded-lg shadow-subtle flex flex-col items-center text-center">
