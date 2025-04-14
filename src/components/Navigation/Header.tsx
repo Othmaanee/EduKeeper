@@ -22,6 +22,11 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
           >
             <Menu className="h-5 w-5" />
           </Button>
+          <img 
+            src="/lovable-uploads/f999dcef-0187-408b-a282-3bb48c504e52.png" 
+            alt="EduKeeper Logo" 
+            className="h-8 w-auto mr-3 hidden sm:block"
+          />
           <SearchBar />
         </div>
         
