@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -206,7 +205,7 @@ const LandingPage = () => {
             
             <Card className="bg-white shadow-subtle border-primary/10">
               <CardContent className="p-6 flex flex-col items-center text-center">
-                <BookOpenIcon className="h-10 w-10 text-primary mb-4" />
+                <BookOpen className="h-10 w-10 text-primary mb-4" />
                 <h3 className="font-bold text-lg mb-2">Enseignants et élèves</h3>
                 <p className="text-gray-600">En quête de simplicité et de performance.</p>
               </CardContent>
