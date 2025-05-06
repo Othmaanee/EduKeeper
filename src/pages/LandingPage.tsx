@@ -33,7 +33,7 @@ const LandingPage = () => {
           <img 
             src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
             alt="EduKeeper Logo" 
-            className="h-8 w-8 text-primary" 
+            className="h-8 w-8 filter brightness-110 sepia-[.6] hue-rotate-[340deg] saturate-[1.8]" 
           />
           <span className="font-bold text-xl">EduKeeper</span>
         </div>
@@ -208,7 +208,7 @@ const LandingPage = () => {
                 <img 
                   src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png"
                   alt="EduKeeper Logo"
-                  className="h-10 w-10 text-primary mb-4" 
+                  className="h-10 w-10 mb-4 filter brightness-110 sepia-[.6] hue-rotate-[340deg] saturate-[1.8]" 
                 />
                 <h3 className="font-bold text-lg mb-2">Enseignants et élèves</h3>
                 <p className="text-gray-600">En quête de simplicité et de performance.</p>
