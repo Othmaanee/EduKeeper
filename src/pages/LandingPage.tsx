@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +14,7 @@ import {
   CheckCircle2, 
   School,
   Building2,
+  BookOpen as BookOpenIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DemoRequestDialog } from '@/components/DemoRequestDialog';
@@ -31,11 +31,7 @@ const LandingPage = () => {
       {/* Header Navigation */}
       <header className="py-4 px-6 md:px-10 flex items-center justify-between border-b bg-white/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <img 
-            src="/lovable-uploads/e7b398f6-a218-4656-b802-1c6cf0b380f6.png" 
-            alt="EduKeeper Logo" 
-            className="h-8 w-8 text-primary" 
-          />
+          <BookOpenIcon className="h-8 w-8 text-primary" />
           <span className="font-bold text-xl">EduKeeper</span>
         </div>
         
