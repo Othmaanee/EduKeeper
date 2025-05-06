@@ -36,7 +36,7 @@ export const Sidebar = ({
           <img 
             src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
             alt="EduKeeper Logo" 
-            className="h-8 w-8 mr-2 filter brightness-110 sepia-[.6] hue-rotate-[340deg] saturate-[1.8]" 
+            className="h-8 w-8 mr-2" 
           />
           <h1 className="text-xl font-semibold tracking-tight">EduKeeper</h1>
           <Button
