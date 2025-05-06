@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -33,7 +33,11 @@ export const Sidebar = ({
     >
       <div className="flex flex-col h-full">
         <div className="px-6 py-8 flex items-center">
-          <BookOpen className="h-8 w-8 text-primary mr-2" />
+          <img 
+            src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
+            alt="EduKeeper Logo" 
+            className="h-8 w-8 mr-2" 
+          />
           <h1 className="text-xl font-semibold tracking-tight">EduKeeper</h1>
           <Button
             variant="ghost"

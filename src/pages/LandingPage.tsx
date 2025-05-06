@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,13 +9,11 @@ import {
   Upload, 
   Shield, 
   FileText, 
-  BookOpen, 
   PencilRuler, 
   Brain, 
   CheckCircle2, 
   School,
   Building2,
-  BookOpen as BookOpenIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DemoRequestDialog } from '@/components/DemoRequestDialog';
@@ -31,7 +30,11 @@ const LandingPage = () => {
       {/* Header Navigation */}
       <header className="py-4 px-6 md:px-10 flex items-center justify-between border-b bg-white/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <BookOpenIcon className="h-8 w-8 text-primary" />
+          <img 
+            src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
+            alt="EduKeeper Logo" 
+            className="h-8 w-8 text-primary" 
+          />
           <span className="font-bold text-xl">EduKeeper</span>
         </div>
         
@@ -202,7 +205,11 @@ const LandingPage = () => {
             
             <Card className="bg-white shadow-subtle border-primary/10">
               <CardContent className="p-6 flex flex-col items-center text-center">
-                <BookOpenIcon className="h-10 w-10 text-primary mb-4" />
+                <img 
+                  src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png"
+                  alt="EduKeeper Logo"
+                  className="h-10 w-10 text-primary mb-4" 
+                />
                 <h3 className="font-bold text-lg mb-2">Enseignants et élèves</h3>
                 <p className="text-gray-600">En quête de simplicité et de performance.</p>
               </CardContent>
