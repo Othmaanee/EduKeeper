@@ -263,11 +263,19 @@ const DocumentSummaryPage = () => {
       // Afficher un toast pour signaler le début du processus
       toast.info("Génération du résumé en cours...");
       
-      // Appel à la fonction Edge Supabase au lieu d'OpenAI directement
+      // S'assurer que le rôle est correctement formaté (sans guillemets et espaces superflus)
+      let cleanedRole = userData?.role;
+      if (cleanedRole) {
+        cleanedRole = cleanedRole.replace(/['"]/g, '').trim();
+      }
+      
+      console.log("Sending request with role:", cleanedRole);
+      
+      // Appel à la fonction Edge Supabase
       const { data, error } = await supabase.functions.invoke('summarize-document', {
         body: {
           documentText: textToSummarize,
-          role: userData?.role || 'user'
+          role: cleanedRole || 'user'
         }
       });
       
