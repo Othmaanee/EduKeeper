@@ -77,7 +77,7 @@ serve(async (req) => {
     // Try OpenAI first if key is available
     if (openAIApiKey) {
       try {
-        console.log(`Trying OpenAI API...`);
+        console.log(`Trying OpenAI API with model: gpt-3.5-turbo`);
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -114,13 +114,14 @@ serve(async (req) => {
         const data = await response.json();
         summary = data.choices[0].message.content;
         apiUsed = "OpenAI";
+        console.log("Successfully generated summary with OpenAI");
 
       } catch (error) {
         console.error("Error with OpenAI API:", error);
         
         // If OpenAI fails and we have Groq key, try with Groq
         if (groqApiKey) {
-          console.log("OpenAI failed, trying Groq API...");
+          console.log("OpenAI failed, trying Groq API as fallback...");
         } else {
           throw error; // Re-throw if no Groq API key
         }
@@ -130,7 +131,7 @@ serve(async (req) => {
     // If summary is not yet generated and Groq key is available, use Groq
     if (!summary && groqApiKey) {
       try {
-        console.log(`Using Groq API...`);
+        console.log(`Using Groq API as fallback with model: llama3-8b-8192`);
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -167,6 +168,7 @@ serve(async (req) => {
         const data = await response.json();
         summary = data.choices[0].message.content;
         apiUsed = "Groq";
+        console.log("Successfully generated summary with Groq");
         
       } catch (error) {
         console.error("Error with Groq API:", error);
