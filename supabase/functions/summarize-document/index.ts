@@ -97,8 +97,16 @@ serve(async (req) => {
 
         // Check if the API call was successful
         if (!response.ok) {
-          const error = await response.json();
-          console.error("OpenAI API error:", error);
+          const responseText = await response.text();
+          console.error("OpenAI API error:", responseText);
+          
+          let error;
+          try {
+            error = JSON.parse(responseText);
+          } catch (e) {
+            error = { error: { message: responseText || "Unknown error" } };
+          }
+          
           throw new Error(`Erreur API OpenAI: ${error.error?.message || "Échec de la génération du résumé"}`);
         }
 
@@ -142,8 +150,16 @@ serve(async (req) => {
 
         // Check if the API call was successful
         if (!response.ok) {
-          const error = await response.json();
-          console.error("Groq API error:", error);
+          const responseText = await response.text();
+          console.error("Groq API error:", responseText);
+          
+          let error;
+          try {
+            error = JSON.parse(responseText);
+          } catch (e) {
+            error = { error: { message: responseText || "Unknown error" } };
+          }
+          
           throw new Error(`Erreur API Groq: ${error.error?.message || "Échec de la génération du résumé"}`);
         }
 
