@@ -261,40 +261,44 @@ const DocumentSummaryPage = () => {
     setIsGeneratingSummary(true);
     
     try {
-      // Utiliser directement la clé API Hugging Face fournie
-      const huggingFaceApiKey = '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';
+      // Clé API OpenAI
+      const openAiApiKey = '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';
       
       // Afficher un toast pour signaler le début du processus
       toast.info("Génération du résumé en cours...");
       
-      // Appel à l'API Hugging Face
-      const response = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
+      // Appel à l'API OpenAI
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${huggingFaceApiKey}`,
+          'Authorization': `Bearer ${openAiApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ inputs: textToSummarize })
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: 'Tu es un assistant pédagogique. Résume le texte fourni en un paragraphe clair et concis.' },
+            { role: 'user', content: textToSummarize }
+          ],
+          temperature: 0.7,
+          max_tokens: 1500,
+        })
       });
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error("API Error:", response.status, errorText);
-        throw new Error(`Erreur API: ${response.status} - ${errorText.substring(0, 100)}`);
+        throw new Error(`Erreur API OpenAI: ${response.status} - ${errorText.substring(0, 100)}`);
       }
       
-      // S'assurer que la réponse est complètement chargée avec await
+      // Extraire la réponse
       const data = await response.json();
       console.log("API response:", data); // Log pour debugging
       
-      // Vérifier la structure de la réponse
-      if (Array.isArray(data) && data.length > 0 && data[0].summary_text) {
-        const summaryText = data[0].summary_text;
+      // Extraire le résumé de la réponse de l'API
+      if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+        const summaryText = data.choices[0].message.content;
         setGeneratedSummary(summaryText);
-        toast.success("Résumé généré avec succès !");
-      } else if (typeof data === 'object' && data.summary_text) {
-        // Format alternatif possible
-        setGeneratedSummary(data.summary_text);
         toast.success("Résumé généré avec succès !");
       } else {
         console.error("Unexpected response format:", data);
