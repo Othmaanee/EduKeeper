@@ -53,7 +53,7 @@ serve(async (req) => {
     // Select the appropriate prompt based on user role
     let systemPrompt = "";
     if (role === "user" || role === "eleve") {
-      systemPrompt = "Tu es un assistant pédagogique. Résume ce texte pour un élève avec des mots simples et des exemples pour faciliter la compréhension.";
+      systemPrompt = "Tu es un assistant qui résume les textes en français.";
     } else if (role === "enseignant") {
       systemPrompt = "Rédige un résumé professionnel, clair et synthétique de ce texte, adapté pour un support pédagogique.";
     } else {
@@ -85,12 +85,12 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'gpt-3.5-turbo',
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: textToSummarize }
+              { role: 'user', content: `Résume ce texte : ${textToSummarize}` }
             ],
-            temperature: 0.7,
+            temperature: 0.5,
             max_tokens: 1500,
           }),
         });
@@ -133,9 +133,9 @@ serve(async (req) => {
             model: 'llama3-8b-8192', // Groq's model
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: textToSummarize }
+              { role: 'user', content: `Résume ce texte : ${textToSummarize}` }
             ],
-            temperature: 0.7,
+            temperature: 0.5,
             max_tokens: 1500,
           }),
         });
