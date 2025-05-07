@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
@@ -23,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2, FileText, AlertCircle, Save, FileUp, Book } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
@@ -40,7 +39,7 @@ interface Document {
   categories?: { nom: string };
   url: string | null;
   is_shared?: boolean;
-  content?: string | null; // Making content optional with proper typing
+  content: string | null; // Content est correctement typé comme string | null
   category_id?: string | null;
 }
 
@@ -86,8 +85,10 @@ const DocumentSummaryPage = () => {
       
       if (!session) throw new Error("Utilisateur non connecté");
       
-      // Query depends on the user role
-      let query = supabase.from("documents").select("*, categories(nom), content");
+      // Query depends on the user role - inclure explicitement content
+      let query = supabase
+        .from("documents")
+        .select("id, nom, url, content, is_shared, user_id, category_id, categories(nom)");
       
       if (userData?.role === "enseignant") {
         // Enseignants can only see their own documents
@@ -144,6 +145,7 @@ const DocumentSummaryPage = () => {
         documentName = `${uploadedFile.name} - Résumé`;
       }
       
+      // S'assurer que content est bien inséré dans la base de données
       const { data, error } = await supabase
         .from("documents")
         .insert({

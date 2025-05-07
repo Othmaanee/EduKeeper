@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { Upload, X, FolderPlus, Trash, Loader2 } from "lucide-react";
@@ -196,6 +195,7 @@ export function UploadComponent() {
             url: publicUrl,
             category_id: category || null,
             user_id: user.id,
+            content: file.type === 'text/plain' ? await file.text() : null, // Ajout du champ content
           },
         ])
         .select()

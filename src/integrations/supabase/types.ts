@@ -41,6 +41,7 @@ export type Database = {
       documents: {
         Row: {
           category_id: string | null
+          content: string | null
           created_at: string | null
           id: string
           is_shared: boolean | null
@@ -50,6 +51,7 @@ export type Database = {
         }
         Insert: {
           category_id?: string | null
+          content?: string | null
           created_at?: string | null
           id?: string
           is_shared?: boolean | null
@@ -59,6 +61,7 @@ export type Database = {
         }
         Update: {
           category_id?: string | null
+          content?: string | null
           created_at?: string | null
           id?: string
           is_shared?: boolean | null
