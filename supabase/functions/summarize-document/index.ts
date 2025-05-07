@@ -53,7 +53,7 @@ serve(async (req) => {
     // Select the appropriate prompt based on user role
     let systemPrompt = "";
     if (role === "user" || role === "eleve") {
-      systemPrompt = "Résume ce texte pour un élève avec des mots simples et des exemples pour faciliter la compréhension.";
+      systemPrompt = "Tu es un assistant pédagogique. Résume ce texte pour un élève avec des mots simples et des exemples pour faciliter la compréhension.";
     } else if (role === "enseignant") {
       systemPrompt = "Rédige un résumé professionnel, clair et synthétique de ce texte, adapté pour un support pédagogique.";
     } else {

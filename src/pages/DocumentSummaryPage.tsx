@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
@@ -261,48 +260,29 @@ const DocumentSummaryPage = () => {
     setIsGeneratingSummary(true);
     
     try {
-      // Clé API OpenAI
-      const openAiApiKey = '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';
-      
       // Afficher un toast pour signaler le début du processus
       toast.info("Génération du résumé en cours...");
       
-      // Appel à l'API OpenAI
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: 'Tu es un assistant pédagogique. Résume le texte fourni en un paragraphe clair et concis.' },
-            { role: 'user', content: textToSummarize }
-          ],
-          temperature: 0.7,
-          max_tokens: 1500,
-        })
+      // Appel à la fonction Edge Supabase au lieu d'OpenAI directement
+      const { data, error } = await supabase.functions.invoke('summarize-document', {
+        body: {
+          documentText: textToSummarize,
+          role: userData?.role || 'user'
+        }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", response.status, errorText);
-        throw new Error(`Erreur API OpenAI: ${response.status} - ${errorText.substring(0, 100)}`);
+      if (error || !data.success) {
+        console.error("Edge function error:", error || data.error);
+        throw new Error(data?.error || error?.message || "Erreur lors de la génération du résumé");
       }
       
-      // Extraire la réponse
-      const data = await response.json();
-      console.log("API response:", data); // Log pour debugging
-      
-      // Extraire le résumé de la réponse de l'API
-      if (data.choices && data.choices.length > 0 && data.choices[0].message) {
-        const summaryText = data.choices[0].message.content;
-        setGeneratedSummary(summaryText);
+      // Extraire le résumé de la réponse
+      if (data.summary) {
+        setGeneratedSummary(data.summary);
         toast.success("Résumé généré avec succès !");
       } else {
         console.error("Unexpected response format:", data);
-        throw new Error("Format de réponse inattendu de l'API");
+        throw new Error("Format de réponse inattendu");
       }
     } catch (error: any) {
       console.error("Error generating summary:", error);
