@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -403,11 +402,17 @@ export function DocumentView() {
                 <SelectValue placeholder="Sélectionner une catégorie" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.nom}
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.nom}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem key="no-categories" value="no-categories" disabled>
+                    Aucune catégorie disponible
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>

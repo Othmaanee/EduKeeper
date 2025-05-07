@@ -263,7 +263,7 @@ const DocumentSummaryPage = () => {
       // Afficher un toast pour signaler le début du processus
       toast.info("Génération du résumé en cours...");
       
-      // S'assurer que le rôle est simplement une string sans guillemets
+      // S'assurer que le rôle est une string simple sans guillemets
       const userRole = userData?.role || 'user';
       console.log(`Envoi de la requête avec le rôle: ${userRole}`);
       
@@ -528,7 +528,7 @@ const DocumentSummaryPage = () => {
                     <SelectValue placeholder="Sélectionnez une catégorie" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sans catégorie</SelectItem>
+                    <SelectItem key="no-category" value="">Sans catégorie</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.nom}
