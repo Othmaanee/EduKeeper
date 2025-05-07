@@ -260,21 +260,23 @@ const DocumentSummaryPage = () => {
     setIsGeneratingSummary(true);
     
     try {
-      // Get the environment variable for the Hugging Face API key
-      const apiKey = process.env.HUGGINGFACE_API_KEY || '';
+      // Utiliser directement la clé API Hugging Face fournie
+      const huggingFaceApiKey = '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';
       
-      // Call the Hugging Face API
+      // Appel à l'API Hugging Face
       const response = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${huggingFaceApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ inputs: textToSummarize })
       });
       
       if (!response.ok) {
-        throw new Error(`Erreur API: ${response.status}`);
+        const errorText = await response.text();
+        console.error("API Error:", response.status, errorText);
+        throw new Error(`Erreur API: ${response.status} - ${errorText.substring(0, 100)}`);
       }
       
       const data = await response.json();
