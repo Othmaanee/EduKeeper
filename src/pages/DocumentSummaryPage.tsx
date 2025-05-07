@@ -263,23 +263,32 @@ const DocumentSummaryPage = () => {
       // Afficher un toast pour signaler le début du processus
       toast.info("Génération du résumé en cours...");
       
-      // Appel à la fonction Edge Supabase au lieu d'OpenAI directement
+      // S'assurer que le rôle est simplement une string sans guillemets
+      const userRole = userData?.role || 'user';
+      console.log(`Envoi de la requête avec le rôle: ${userRole}`);
+      
+      // Appel à la fonction Edge Supabase
       const { data, error } = await supabase.functions.invoke('summarize-document', {
         body: {
           documentText: textToSummarize,
-          role: userData?.role || 'user'
+          role: userRole
         }
       });
       
-      if (error || !data.success) {
-        console.error("Edge function error:", error || data.error);
-        throw new Error(data?.error || error?.message || "Erreur lors de la génération du résumé");
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Erreur lors de la génération du résumé");
+      }
+      
+      if (!data || !data.success) {
+        console.error("Unexpected response format or error:", data);
+        throw new Error(data?.error || "Format de réponse inattendu ou erreur");
       }
       
       // Extraire le résumé de la réponse
       if (data.summary) {
         setGeneratedSummary(data.summary);
-        toast.success("Résumé généré avec succès !");
+        toast.success(`Résumé généré avec succès via ${data.apiUsed} !`);
       } else {
         console.error("Unexpected response format:", data);
         throw new Error("Format de réponse inattendu");
