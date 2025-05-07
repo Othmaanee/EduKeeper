@@ -38,9 +38,10 @@ interface Document {
   nom: string;
   user_id: string;
   categories?: { nom: string };
-  url: string;
+  url: string | null;
   is_shared?: boolean;
-  content?: string;
+  content?: string | null; // Making content optional with proper typing
+  category_id?: string | null;
 }
 
 const DocumentSummaryPage = () => {
@@ -86,7 +87,7 @@ const DocumentSummaryPage = () => {
       if (!session) throw new Error("Utilisateur non connecté");
       
       // Query depends on the user role
-      let query = supabase.from("documents").select("*, categories(nom)");
+      let query = supabase.from("documents").select("*, categories(nom), content");
       
       if (userData?.role === "enseignant") {
         // Enseignants can only see their own documents
@@ -231,7 +232,7 @@ const DocumentSummaryPage = () => {
         throw new Error("Document non trouvé");
       }
       
-      // Get document text from URL
+      // Get document text from URL or content
       if (selectedDocument.url) {
         try {
           textToSummarize = await fetchDocumentContent(selectedDocument.url);
