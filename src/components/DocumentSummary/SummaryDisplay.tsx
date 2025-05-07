@@ -1,5 +1,5 @@
 
-import { Save, Loader2, FileText } from "lucide-react";
+import { Save, Loader2, FileText, Download } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import html2pdf from "html2pdf.js";
 
 interface Category {
   id: string;
@@ -75,11 +74,17 @@ export const SummaryDisplay = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem key="no-category" value="no-category">Sans catégorie</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.nom}
+              {categories && categories.length > 0 ? (
+                categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.nom || "Catégorie sans nom"}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-categories-available" disabled>
+                  Aucune catégorie disponible
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
         </div>

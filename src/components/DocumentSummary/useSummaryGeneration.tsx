@@ -95,6 +95,8 @@ export const useSummaryGeneration = () => {
   // Fonction pour générer un PDF à partir du résumé et l'uploader à Supabase
   const generateAndUploadPdf = async (summaryText: string, title: string): Promise<string> => {
     try {
+      console.log("Début de la génération du PDF...");
+      
       // Préparation du contenu HTML pour le PDF
       const pdfContainer = document.createElement('div');
       pdfContainer.innerHTML = `
@@ -118,6 +120,8 @@ export const useSummaryGeneration = () => {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
+      console.log("Conversion du HTML en PDF...");
+      
       // Convertir HTML en PDF (sous forme de Blob)
       const pdfBlob = await html2pdf().from(pdfContainer).set(options).outputPdf('blob');
 
@@ -125,6 +129,8 @@ export const useSummaryGeneration = () => {
       const fileName = `${Date.now()}_${options.filename}`;
       const filePath = `summaries/${fileName}`;
 
+      console.log(`PDF généré, upload vers Supabase (chemin: ${filePath})...`);
+      
       // Upload du PDF dans le bucket Supabase
       const { data, error } = await supabase.storage
         .from('documents')
@@ -133,13 +139,18 @@ export const useSummaryGeneration = () => {
           upsert: false,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors de l'upload du PDF:", error);
+        throw error;
+      }
 
       // Récupérer l'URL publique du fichier
       const { data: publicUrlData } = supabase.storage
         .from('documents')
         .getPublicUrl(filePath);
 
+      console.log("PDF téléversé avec succès:", publicUrlData.publicUrl);
+      
       return publicUrlData.publicUrl;
     } catch (error) {
       console.error("Erreur lors de la génération ou de l'upload du PDF:", error);
@@ -174,12 +185,17 @@ export const useSummaryGeneration = () => {
           // Si c'est du texte saisi, utiliser la date
           documentName = `Résumé automatique - ${format(new Date(), "dd-MM-yyyy")}`;
         }
+        
+        console.log(`Génération d'un PDF pour "${documentName}"...`);
 
         // Générer le PDF et l'uploader
         const pdfUrl = await generateAndUploadPdf(generatedSummary, documentName);
 
         // S'assurer que category_id est correctement géré
         const category_id = selectedCategoryId !== "no-category" ? selectedCategoryId : null;
+        
+        console.log(`Enregistrement dans la BDD avec URL: ${pdfUrl}`);
+        console.log(`Category ID: ${category_id || 'aucune'}`);
 
         // Ajouter l'entrée dans la table documents
         const { data, error } = await supabase
@@ -195,7 +211,12 @@ export const useSummaryGeneration = () => {
           .select()
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Erreur lors de l'enregistrement en BDD:", error);
+          throw error;
+        }
+        
+        console.log("Document enregistré avec succès:", data);
         
         // Enregistrer dans l'historique
         await supabase
@@ -242,8 +263,12 @@ export const useSummaryGeneration = () => {
         documentName = `Résumé automatique - ${format(new Date(), "dd-MM-yyyy")}`;
       }
       
+      console.log(`Enregistrement du résumé texte pour "${documentName}"...`);
+      
       // S'assurer que category_id est bien géré
       const category_id = selectedCategoryId !== "no-category" ? selectedCategoryId : null;
+      
+      console.log(`Category ID: ${category_id || 'aucune'}`);
 
       // S'assurer que content est bien inséré dans la base de données
       const { data, error } = await supabase
@@ -259,7 +284,12 @@ export const useSummaryGeneration = () => {
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur lors de l'enregistrement en BDD:", error);
+        throw error;
+      }
+      
+      console.log("Document texte enregistré avec succès:", data);
       
       return data;
     },
@@ -352,6 +382,8 @@ export const useSummaryGeneration = () => {
         }
       });
       
+      console.log("Réponse reçue de la fonction edge:", data);
+      
       if (error) {
         console.error("Edge function error:", error);
         throw new Error(error.message || "Erreur lors de la génération du résumé");
@@ -364,6 +396,7 @@ export const useSummaryGeneration = () => {
       
       // Extraire le résumé de la réponse
       if (data.summary) {
+        console.log("Résumé reçu:", data.summary.substring(0, 100) + "...");
         setGeneratedSummary(data.summary);
         toast.success(`Résumé généré avec succès via ${data.apiUsed} !`);
       } else {

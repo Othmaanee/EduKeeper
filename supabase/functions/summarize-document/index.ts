@@ -126,6 +126,7 @@ serve(async (req) => {
         summary = data.choices[0].message.content;
         apiUsed = "OpenAI";
         console.log("Résumé généré avec succès via OpenAI");
+        console.log("Contenu du résumé:", summary.substring(0, 100) + "...");
 
       } catch (error) {
         console.error("Erreur avec l'API OpenAI:", error);
@@ -180,6 +181,7 @@ serve(async (req) => {
         summary = data.choices[0].message.content;
         apiUsed = "Groq";
         console.log("Résumé généré avec succès via Groq");
+        console.log("Contenu du résumé:", summary.substring(0, 100) + "...");
         
       } catch (error) {
         console.error("Erreur avec l'API Groq:", error);
