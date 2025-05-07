@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
@@ -39,7 +40,7 @@ interface Document {
   categories?: { nom: string };
   url: string | null;
   is_shared?: boolean;
-  content: string | null; // Content est correctement typé comme string | null
+  content: string | null;
   category_id?: string | null;
 }
 
@@ -263,6 +264,9 @@ const DocumentSummaryPage = () => {
       // Utiliser directement la clé API Hugging Face fournie
       const huggingFaceApiKey = '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';
       
+      // Afficher un toast pour signaler le début du processus
+      toast.info("Génération du résumé en cours...");
+      
       // Appel à l'API Hugging Face
       const response = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
         method: 'POST',
@@ -279,20 +283,29 @@ const DocumentSummaryPage = () => {
         throw new Error(`Erreur API: ${response.status} - ${errorText.substring(0, 100)}`);
       }
       
+      // S'assurer que la réponse est complètement chargée avec await
       const data = await response.json();
-      const summaryText = data[0]?.summary_text;
+      console.log("API response:", data); // Log pour debugging
       
-      if (summaryText) {
+      // Vérifier la structure de la réponse
+      if (Array.isArray(data) && data.length > 0 && data[0].summary_text) {
+        const summaryText = data[0].summary_text;
         setGeneratedSummary(summaryText);
         toast.success("Résumé généré avec succès !");
+      } else if (typeof data === 'object' && data.summary_text) {
+        // Format alternatif possible
+        setGeneratedSummary(data.summary_text);
+        toast.success("Résumé généré avec succès !");
       } else {
-        throw new Error("Format de réponse inattendu");
+        console.error("Unexpected response format:", data);
+        throw new Error("Format de réponse inattendu de l'API");
       }
     } catch (error: any) {
       console.error("Error generating summary:", error);
       setSummaryError(error.message || "Erreur lors de la génération du résumé");
       toast.error("Échec de la génération du résumé");
     } finally {
+      // Toujours s'assurer que l'indicateur de chargement est désactivé
       setIsGeneratingSummary(false);
     }
   };
