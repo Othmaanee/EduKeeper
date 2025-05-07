@@ -20,8 +20,6 @@ serve(async (req) => {
   try {
     // Parse the request body
     const { documentUrl, documentText, role } = await req.json();
-    
-    console.log("Received request with role:", role);
 
     // Check if we have documentText directly provided or if we need to fetch it from URL
     let textToSummarize = documentText;
@@ -52,23 +50,15 @@ serve(async (req) => {
       );
     }
 
-    // Clean up and validate the role
-    const cleanRole = typeof role === 'string' ? 
-      role.replace(/['"]/g, '').trim() : // Remove quotes and trim whitespace
-      'user'; // Default to user if role is not provided or not a string
-
-    console.log("Cleaned role:", cleanRole);
-
     // Select the appropriate prompt based on user role
     let systemPrompt = "";
-    if (cleanRole === "user" || cleanRole === "eleve") {
+    if (role === "user" || role === "eleve") {
       systemPrompt = "Tu es un assistant qui résume les textes en français.";
-    } else if (cleanRole === "enseignant") {
+    } else if (role === "enseignant") {
       systemPrompt = "Rédige un résumé professionnel, clair et synthétique de ce texte, adapté pour un support pédagogique.";
     } else {
-      console.error("Invalid role after cleaning:", cleanRole);
       return new Response(
-        JSON.stringify({ success: false, error: "Rôle non valide: " + cleanRole }),
+        JSON.stringify({ success: false, error: "Rôle non valide" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
