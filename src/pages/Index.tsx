@@ -19,7 +19,7 @@ const Index = () => {
           return;
         }
         
-        // Rediriger vers le dashboard élève
+        // Rediriger directement vers le dashboard
         navigate('/accueil');
       } catch (error) {
         console.error("Erreur lors de la redirection:", error);

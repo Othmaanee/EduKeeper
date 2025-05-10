@@ -11,7 +11,8 @@ import {
   FileSearch,
   Pencil,
   History,
-  CreditCard
+  CreditCard,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
@@ -99,7 +100,12 @@ export function Layout({ children }: LayoutProps) {
   };
 
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Chargement...</span>
+      </div>
+    );
   }
 
   if (!user && location.pathname !== '/login' && location.pathname !== '/landing') {

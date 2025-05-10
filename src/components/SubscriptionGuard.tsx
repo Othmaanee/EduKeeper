@@ -13,10 +13,13 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (!loading && subscription === null) {
-      navigate('/login');
-    } else if (!loading && !subscription?.subscribed) {
-      navigate('/subscription');
+    // Uniquement rediriger si le chargement est terminé et qu'il n'y a pas d'abonnement
+    if (!loading) {
+      if (subscription === null) {
+        navigate('/login');
+      } else if (!subscription?.subscribed) {
+        navigate('/subscription');
+      }
     }
   }, [subscription, loading, navigate]);
 
@@ -31,6 +34,7 @@ export const SubscriptionGuard = ({ children }: SubscriptionGuardProps) => {
     );
   }
 
+  // Uniquement afficher le contenu si l'abonnement est actif
   if (!subscription?.subscribed) {
     return null;
   }

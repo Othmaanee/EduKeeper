@@ -48,6 +48,7 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     
+    // Vérifier si l'utilisateur a un compte client Stripe
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
@@ -75,6 +76,8 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'email' });
         
+        logStep("Created new trial subscription", { trialEnd: trialEnd.toISOString() });
+        
         return new Response(JSON.stringify({ 
           subscribed: true, 
           subscription_tier: "trial",
@@ -84,11 +87,12 @@ serve(async (req) => {
           status: 200,
         });
       } else {
-        // Si l'utilisateur a un enregistrement mais pas de client Stripe et la période d'essai est terminée
+        // Si l'utilisateur a un enregistrement mais pas de client Stripe
         const now = new Date();
         const trialEnd = existingSub.trial_end ? new Date(existingSub.trial_end) : null;
         
         if (trialEnd && now > trialEnd) {
+          // Période d'essai terminée
           await supabaseClient.from("subscribers").upsert({
             email: user.email,
             user_id: user.id,
@@ -98,12 +102,44 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           }, { onConflict: 'email' });
           
+          logStep("Trial period ended", { userId: user.id });
+          
           return new Response(JSON.stringify({ subscribed: false }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
           });
         } else if (trialEnd) {
           // Toujours en période d'essai
+          logStep("User is in trial period", { 
+            userId: user.id, 
+            trialEnd: trialEnd.toISOString() 
+          });
+          
+          return new Response(JSON.stringify({ 
+            subscribed: true, 
+            subscription_tier: "trial",
+            trial_end: trialEnd.toISOString()
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        } else {
+          // Pas de période d'essai définie, créer une nouvelle
+          const trialEnd = new Date();
+          trialEnd.setDate(trialEnd.getDate() + 14);
+          
+          await supabaseClient.from("subscribers").upsert({
+            email: user.email,
+            user_id: user.id,
+            stripe_customer_id: null,
+            subscribed: true,
+            subscription_tier: "trial",
+            trial_end: trialEnd.toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'email' });
+          
+          logStep("Created new trial subscription", { trialEnd: trialEnd.toISOString() });
+          
           return new Response(JSON.stringify({ 
             subscribed: true, 
             subscription_tier: "trial",
@@ -116,9 +152,11 @@ serve(async (req) => {
       }
     }
 
+    // L'utilisateur a un compte client Stripe
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
+    // Vérifier les abonnements actifs
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
@@ -129,6 +167,7 @@ serve(async (req) => {
     let subscriptionEnd = null;
 
     if (hasActiveSub) {
+      // Abonnement Stripe actif
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
@@ -153,7 +192,7 @@ serve(async (req) => {
         status: 200,
       });
     } else {
-      logStep("No active subscription found");
+      logStep("No active subscription found, checking trial status");
       
       // Vérifier si l'utilisateur est encore en période d'essai
       const { data: existingSub } = await supabaseClient
@@ -167,7 +206,11 @@ serve(async (req) => {
         const trialEnd = new Date(existingSub.trial_end);
         
         if (now < trialEnd) {
-          logStep("User is still in trial period");
+          logStep("User is still in trial period", {
+            userId: user.id,
+            trialEnd: trialEnd.toISOString()
+          });
+          
           return new Response(JSON.stringify({
             subscribed: true,
             subscription_tier: "trial",
@@ -179,6 +222,7 @@ serve(async (req) => {
         }
       }
       
+      // Pas d'abonnement actif et pas en période d'essai
       await supabaseClient.from("subscribers").upsert({
         email: user.email,
         user_id: user.id,
@@ -188,6 +232,8 @@ serve(async (req) => {
         subscription_end: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'email' });
+      
+      logStep("User has no active subscription and is not in trial period");
       
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
