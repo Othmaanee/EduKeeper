@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 const Index = () => {
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est connecté et rediriger en fonction du rôle
+  // Vérifier si l'utilisateur est connecté et rediriger
   useEffect(() => {
     const redirectBasedOnRole = async () => {
       try {
