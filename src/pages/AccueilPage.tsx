@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 const AccueilPage = () => {
   const navigate = useNavigate();
 
-  // Vérifier si l'utilisateur est connecté et a le bon rôle
+  // Vérifier si l'utilisateur est connecté
   useEffect(() => {
     const checkUserAccess = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -17,24 +17,6 @@ const AccueilPage = () => {
         // Rediriger vers la page de connexion si pas de session
         navigate('/login');
         return;
-      }
-
-      // Vérifier le rôle de l'utilisateur
-      const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-        
-      if (error) {
-        console.error("Erreur lors de la vérification du rôle:", error);
-        navigate('/login');
-        return;
-      }
-      
-      // Si enseignant, rediriger vers le dashboard enseignant
-      if (data.role === 'enseignant') {
-        navigate('/dashboard-enseignant');
       }
     };
 

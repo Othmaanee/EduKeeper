@@ -19,25 +19,8 @@ const Index = () => {
           return;
         }
         
-        // Récupérer le rôle de l'utilisateur depuis la table users
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (error) {
-          console.error("Erreur lors de la vérification du rôle:", error);
-          navigate('/landing');
-          return;
-        }
-        
-        // Rediriger en fonction du rôle
-        if (userData.role === 'enseignant') {
-          navigate('/dashboard-enseignant');
-        } else {
-          navigate('/accueil');
-        }
+        // Rediriger vers le dashboard élève
+        navigate('/accueil');
       } catch (error) {
         console.error("Erreur lors de la redirection:", error);
         navigate('/landing');
