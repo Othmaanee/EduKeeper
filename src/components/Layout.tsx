@@ -7,12 +7,11 @@ import {
   FolderOpenIcon,
   Upload,
   BookText,
+  Users,
   FileText,
   FileSearch,
   Pencil,
-  History,
-  CreditCard,
-  Loader2
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,6 +27,7 @@ type LayoutProps = {
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
@@ -35,41 +35,71 @@ export function Layout({ children }: LayoutProps) {
   const { toast } = useToast();
 
   const navItems: NavItem[] = [
-    { label: 'Accueil', icon: Home, path: '/accueil', showOrder: 1 },
-    { label: 'Mes Documents', icon: FileText, path: '/documents', showOrder: 2 },
+    { label: 'Accueil', icon: Home, path: userRole === 'enseignant' ? '/dashboard-enseignant' : '/accueil', showOrder: 1 },
+    { label: 'Mes Documents', icon: FileText, path: '/documents', role: ['user', 'eleve'], showOrder: 2 },
+    { label: 'Espace Enseignant', icon: Users, path: '/dashboard-enseignant', role: 'enseignant', showOrder: 2 },
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', showOrder: 3 },
     { label: 'Résumer un Document', icon: FileSearch, path: '/summarize-document', showOrder: 4 },
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
     { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
     { label: 'Historique', icon: History, path: '/historique', showOrder: 7 },
-    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', showOrder: 8 },
-    { label: 'Abonnement', icon: CreditCard, path: '/subscription', showOrder: 9 }
+    { label: 'Générer des exercices', icon: Pencil, path: '/exercises', showOrder: 8 }
   ];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
-      setLoading(false);
       
-      if (!session && location.pathname !== '/login' && location.pathname !== '/landing') {
-        navigate('/login');
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setLoading(false);
+        if (location.pathname !== '/login') {
+          navigate('/login');
+        }
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
       
-      if (!session && location.pathname !== '/login' && location.pathname !== '/landing') {
-        navigate('/login');
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setUserRole('user');
+        setLoading(false);
+        if (location.pathname !== '/login') {
+          navigate('/login');
+        }
       }
-      
-      setLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
   }, [navigate, location.pathname]);
+  
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        setUserRole('user');
+      } else if (data) {
+        setUserRole(data.role);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch user role:", error);
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -100,30 +130,36 @@ export function Layout({ children }: LayoutProps) {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Chargement...</span>
-      </div>
-    );
+    return null;
   }
 
-  if (!user && location.pathname !== '/login' && location.pathname !== '/landing') {
+  if (!user && location.pathname !== '/login') {
     navigate('/login');
     return null;
   }
 
-  if (location.pathname === '/login' || location.pathname === '/landing' || 
-      location.pathname === '/success' || location.pathname === '/cancel') {
+  if (location.pathname === '/login') {
     return <>{children}</>;
   }
+
+  const filteredNavItems = navItems
+    .filter(item => {
+      if (!item.role) return true; // If no role is specified, show for everyone
+      
+      if (Array.isArray(item.role)) {
+        return item.role.includes(userRole);
+      }
+      
+      return item.role === userRole;
+    })
+    .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99));
 
   return (
     <div className="min-h-screen flex bg-background">
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        navItems={navItems}
+        navItems={filteredNavItems}
         user={user}
         onLogout={handleLogout}
         loggingOut={loggingOut}

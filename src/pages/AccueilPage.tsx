@@ -1,47 +1,45 @@
 
 import { Layout } from '../components/Layout';
 import { Dashboard } from '../components/Dashboard';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
 
 const AccueilPage = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
 
-  // Vérifier si l'utilisateur est connecté
+  // Vérifier si l'utilisateur est connecté et a le bon rôle
   useEffect(() => {
     const checkUserAccess = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          // Rediriger vers la page de connexion si pas de session
-          navigate('/login');
-          return;
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Erreur lors de la vérification de la session:", error);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Rediriger vers la page de connexion si pas de session
         navigate('/login');
+        return;
+      }
+
+      // Vérifier le rôle de l'utilisateur
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (error) {
+        console.error("Erreur lors de la vérification du rôle:", error);
+        navigate('/login');
+        return;
+      }
+      
+      // Si enseignant, rediriger vers le dashboard enseignant
+      if (data.role === 'enseignant') {
+        navigate('/dashboard-enseignant');
       }
     };
 
     checkUserAccess();
   }, [navigate]);
-  
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Chargement...</span>
-        </div>
-      </Layout>
-    );
-  }
   
   return (
     <Layout>
