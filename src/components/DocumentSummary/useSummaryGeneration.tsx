@@ -50,10 +50,10 @@ export const useSummaryGeneration = () => {
       
       if (!session) throw new Error("Utilisateur non connecté");
       
-      // Query depends on the user role - inclure explicitement content
+      // Query depends on the user role - inclure explicitement content et summary
       let query = supabase
         .from("documents")
-        .select("id, nom, url, content, is_shared, user_id, category_id, categories(nom)");
+        .select("id, nom, url, content, summary, is_shared, user_id, category_id, categories(nom)");
       
       if (userData?.role === "enseignant") {
         // Enseignants can only see their own documents
@@ -204,7 +204,8 @@ export const useSummaryGeneration = () => {
             nom: documentName,
             user_id: userData.id,
             category_id: category_id,
-            content: generatedSummary,
+            content: documentText || textInput,
+            summary: generatedSummary, // Sauvegarde du résumé dans le nouveau champ
             is_shared: false,
             url: pdfUrl
           })
@@ -277,7 +278,8 @@ export const useSummaryGeneration = () => {
           nom: documentName,
           user_id: userData.id,
           category_id: category_id,
-          content: generatedSummary,
+          content: documentText || textInput,
+          summary: generatedSummary, // Sauvegarde du résumé dans le nouveau champ
           is_shared: false,
           url: null
         })
@@ -370,15 +372,10 @@ export const useSummaryGeneration = () => {
       // Afficher un toast pour signaler le début du processus
       toast.info("Génération du résumé en cours...");
       
-      // S'assurer que le rôle est une string simple sans guillemets
-      const userRole = userData?.role || 'user';
-      console.log(`Envoi de la requête avec le rôle: ${userRole}`);
-      
       // Appel à la fonction Edge Supabase
       const { data, error } = await supabase.functions.invoke('summarize-document', {
         body: {
-          documentText: textToSummarize,
-          role: userRole
+          documentText: textToSummarize
         }
       });
       
@@ -399,6 +396,24 @@ export const useSummaryGeneration = () => {
         console.log("Résumé reçu:", data.summary.substring(0, 100) + "...");
         setGeneratedSummary(data.summary);
         toast.success(`Résumé généré avec succès via ${data.apiUsed} !`);
+        
+        // Si un document existant a été sélectionné, mettre à jour son résumé
+        if (inputMethod === 'select' && selectedDocumentId) {
+          try {
+            const { error: updateError } = await supabase
+              .from("documents")
+              .update({ summary: data.summary })
+              .eq('id', selectedDocumentId);
+              
+            if (updateError) {
+              console.error("Error updating document summary:", updateError);
+            } else {
+              console.log("Résumé sauvegardé dans le document existant");
+            }
+          } catch (updateError) {
+            console.error("Error in update operation:", updateError);
+          }
+        }
       } else {
         console.error("Unexpected response format:", data);
         throw new Error("Format de réponse inattendu");

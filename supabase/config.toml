@@ -28,3 +28,4 @@ enabled = true
 
 [functions.summarize-document]
 verify_jwt = true
+
