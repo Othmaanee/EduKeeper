@@ -47,7 +47,7 @@ export type Database = {
           is_shared: boolean | null
           nom: string
           summary: string | null
-          url: string
+          url: string | null
           user_id: string | null
         }
         Insert: {
@@ -58,7 +58,7 @@ export type Database = {
           is_shared?: boolean | null
           nom: string
           summary?: string | null
-          url: string
+          url?: string | null
           user_id?: string | null
         }
         Update: {
@@ -69,7 +69,7 @@ export type Database = {
           is_shared?: boolean | null
           nom?: string
           summary?: string | null
-          url?: string
+          url?: string | null
           user_id?: string | null
         }
         Relationships: [

@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { 
@@ -20,9 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, School, FileCheck } from "lucide-react";
+import { Loader2, School, FileCheck, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import html2pdf from "html2pdf.js";
 
 const GeneratePage = () => {
   const [sujet, setSujet] = useState("");
@@ -31,8 +31,10 @@ const GeneratePage = () => {
   const [difficulte, setDifficulte] = useState("classique");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const { toast } = useToast();
+  const evaluationRef = useRef<HTMLDivElement>(null);
 
   // Listes pour les sélecteurs
   const classeOptions = [
@@ -239,6 +241,64 @@ const GeneratePage = () => {
     }
   };
 
+  // Nouvelle fonction pour générer et télécharger le PDF
+  const handleDownloadPdf = async () => {
+    if (!evaluation || !evaluationRef.current) return;
+
+    try {
+      setIsGeneratingPdf(true);
+      
+      // Toast d'information
+      toast({
+        title: "Génération du PDF en cours",
+        description: "Veuillez patienter pendant la création du document...",
+      });
+
+      // S'assurer que le DOM est complètement rendu avant de générer le PDF
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Créer un conteneur temporaire pour formater le contenu du PDF
+      const pdfContainer = document.createElement("div");
+      pdfContainer.innerHTML = `
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+          <h1 style="text-align: center; margin-bottom: 20px;">Contrôle - ${sujet} (${classe})</h1>
+          <div style="white-space: pre-wrap; line-height: 1.5;">
+            ${evaluation}
+          </div>
+          <div style="margin-top: 30px; font-size: 0.8em; text-align: right; color: #666;">
+            Généré le ${new Date().toLocaleDateString('fr-FR')}
+          </div>
+        </div>
+      `;
+      
+      // Options pour la génération du PDF
+      const options = {
+        margin: [15, 15],
+        filename: `controle_${sujet.replace(/[^a-zA-Z0-9]/g, '_')}_${classe}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // Générer et télécharger le PDF
+      await html2pdf().from(pdfContainer).set(options).save();
+      
+      toast({
+        title: "Succès",
+        description: "Le PDF a été généré et téléchargé avec succès",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la génération du PDF:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer le PDF. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container py-6 relative">
@@ -366,7 +426,10 @@ const GeneratePage = () => {
                   </p>
                 </div>
               ) : evaluation ? (
-                <div className="max-h-[500px] overflow-y-auto border rounded-md p-4 bg-muted/30 whitespace-pre-wrap">
+                <div 
+                  ref={evaluationRef}
+                  className="max-h-[500px] overflow-y-auto border rounded-md p-4 bg-muted/30 whitespace-pre-wrap"
+                >
                   {evaluation}
                 </div>
               ) : (
@@ -380,10 +443,28 @@ const GeneratePage = () => {
               )}
             </CardContent>
             {evaluation && (
-              <CardFooter>
+              <CardFooter className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  onClick={handleDownloadPdf}
+                  className="w-full sm:flex-1"
+                  variant="outline"
+                  disabled={isGeneratingPdf}
+                >
+                  {isGeneratingPdf ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Génération du PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Télécharger en PDF
+                    </>
+                  )}
+                </Button>
                 <Button 
                   onClick={handleSaveEvaluation}
-                  className="w-full"
+                  className="w-full sm:flex-1"
                   disabled={isSaving}
                 >
                   {isSaving ? (
