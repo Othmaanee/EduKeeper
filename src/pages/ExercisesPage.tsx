@@ -44,6 +44,45 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+// Styles pour l'export PDF - maintenant inline dans un objet JavaScript
+const pdfExportStyles = {
+  pdfExport: `
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    padding: 20px;
+    background: white !important;
+    color: black !important;
+  `,
+  exercisesContent: `
+    & h1, & h2, & h3 {
+      margin-top: 1em;
+      margin-bottom: 0.5em;
+    }
+  `
+};
+
+// Ajout d'une feuille de style à l'exécution pour les styles PDF
+const addPdfStyles = () => {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .pdf-export {
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+      padding: 20px;
+      background: white !important;
+      color: black !important;
+    }
+    .exercises-content h1, .exercises-content h2, .exercises-content h3 {
+      margin-top: 1em;
+      margin-bottom: 0.5em;
+    }
+  `;
+  document.head.appendChild(styleEl);
+  return () => {
+    document.head.removeChild(styleEl);
+  };
+};
+
 const ExercisesPage = () => {
   const [sujet, setSujet] = useState('');
   const [classe, setClasse] = useState('6e');
@@ -56,6 +95,15 @@ const ExercisesPage = () => {
   const [userRole, setUserRole] = useState<string>('user');
   const exercisesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Ajout des styles pour PDF au montage du composant
+  useEffect(() => {
+    const removePdfStyles = addPdfStyles();
+    return () => {
+      // Nettoyage au démontage du composant
+      removePdfStyles();
+    };
+  }, []);
 
   // Fetch user role on component mount
   useEffect(() => {
@@ -425,19 +473,6 @@ const ExercisesPage = () => {
           )}
         </div>
       </div>
-      <style jsx global>{`
-        .pdf-export {
-          font-family: Arial, sans-serif;
-          line-height: 1.5;
-          padding: 20px;
-          background: white !important;
-          color: black !important;
-        }
-        .exercises-content h1, .exercises-content h2, .exercises-content h3 {
-          margin-top: 1em;
-          margin-bottom: 0.5em;
-        }
-      `}</style>
     </Layout>
   );
 };
