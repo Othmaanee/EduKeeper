@@ -37,12 +37,14 @@ const App = () => (
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/categories/:id" element={<CategoryPage />} />
           <Route path="/upload" element={<UploadPage />} />
-          <Route path="/generate" element={<GeneratePage />} />
+          <Route path="/generer-controle" element={<GeneratePage />} />
           <Route path="/dashboard-enseignant" element={<TeacherDashboardPage />} />
           <Route path="/summarize-document" element={<DocumentSummaryPage />} />
           <Route path="/historique" element={<HistoryPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/landing" element={<LandingPage />} />
+          {/* Garder la route /generate temporairement pour la rétrocompatibilité */}
+          <Route path="/generate" element={<GeneratePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

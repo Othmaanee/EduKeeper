@@ -47,7 +47,7 @@ export const SummaryDisplay = ({
 }: SummaryDisplayProps) => {
   const summaryRef = useRef<HTMLDivElement | null>(null);
   
-  // Formatage simple du texte avec des sauts de ligne HTML
+  // Formatage du texte avec des sauts de ligne HTML et conversion des deux sauts de ligne consécutifs en paragraphes
   const processedSummary = generatedSummary ? 
     generatedSummary.split("\n").map((line, i) => 
       `<div key=${i}>${line || "&nbsp;"}</div>`

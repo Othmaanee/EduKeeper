@@ -263,7 +263,7 @@ const GeneratePage = () => {
         <div style="padding: 20px; font-family: Arial, sans-serif;">
           <h1 style="text-align: center; margin-bottom: 20px;">Contrôle - ${sujet} (${classe})</h1>
           <div style="white-space: pre-wrap; line-height: 1.5;">
-            ${evaluation}
+            ${evaluation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
           </div>
           <div style="margin-top: 30px; font-size: 0.8em; text-align: right; color: #666;">
             Généré le ${new Date().toLocaleDateString('fr-FR')}
@@ -428,10 +428,11 @@ const GeneratePage = () => {
               ) : evaluation ? (
                 <div 
                   ref={evaluationRef}
-                  className="max-h-[500px] overflow-y-auto border rounded-md p-4 bg-muted/30 whitespace-pre-wrap"
-                >
-                  {evaluation}
-                </div>
+                  className="max-h-[500px] overflow-y-auto border rounded-md p-4 bg-muted/30"
+                  dangerouslySetInnerHTML={{ 
+                    __html: evaluation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') 
+                  }}
+                />
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
                   <School className="h-12 w-12 mb-4 opacity-20" />

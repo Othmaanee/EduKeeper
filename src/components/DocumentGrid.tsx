@@ -55,6 +55,7 @@ import {
   ToggleGroup,
   ToggleGroupItem
 } from "@/components/ui/toggle-group";
+import html2pdf from 'html2pdf.js';
 
 type DocumentGridProps = {
   initialCategoryId?: string | null;
@@ -244,24 +245,84 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
     }
   };
 
-  const handleDownload = async (url: string, fileName: string) => {
+  const handleDownload = async (url: string, fileName: string, content?: string) => {
     try {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success("Téléchargement démarré");
+      // Si nous avons le contenu et que c'est un document généré (pas un URL de fichier externe)
+      if (content && !url.includes("storage/v1/object")) {
+        // Créer un container temporaire avec le contenu formaté
+        const pdfContainer = document.createElement('div');
+        pdfContainer.className = 'pdf-export';
+        pdfContainer.innerHTML = `
+          <div style="padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="text-align: center; margin-bottom: 20px;">${fileName}</h1>
+            <div style="white-space: pre-wrap; line-height: 1.5;">
+              ${content}
+            </div>
+            <div style="margin-top: 30px; font-size: 0.8em; text-align: right; color: #666;">
+              Généré le ${new Date().toLocaleDateString('fr-FR')}
+            </div>
+          </div>
+        `;
+        
+        // Options pour la génération du PDF
+        const options = {
+          margin: [15, 15],
+          filename: `${fileName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        // Générer et télécharger le PDF
+        await html2pdf().from(pdfContainer).set(options).save();
+        
+        toast.success("Document téléchargé en PDF");
+      } else {
+        // Téléchargement standard pour les fichiers existants
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Téléchargement démarré");
+      }
     } catch (error) {
       console.error("Erreur lors du téléchargement", error);
       toast.error("Erreur lors du téléchargement");
     }
   };
 
-  const handleViewDocument = (url: string) => {
-    window.open(url, '_blank');
+  const handleViewDocument = (url: string, content?: string) => {
+    // Si c'est un document généré sans URL valide
+    if (content && !url.includes("storage/v1/object")) {
+      // Créer une nouvelle fenêtre avec le contenu formaté
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Document</title>
+              <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+                pre { white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 5px; }
+              </style>
+            </head>
+            <body>
+              <pre>${content}</pre>
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+      } else {
+        toast.error("Le navigateur a bloqué l'ouverture de la nouvelle fenêtre");
+      }
+    } else {
+      // Utiliser l'URL directe pour les documents standards
+      window.open(url, '_blank');
+    }
     toast.success("Document ouvert dans un nouvel onglet");
   };
 
@@ -474,7 +535,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                           variant="outline" 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => handleViewDocument(doc.url)}
+                          onClick={() => handleViewDocument(doc.url, doc.content)}
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           Voir
@@ -493,7 +554,7 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
                           variant="default" 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => handleDownload(doc.url, doc.nom)}
+                          onClick={() => handleDownload(doc.url, doc.nom, doc.content)}
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Télécharger
