@@ -47,9 +47,11 @@ export const SummaryDisplay = ({
 }: SummaryDisplayProps) => {
   const summaryRef = useRef<HTMLDivElement | null>(null);
   
-  // Formatage simple du texte
+  // Formatage simple du texte avec des sauts de ligne HTML
   const processedSummary = generatedSummary ? 
-    generatedSummary.split("\n").join("<br/>") : 
+    generatedSummary.split("\n").map((line, i) => 
+      `<div key=${i}>${line || "&nbsp;"}</div>`
+    ).join("") : 
     '';
 
   if (!generatedSummary) return null;
@@ -65,7 +67,7 @@ export const SummaryDisplay = ({
       <CardContent>
         <div 
           ref={summaryRef}
-          className="whitespace-pre-line bg-muted p-4 rounded-md text-sm"
+          className="whitespace-pre-line bg-muted p-4 rounded-md text-sm leading-relaxed"
           dangerouslySetInnerHTML={{ __html: processedSummary }}
         />
       </CardContent>

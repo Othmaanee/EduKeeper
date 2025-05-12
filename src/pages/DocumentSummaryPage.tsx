@@ -31,7 +31,8 @@ export function DocumentSummaryPage() {
     handleGenerateSummary,
     saveSummaryMutation,
     saveSummaryAsPdf,
-    isSavingPdf
+    isSavingPdf,
+    handleFileUpload
   } = useSummaryGeneration();
 
   return (
@@ -60,6 +61,7 @@ export function DocumentSummaryPage() {
           uploadedFile={uploadedFile}
           setUploadedFile={setUploadedFile}
           userData={userData}
+          handleFileUpload={handleFileUpload}
         />
         
         {/* Loading indicator when generating summary */}

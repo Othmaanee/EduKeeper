@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileText, FileUp, Book, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +40,7 @@ interface SummaryGenerationFormProps {
   uploadedFile: File | null;
   setUploadedFile: (file: File | null) => void;
   userData: { id: string; role: string } | undefined;
+  handleFileUpload: (file: File) => Promise<void>;
 }
 
 export const SummaryGenerationForm = ({
@@ -60,28 +60,15 @@ export const SummaryGenerationForm = ({
   setDocumentText,
   uploadedFile,
   setUploadedFile,
-  userData
+  userData,
+  handleFileUpload
 }: SummaryGenerationFormProps) => {
-  // Function to fetch text content from a URL (needed for file upload)
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Fonction de gestion du téléversement de fichier
+  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    setUploadedFile(file);
     
-    try {
-      // Read file content as text
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.onerror = reject;
-        reader.readAsText(file);
-      });
-      
-      setDocumentText(text);
-    } catch (error) {
-      console.error("Error reading file:", error);
-    }
+    await handleFileUpload(file);
   };
 
   // Find the selected document
@@ -141,7 +128,7 @@ export const SummaryGenerationForm = ({
             </div>
           )}
           
-          {/* File upload */}
+          {/* File upload - Improved */}
           {inputMethod === 'upload' && (
             <div className="space-y-4">
               <label className="text-sm font-medium block">
@@ -161,7 +148,7 @@ export const SummaryGenerationForm = ({
                     type="file" 
                     className="hidden" 
                     accept=".txt,.md,.pdf"
-                    onChange={handleFileUpload}
+                    onChange={handleFileInputChange}
                   />
                 </label>
               </div>
@@ -169,11 +156,21 @@ export const SummaryGenerationForm = ({
               {uploadedFile && (
                 <div className="p-3 bg-muted rounded-md flex items-start space-x-3">
                   <FileText className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
+                  <div className="flex-grow">
                     <h3 className="font-medium">{uploadedFile.name}</h3>
                     <p className="text-sm text-muted-foreground">
                       {Math.round(uploadedFile.size / 1024)} Ko
                     </p>
+                    {documentText && (
+                      <div className="mt-2">
+                        <Textarea 
+                          value={documentText}
+                          onChange={(e) => setDocumentText(e.target.value)}
+                          className="w-full min-h-[100px] text-xs"
+                          placeholder="Contenu extrait du fichier... Vous pouvez modifier ce texte avant de générer le résumé."
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

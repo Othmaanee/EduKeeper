@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -67,6 +66,9 @@ const addPdfStyles = () => {
     .exercises-content h1, .exercises-content h2, .exercises-content h3 {
       margin-top: 1em;
       margin-bottom: 0.5em;
+    }
+    .exercises-content strong {
+      font-weight: bold;
     }
   `;
   document.head.appendChild(styleEl);
@@ -288,34 +290,46 @@ const ExercisesPage = () => {
     }
   };
 
+  // Fonction améliorée pour télécharger en PDF
   const downloadAsPDF = async () => {
     if (!exercisesRef.current || !generatedContent) return;
     
     try {
-      // Ajouter une classe temporaire pour améliorer le style du PDF
-      exercisesRef.current.classList.add('pdf-export');
+      // Formater le contenu pour le PDF
+      const formattedContent = processGeneratedContent();
+      
+      // Créer un container temporaire avec le contenu formaté
+      const pdfContainer = document.createElement('div');
+      pdfContainer.className = 'pdf-export';
+      pdfContainer.innerHTML = `
+        <h1 style="text-align: center; margin-bottom: 20px;">Exercices : ${sujet}</h1>
+        <div style="margin-bottom: 10px;">
+          <strong>Niveau:</strong> ${niveau} | <strong>Classe:</strong> ${classe}
+        </div>
+        <div class="exercises-content">
+          ${formattedContent}
+        </div>
+        <div style="margin-top: 20px; font-size: 0.8em; text-align: right; color: #666;">
+          Généré le ${new Date().toLocaleDateString('fr-FR')}
+        </div>
+      `;
       
       // Options pour html2pdf
       const options = {
-        margin: 10,
+        margin: 15,
         filename: `Exercices_${sujet.replace(/\s+/g, '_')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 2, useCORS: true, logging: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       
-      // Attendre un peu pour s'assurer que le DOM est correctement rendu
-      setTimeout(() => {
-        html2pdf().from(exercisesRef.current).set(options).save().then(() => {
-          // Retirer la classe temporaire
-          exercisesRef.current?.classList.remove('pdf-export');
-          
-          toast({
-            title: "Succès",
-            description: "Les exercices ont été téléchargés en PDF",
-          });
-        });
-      }, 500);
+      // Générer et télécharger le PDF
+      await html2pdf().from(pdfContainer).set(options).save();
+      
+      toast({
+        title: "Succès",
+        description: "Les exercices ont été téléchargés en PDF",
+      });
     } catch (error) {
       console.error('Error downloading PDF:', error);
       toast({
@@ -333,12 +347,21 @@ const ExercisesPage = () => {
     return "Créez des exercices personnalisés pour vos élèves en quelques clics";
   };
 
-  // Préparation du contenu pour l'affichage simple (sans traitement KaTeX)
+  // Préparation du contenu pour l'affichage avec formatage amélioré
   const processGeneratedContent = () => {
-    if (!generatedContent) return null;
+    if (!generatedContent) return "";
     
-    // On retourne le contenu sans modifications, puisque nous voulons du texte simple
-    return generatedContent.split("\n").join("<br/>");
+    // Formatage de base: convertir les sauts de ligne
+    let formatted = generatedContent.split("\n").join("<br/>");
+    
+    // Remplacer les textes en gras (** texte **) par du HTML
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Remplacer les titres d'exercices et corrigés par du formatage HTML
+    formatted = formatted.replace(/### (Exercice \d+)/g, '<h2>$1</h2>');
+    formatted = formatted.replace(/### (Corrigé \d+)/g, '<h3>$1</h3>');
+    
+    return formatted;
   };
 
   return (
@@ -352,6 +375,7 @@ const ExercisesPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Partie gauche: formulaire de paramètres */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Paramètres de génération</CardTitle>
@@ -432,6 +456,7 @@ const ExercisesPage = () => {
             </CardFooter>
           </Card>
 
+          {/* Partie droite: exercices générés */}
           {generatedContent && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -464,7 +489,7 @@ const ExercisesPage = () => {
               <CardContent>
                 <div 
                   ref={exercisesRef}
-                  className="bg-muted/50 p-4 rounded-md whitespace-pre-wrap font-mono text-sm"
+                  className="bg-muted/50 p-4 rounded-md whitespace-pre-wrap text-sm"
                   style={{ maxHeight: '800px', overflow: 'auto' }}
                 >
                   <div 

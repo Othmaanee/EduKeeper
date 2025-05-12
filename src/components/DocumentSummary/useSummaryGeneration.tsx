@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -92,18 +91,18 @@ export const useSummaryGeneration = () => {
     enabled: !!userData?.id,
   });
 
-  // Fonction pour générer un PDF à partir du résumé et l'uploader à Supabase
+  // Fonction améliorée pour générer un PDF à partir du résumé et l'uploader à Supabase
   const generateAndUploadPdf = async (summaryText: string, title: string): Promise<string> => {
     try {
       console.log("Début de la génération du PDF...");
       
-      // Préparation du contenu HTML pour le PDF
+      // Préparation du contenu HTML pour le PDF avec meilleur formatage
       const pdfContainer = document.createElement('div');
       pdfContainer.innerHTML = `
         <div style="padding: 20px; font-family: Arial, sans-serif;">
           <h1 style="color: #333; text-align: center; margin-bottom: 20px;">${title}</h1>
           <div style="line-height: 1.6; white-space: pre-line; text-align: justify;">
-            ${summaryText}
+            ${summaryText.split('\n').join('<br/>')}
           </div>
           <div style="margin-top: 30px; font-size: 0.8em; text-align: right; color: #666;">
             Généré le ${format(new Date(), 'dd/MM/yyyy à HH:mm')}
@@ -116,7 +115,7 @@ export const useSummaryGeneration = () => {
         margin: [15, 15],
         filename: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true, logging: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
@@ -130,6 +129,15 @@ export const useSummaryGeneration = () => {
       const filePath = `summaries/${fileName}`;
 
       console.log(`PDF généré, upload vers Supabase (chemin: ${filePath})...`);
+      
+      // Vérifier si le bucket existe
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const documentsBucketExists = buckets?.some(bucket => bucket.name === 'documents');
+      
+      if (!documentsBucketExists) {
+        console.log("Le bucket 'documents' n'existe pas. Création...");
+        await supabase.storage.createBucket('documents', { public: true });
+      }
       
       // Upload du PDF dans le bucket Supabase
       const { data, error } = await supabase.storage
@@ -327,6 +335,36 @@ export const useSummaryGeneration = () => {
     }
   };
   
+  // Amélioration de la fonction pour traiter les fichiers uploadés
+  const handleFileUpload = async (file: File) => {
+    setUploadedFile(file);
+    
+    try {
+      if (file.type === 'application/pdf') {
+        // Si c'est un PDF, informer l'utilisateur que seul le texte sera extrait
+        toast.info("Extraction du texte du PDF en cours...");
+        
+        // Pour les PDF, nous devrions implémenter une extraction de texte côté serveur
+        // Pour l'instant, nous informons l'utilisateur de la limitation
+        setDocumentText("Le contenu du PDF sera traité comme du texte brut. Pour une meilleure expérience, copiez-collez le texte dans le champ de saisie.");
+      } else {
+        // Pour les fichiers texte, lire normalement
+        const text = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = reject;
+          reader.readAsText(file);
+        });
+        
+        setDocumentText(text);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la lecture du fichier:", error);
+      toast.error("Impossible de lire le fichier. Veuillez essayer un autre format.");
+    }
+  };
+
+  // Function to handle the generation of a summary
   const handleGenerateSummary = async () => {
     // Clear any previous errors and summaries
     setSummaryError(null);
@@ -462,6 +500,7 @@ export const useSummaryGeneration = () => {
     handleGenerateSummary,
     saveSummaryMutation,
     saveSummaryAsPdf: saveSummaryAsPdfMutation.mutate,
-    isSavingPdf
+    isSavingPdf,
+    handleFileUpload
   };
 };
