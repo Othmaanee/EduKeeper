@@ -32,19 +32,25 @@ serve(async (req) => {
       );
     }
 
-    // Création du prompt pour OpenAI
-    const prompt = `Tu es un enseignant expérimenté. Génère 5 exercices avec corrigés à partir de ce sujet : "${sujet}". 
-Le niveau attendu est : "${niveau}". Classe : "${classe}".
+    // Création du prompt amélioré pour OpenAI
+    const prompt = `Vous êtes un professeur expérimenté. Créez 5 exercices progressifs et complets avec leurs corrigés, adaptés à une classe de ${classe} en fonction du sujet "${sujet}" et du niveau "${niveau}" :
+- Niveau "Bases" : exercices simples, notions fondamentales
+- Niveau "Classique" : exercices standards, adaptés à des évaluations de mi-parcours
+- Niveau "Très complet" : exercices complexes, croisant plusieurs notions du programme de ${classe}
 
-Pour chaque exercice :
-1. Donne un titre clair
-2. Explique l'énoncé de manière détaillée
-3. Fournis un corrigé complet après chaque exercice
+Le corrigé doit être clair, structuré et pédagogique.
+Chaque exercice commence par "### Exercice [n]" et son corrigé commence par "### Corrigé [n]".
+
+Assurez-vous que les exercices:
+1. Correspondent parfaitement au niveau scolaire de ${classe}
+2. Respectent la complexité demandée (${niveau})
+3. Sont adaptés aux connaissances typiques à ce stade de l'année scolaire
+4. Utilisent le vocabulaire et les méthodes spécifiques au programme officiel de ${classe}
 
 Format ton texte en Markdown pour une meilleure lisibilité.`;
 
     console.log(`Modèle utilisé: gpt-4o-mini`);
-    console.log(`Envoi de la requête à OpenAI avec le prompt: ${prompt}`);
+    console.log(`Envoi de la requête à OpenAI avec le prompt amélioré`);
 
     // Appel à l'API OpenAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -56,6 +62,7 @@ Format ton texte en Markdown pour une meilleure lisibilité.`;
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
+        temperature: 0.7, // Légère augmentation pour plus de créativité dans les exercices
       }),
     });
 
