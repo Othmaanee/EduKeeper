@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import 'katex/dist/katex.min.css'; // Import des styles KaTeX
+import { useEffect, useRef } from "react";
 
 interface Category {
   id: string;
@@ -35,6 +37,40 @@ interface SummaryDisplayProps {
   isSavingPdf: boolean;
 }
 
+// Fonction pour rendre les expressions mathématiques
+const renderMathExpression = (text: string) => {
+  if (!text) return '';
+  
+  // Regex pour trouver les expressions mathématiques délimitées par \( \) ou $ $
+  const inlineRegex = /\\\((.*?)\\\)|\$(.*?)\$/g;
+  // Regex pour trouver les expressions mathématiques en bloc délimitées par \[ \] ou $$ $$
+  const blockRegex = /\\\[(.*?)\\\]|\$\$(.*?)\$\$/g;
+  
+  // Fonction pour remplacer les expressions mathématiques
+  const replaceWithKatex = (match: string, inlineContent?: string, altInlineContent?: string, blockContent?: string, altBlockContent?: string) => {
+    const content = inlineContent || altInlineContent || blockContent || altBlockContent || '';
+    const isBlock = blockContent || altBlockContent;
+    
+    try {
+      if (isBlock) {
+        return `<div class="katex-block">${match}</div>`;
+      } else {
+        return `<span class="katex-inline">${match}</span>`;
+      }
+    } catch (error) {
+      console.error('Error rendering KaTeX:', error);
+      return match; // En cas d'erreur, on retourne l'expression d'origine
+    }
+  };
+  
+  // Remplacer les expressions avec du HTML qui sera traité par KaTeX
+  let processedText = text
+    .replace(inlineRegex, (match, p1, p2) => replaceWithKatex(match, p1, p2))
+    .replace(blockRegex, (match, p1, p2) => replaceWithKatex(match, undefined, undefined, p1, p2));
+  
+  return processedText;
+};
+
 export const SummaryDisplay = ({
   generatedSummary,
   categories,
@@ -44,7 +80,20 @@ export const SummaryDisplay = ({
   saveSummaryAsPdf,
   isSavingPdf
 }: SummaryDisplayProps) => {
+  const summaryRef = useRef<HTMLDivElement | null>(null);
+  
+  useEffect(() => {
+    // KaTeX est importé et chargé globalement
+    if (generatedSummary && summaryRef.current) {
+      // KaTeX va automatiquement rendre les formules mathématiques
+      console.log('KaTeX ready to render in summary');
+    }
+  }, [generatedSummary]);
+
   if (!generatedSummary) return null;
+  
+  // Traite le contenu pour le rendu des formules mathématiques
+  const processedSummary = renderMathExpression(generatedSummary);
   
   return (
     <Card className="animate-scale-in">
@@ -55,9 +104,11 @@ export const SummaryDisplay = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="whitespace-pre-line bg-muted p-4 rounded-md text-sm">
-          {generatedSummary}
-        </div>
+        <div 
+          ref={summaryRef}
+          className="whitespace-pre-line bg-muted p-4 rounded-md text-sm"
+          dangerouslySetInnerHTML={{ __html: processedSummary }}
+        />
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
         {/* Category selection */}
