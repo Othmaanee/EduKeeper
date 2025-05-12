@@ -281,7 +281,7 @@ export const useSummaryGeneration = () => {
           content: documentText || textInput,
           summary: generatedSummary, // Sauvegarde du résumé dans le nouveau champ
           is_shared: false,
-          url: null
+          url: null  // Important: pour les documents texte, url doit être null et non une chaîne vide
         })
         .select()
         .single();
@@ -292,6 +292,15 @@ export const useSummaryGeneration = () => {
       }
       
       console.log("Document texte enregistré avec succès:", data);
+      
+      // Enregistrer dans l'historique
+      await supabase
+        .from('history')
+        .insert({
+          user_id: userData.id,
+          action_type: 'résumé',
+          document_name: documentName
+        });
       
       return data;
     },
