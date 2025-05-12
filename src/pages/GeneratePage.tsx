@@ -240,7 +240,8 @@ const GeneratePage = () => {
                     <SelectValue placeholder="Sélectionner une spécialité" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucune</SelectItem>
+                    {/* Correction ici: Remplacer la valeur vide par une chaîne non vide "aucune" */}
+                    <SelectItem key="aucune" value="aucune">Aucune</SelectItem>
                     {specialiteOptions.map((option) => (
                       <SelectItem key={option} value={option}>{option}</SelectItem>
                     ))}

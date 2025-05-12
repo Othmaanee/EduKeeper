@@ -45,13 +45,17 @@ serve(async (req) => {
     // Construction du prompt pour OpenAI
     let prompt = `Tu es un professeur expérimenté. Génère un contrôle d'entraînement pour un élève de niveau ${classe}, sur le sujet : "${sujet}"`;
     
-    // Ajouter la spécialité si elle est fournie
-    if (specialite && specialite.trim() !== '') {
+    // Ajouter la spécialité si elle est fournie et n'est pas "aucune"
+    if (specialite && specialite.trim() !== '' && specialite !== 'aucune') {
       prompt += `, spécialité : "${specialite}"`;
     }
     
     prompt += `.\n\nLe contrôle doit être adapté au niveau de difficulté suivant : ${difficulte}.\n\nDonne :\n- Un énoncé structuré\n- 3 à 10 questions pertinentes selon le niveau\n- Les corrigés à part ou directement après chaque question\n\nFormat clair, adapté à un élève qui révise seul.`;
 
+    // Ajout de logs pour débugger
+    console.log('Envoi de la requête à OpenAI avec le prompt:', prompt);
+    console.log('Modèle utilisé:', "gpt-3.5-turbo");
+    
     // Appel à l'API OpenAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -94,6 +98,8 @@ serve(async (req) => {
     // Traiter la réponse
     const data = await response.json();
     const evaluation = data.choices[0]?.message?.content || "Désolé, impossible de générer le contrôle.";
+    
+    console.log('Réponse reçue d\'OpenAI, longueur du contenu:', evaluation.length);
 
     // Retourner les résultats
     return new Response(
