@@ -43,6 +43,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 
 // Styles pour l'export PDF - maintenant inline dans un objet JavaScript
 const pdfExportStyles = {
@@ -361,9 +362,9 @@ const ExercisesPage = () => {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <FormLabel className="block text-sm font-medium mb-1">
+                  <Label className="block text-sm font-medium mb-1">
                     Sujet du cours*
-                  </FormLabel>
+                  </Label>
                   <Textarea 
                     placeholder="Entrez le sujet du cours (ex: Les fractions en mathématiques, Conjugaison au passé composé...)" 
                     value={sujet}
@@ -374,9 +375,9 @@ const ExercisesPage = () => {
                 </div>
 
                 <div>
-                  <FormLabel className="block text-sm font-medium mb-1">
+                  <Label className="block text-sm font-medium mb-1">
                     Classe
-                  </FormLabel>
+                  </Label>
                   <Select value={classe} onValueChange={setClasse}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -394,9 +395,9 @@ const ExercisesPage = () => {
                 </div>
 
                 <div>
-                  <FormLabel className="block text-sm font-medium mb-1">
+                  <Label className="block text-sm font-medium mb-1">
                     Niveau
-                  </FormLabel>
+                  </Label>
                   <Select value={niveau} onValueChange={setNiveau}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
