@@ -30,6 +30,7 @@ const GeneratePage = () => {
   const [specialite, setSpecialite] = useState("");
   const [difficulte, setDifficulte] = useState("classique");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [evaluation, setEvaluation] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -130,11 +131,49 @@ const GeneratePage = () => {
     }
   };
 
+  // Fonction pour obtenir ou créer la catégorie "Mes contrôles"
+  const getOrCreateControlCategory = async (userId) => {
+    try {
+      // Vérifier si la catégorie existe déjà
+      const { data: existingCategories, error: fetchError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('nom', 'Mes contrôles')
+        .limit(1);
+      
+      if (fetchError) throw fetchError;
+      
+      // Si la catégorie existe, renvoyer son ID
+      if (existingCategories && existingCategories.length > 0) {
+        return existingCategories[0].id;
+      }
+      
+      // Sinon, créer la catégorie
+      const { data: newCategory, error: insertError } = await supabase
+        .from('categories')
+        .insert({
+          user_id: userId,
+          nom: 'Mes contrôles'
+        })
+        .select('id')
+        .single();
+      
+      if (insertError) throw insertError;
+      
+      return newCategory.id;
+    } catch (error) {
+      console.error("Erreur lors de la création/récupération de la catégorie:", error);
+      throw error;
+    }
+  };
+
   // Fonction pour sauvegarder le contrôle généré
   const handleSaveEvaluation = async () => {
     if (!evaluation) return;
 
     try {
+      setIsSaving(true);
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
@@ -146,6 +185,11 @@ const GeneratePage = () => {
         return;
       }
       
+      const userId = session.user.id;
+      
+      // Obtenir ou créer la catégorie "Mes contrôles"
+      const categoryId = await getOrCreateControlCategory(userId);
+      
       // Créer un nom pour le document
       const documentName = `Contrôle - ${sujet} (${classe})`;
       
@@ -155,17 +199,28 @@ const GeneratePage = () => {
         .insert({
           nom: documentName,
           content: evaluation,
-          user_id: session.user.id,
+          user_id: userId,
           is_shared: false,
           url: null,
-          summary: `Contrôle d'entraînement sur ${sujet} pour le niveau ${classe}${specialite ? `, spécialité ${specialite}` : ''}.`
+          category_id: categoryId,
+          summary: `Contrôle d'entraînement sur ${sujet} pour le niveau ${classe}${specialite && specialite !== 'aucune' ? `, spécialité ${specialite}` : ''}.`
         })
         .select()
         .single();
         
       if (error) {
+        console.error("Erreur lors de l'enregistrement:", error);
         throw error;
       }
+      
+      // Ajouter à l'historique
+      await supabase
+        .from('history')
+        .insert({
+          user_id: userId,
+          action_type: 'sauvegarde',
+          document_name: documentName
+        });
       
       toast({
         title: "Succès",
@@ -179,6 +234,8 @@ const GeneratePage = () => {
         description: "Impossible d'enregistrer le contrôle. Veuillez réessayer.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -327,9 +384,19 @@ const GeneratePage = () => {
                 <Button 
                   onClick={handleSaveEvaluation}
                   className="w-full"
+                  disabled={isSaving}
                 >
-                  <FileCheck className="mr-2 h-4 w-4" />
-                  Enregistrer dans mes documents
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement en cours...
+                    </>
+                  ) : (
+                    <>
+                      <FileCheck className="mr-2 h-4 w-4" />
+                      Enregistrer dans mes documents
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             )}
