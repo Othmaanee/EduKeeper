@@ -9,8 +9,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import html2pdf from 'html2pdf.js';
 import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
-import 'katex/dist/katex.min.css'; // Import des styles KaTeX
-import { InlineMath, BlockMath } from 'react-katex'; // Import des composants KaTeX
 import {
   Select,
   SelectContent,
@@ -77,40 +75,6 @@ const addPdfStyles = () => {
   };
 };
 
-// Fonction pour rendre les expressions mathématiques
-const renderMathExpression = (text) => {
-  if (!text) return '';
-  
-  // Regex pour trouver les expressions mathématiques délimitées par \( \) ou $ $
-  const inlineRegex = /\\\((.*?)\\\)|\$(.*?)\$/g;
-  // Regex pour trouver les expressions mathématiques en bloc délimitées par \[ \] ou $$ $$
-  const blockRegex = /\\\[(.*?)\\\]|\$\$(.*?)\$\$/g;
-  
-  // Fonction pour remplacer les expressions mathématiques avec React Katex
-  const replaceWithKatex = (match, inlineContent, altInlineContent, blockContent, altBlockContent) => {
-    const content = inlineContent || altInlineContent || blockContent || altBlockContent;
-    const isBlock = blockContent || altBlockContent;
-    
-    try {
-      if (isBlock) {
-        return `<div class="katex-block">${match}</div>`;
-      } else {
-        return `<span class="katex-inline">${match}</span>`;
-      }
-    } catch (error) {
-      console.error('Error rendering KaTeX:', error);
-      return match; // En cas d'erreur, on retourne l'expression d'origine
-    }
-  };
-  
-  // Remplacer les expressions avec du HTML qui sera traité par KaTeX
-  let processedText = text
-    .replace(inlineRegex, (match, p1, p2) => replaceWithKatex(match, p1, p2, null, null))
-    .replace(blockRegex, (match, p1, p2) => replaceWithKatex(match, null, null, p1, p2));
-  
-  return processedText;
-};
-
 const ExercisesPage = () => {
   const [sujet, setSujet] = useState('');
   const [classe, setClasse] = useState('6e');
@@ -128,32 +92,11 @@ const ExercisesPage = () => {
   useEffect(() => {
     const removePdfStyles = addPdfStyles();
     
-    // Charger KaTeX au montage du composant
-    const loadKatex = async () => {
-      try {
-        // KaTeX est déjà chargé via l'import, mais on peut ajouter
-        // des configurations supplémentaires ici si nécessaire
-        console.log('KaTeX initialized');
-      } catch (error) {
-        console.error('Failed to initialize KaTeX:', error);
-      }
-    };
-    
-    loadKatex();
-    
     return () => {
       // Nettoyage au démontage du composant
       removePdfStyles();
     };
   }, []);
-
-  // Effet pour le rendu des expressions mathématiques après génération du contenu
-  useEffect(() => {
-    if (generatedContent && exercisesRef.current) {
-      // KaTeX va automatiquement rendre les formules mathématiques
-      // via react-katex lors du rendu du composant
-    }
-  }, [generatedContent]);
 
   // Fetch user role on component mount
   useEffect(() => {
@@ -362,7 +305,6 @@ const ExercisesPage = () => {
       };
       
       // Attendre un peu pour s'assurer que le DOM est correctement rendu
-      // et que KaTeX a rendu les formules
       setTimeout(() => {
         html2pdf().from(exercisesRef.current).set(options).save().then(() => {
           // Retirer la classe temporaire
@@ -391,25 +333,12 @@ const ExercisesPage = () => {
     return "Créez des exercices personnalisés pour vos élèves en quelques clics";
   };
 
-  // Fonction pour traiter le contenu généré et rendre les formules mathématiques
+  // Préparation du contenu pour l'affichage simple (sans traitement KaTeX)
   const processGeneratedContent = () => {
     if (!generatedContent) return null;
     
-    // Diviser le contenu par blocs de texte pour les traiter individuellement
-    const contentWithKatex = generatedContent
-      .split("\n")
-      .map((line, index) => {
-        // Si la ligne contient des délimiteurs LaTeX, on la traite
-        if (line.includes("\\(") || line.includes("\\)") || 
-            line.includes("\\[") || line.includes("\\]") ||
-            line.includes("$")) {
-          return renderMathExpression(line);
-        }
-        return line; // Sinon on retourne la ligne telle quelle
-      })
-      .join("<br/>");
-      
-    return contentWithKatex;
+    // On retourne le contenu sans modifications, puisque nous voulons du texte simple
+    return generatedContent.split("\n").join("<br/>");
   };
 
   return (

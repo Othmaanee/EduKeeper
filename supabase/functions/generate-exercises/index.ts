@@ -32,13 +32,24 @@ serve(async (req) => {
       );
     }
 
-    // Création du prompt amélioré pour OpenAI
+    // Création du prompt amélioré pour OpenAI avec instructions spécifiques sur le formatage
     const prompt = `Vous êtes un professeur expérimenté. Créez 5 exercices progressifs et complets avec leurs corrigés, adaptés à une classe de ${classe} en fonction du sujet "${sujet}" et du niveau "${niveau}" :
 - Niveau "Bases" : exercices simples, notions fondamentales
 - Niveau "Classique" : exercices standards, adaptés à des évaluations de mi-parcours
 - Niveau "Très complet" : exercices complexes, croisant plusieurs notions du programme de ${classe}
 
-Le corrigé doit être clair, structuré et pédagogique.
+IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
+Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).
+Pour les puissances, utilisez la notation avec chapeau (ex: x^2 et non x²).
+Pour les racines carrées, écrivez "racine de" en toutes lettres.
+Pour les équations, utilisez un format linéaire simple (ex: a + b = c et non des alignements complexes).
+
+Exemples de format approuvés :
+- "Calculer : 4/11 + 3/11 = ..."
+- "Résoudre l'équation : 2x + 3 = 7"
+- "Simplifier : (x^2 + 3x) / x"
+
+Le corrigé doit être clair, structuré et pédagogique, également dans un format texte simple.
 Chaque exercice commence par "### Exercice [n]" et son corrigé commence par "### Corrigé [n]".
 
 Assurez-vous que les exercices:
@@ -46,8 +57,7 @@ Assurez-vous que les exercices:
 2. Respectent la complexité demandée (${niveau})
 3. Sont adaptés aux connaissances typiques à ce stade de l'année scolaire
 4. Utilisent le vocabulaire et les méthodes spécifiques au programme officiel de ${classe}
-
-Format ton texte en Markdown pour une meilleure lisibilité.`;
+5. Sont rédigés en texte simple facilement lisible sur écran`;
 
     console.log(`Modèle utilisé: gpt-4o-mini`);
     console.log(`Envoi de la requête à OpenAI avec le prompt amélioré`);
