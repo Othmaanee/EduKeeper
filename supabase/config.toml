@@ -10,22 +10,31 @@ schemas = ["public", "storage", "graphql_public"]
 port = 54322
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
-port = 54324
-
-[auth]
 enabled = true
-port = 54325
+port = 54324
 
 [storage]
 enabled = true
-port = 54328
+port = 54325
+
+[auth]
+enabled = true
+port = 54326
 
 [realtime]
 enabled = true
 
+[functions]
+[functions.generate-evaluation]
+verify_jwt = false
 [functions.summarize-document]
-verify_jwt = true
-
+verify_jwt = false
+[functions.generate-course]
+verify_jwt = false
+[functions.generate-exercises]
+verify_jwt = false
