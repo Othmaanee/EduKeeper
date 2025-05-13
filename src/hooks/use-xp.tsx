@@ -50,6 +50,7 @@ export function useXp() {
       const xpAmount = XP_VALUES[actionType as keyof typeof XP_VALUES] || 0;
 
       // 1. Mettre à jour les XP utilisateur
+      // Utilisation de la méthode update directement avec les valeurs
       const { error: userUpdateError } = await supabase
         .from('users')
         .update({ 
