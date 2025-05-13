@@ -7,3 +7,10 @@ export interface HistoryItem {
   document_name: string;
   xp_gained: number;
 }
+
+export interface SkinType {
+  id: string;
+  name: string;
+  colorClass: string;
+  requiredLevel: number;
+}

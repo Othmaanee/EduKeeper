@@ -19,6 +19,7 @@ import DocumentSummaryPage from "./pages/DocumentSummaryPage";
 import HistoryPage from "./pages/HistoryPage";
 import ExercisesPage from "./pages/ExercisesPage";
 import LandingPage from "./pages/LandingPage";
+import SkinsPage from "./pages/SkinsPage";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/historique" element={<HistoryPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/skins" element={<SkinsPage />} />
           {/* Garder la route /generate temporairement pour la rétrocompatibilité */}
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="*" element={<NotFound />} />
