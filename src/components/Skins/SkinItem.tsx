@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Crown } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Crown, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SkinItemProps {
@@ -39,6 +39,8 @@ export function SkinItem({ skin, isUnlocked, isActive, userId }: SkinItemProps) 
       toast({
         title: "Skin activé",
         description: `Le skin ${skin.name} a été activé avec succès.`,
+        variant: "default",
+        className: "bg-green-500 text-white border-green-600"
       });
       
       // Recharger la page pour appliquer les changements visuels
@@ -47,7 +49,7 @@ export function SkinItem({ skin, isUnlocked, isActive, userId }: SkinItemProps) 
       console.error('Erreur lors de l\'activation du skin:', error);
       toast({
         title: "Erreur",
-        description: "Impossible d'activer le skin. Veuillez réessayer.",
+        description: "Une erreur est survenue, veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -92,7 +94,18 @@ export function SkinItem({ skin, isUnlocked, isActive, userId }: SkinItemProps) 
           onClick={activateSkin}
           className="w-full"
         >
-          {isActive ? 'Actuellement actif' : isUnlocked ? 'Activer' : 'Verrouillé'}
+          {isActive ? (
+            'Actuellement actif'
+          ) : isActivating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Activation...
+            </>
+          ) : isUnlocked ? (
+            'Activer'
+          ) : (
+            'Verrouillé'
+          )}
         </Button>
       </CardFooter>
     </Card>

@@ -1,15 +1,12 @@
 
 import { Layout } from "@/components/Layout";
 import { Progress } from "@/components/ui/progress";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lightbulb } from "lucide-react";
 import { SummaryGenerationForm } from "@/components/DocumentSummary/SummaryGenerationForm";
 import { SummaryDisplay } from "@/components/DocumentSummary/SummaryDisplay";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lightbulb } from "lucide-react";
-
-// Importons le hook corrigé
 import { useSummaryGeneration } from "@/components/DocumentSummary/useSummaryGeneration";
 
 export function DocumentSummaryPage() {
@@ -117,7 +114,6 @@ export function DocumentSummaryPage() {
       textToSummarize = documentText;
     } else if (inputMethod === 'upload' && uploadedFile) {
       // Cette fonctionnalité nécessiterait un traitement de fichier côté serveur
-      // Pour l'instant, nous utilisons juste le nom du fichier comme placeholder
       textToSummarize = `Contenu du fichier ${uploadedFile.name}`;
     }
     
@@ -158,7 +154,7 @@ export function DocumentSummaryPage() {
 
   return (
     <Layout>
-      <div className="container py-6 relative">
+      <div className="container max-w-4xl py-6 relative">
         <h1 className="text-2xl font-bold mb-2">Résumé de Document</h1>
         <p className="text-muted-foreground mb-6">
           Générez automatiquement un résumé à partir d'un texte, d'un fichier ou d'un document existant.
@@ -166,13 +162,13 @@ export function DocumentSummaryPage() {
         
         {/* Mini walkthrough visuel */}
         <div className="mb-6 bg-muted rounded-lg p-4 flex items-center justify-center">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
             <span className="font-semibold">🧭</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Dépose un doc</span>
-            <span className="text-muted-foreground">—</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Clique sur un bouton IA</span>
-            <span className="text-muted-foreground">—</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupère ta synthèse</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Déposez un doc</span>
+            <span className="text-muted-foreground hidden sm:inline">—</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Cliquez sur un bouton IA</span>
+            <span className="text-muted-foreground hidden sm:inline">—</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupérez votre synthèse</span>
           </div>
         </div>
         
@@ -180,7 +176,7 @@ export function DocumentSummaryPage() {
         <Alert className="bg-primary/5 border-primary/20 mb-6">
           <Lightbulb className="h-4 w-4 text-primary" />
           <AlertDescription className="text-foreground font-medium">
-            Dépose un document, clique sur un bouton IA et récupère ton cours ou ton résumé sans effort.
+            Déposez un document, cliquez sur un bouton IA et récupérez votre cours ou votre résumé sans effort.
           </AlertDescription>
         </Alert>
         
@@ -210,7 +206,7 @@ export function DocumentSummaryPage() {
           <div className="mb-6 animate-fade-in">
             <div className="flex items-center justify-center mb-4 py-6 bg-muted/40 rounded-lg">
               <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-              <span className="text-muted-foreground font-medium">Génération du résumé en cours...</span>
+              <span className="text-foreground font-medium">Génération du résumé en cours...</span>
             </div>
             <Progress value={40} className="h-1" />
           </div>

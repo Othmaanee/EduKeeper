@@ -1,11 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { SkinItem } from './SkinItem';
 import { Badge } from '@/components/ui/badge';
-import { Trophy } from 'lucide-react';
+import { Trophy, Loader2 } from 'lucide-react';
 
 // Définition des types de skins disponibles
 export const SKINS = [
@@ -48,7 +48,7 @@ export function SkinsList() {
         console.error('Erreur lors du chargement des données utilisateur:', error);
         toast({
           title: 'Erreur',
-          description: 'Impossible de charger vos informations. Veuillez réessayer.',
+          description: 'Une erreur est survenue, veuillez réessayer.',
           variant: 'destructive'
         });
       } finally {
@@ -60,12 +60,11 @@ export function SkinsList() {
   }, [toast]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-auto max-w-4xl">
       {loading ? (
-        <div className="flex justify-center py-10">
-          <div className="animate-pulse text-center">
-            <p>Chargement de vos skins...</p>
-          </div>
+        <div className="flex flex-col items-center justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+          <p>Chargement de vos skins...</p>
         </div>
       ) : currentUser ? (
         <>
@@ -80,13 +79,13 @@ export function SkinsList() {
             <p className="text-sm text-muted-foreground mb-4">
               Vous pouvez débloquer de nouveaux skins en gagnant de l'expérience. Chaque skin change l'apparence de l'interface.
             </p>
-            <div className="bg-primary/5 rounded-md p-3 flex items-center">
+            <div className="bg-primary/5 rounded-md p-3 flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium">Skin actuellement actif : </span>
-              <Badge className="ml-2">{SKINS.find(skin => skin.id === currentUser.skin)?.name || currentUser.skin}</Badge>
+              <Badge className="ml-auto sm:ml-2">{SKINS.find(skin => skin.id === currentUser.skin)?.name || currentUser.skin}</Badge>
             </div>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {SKINS.map(skin => (
               <SkinItem 
                 key={skin.id}

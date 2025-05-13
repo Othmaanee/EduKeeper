@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Upload, CheckCircle, FileText } from 'lucide-react';
+import { Upload, CheckCircle, FileText, Lightbulb, Zap } from 'lucide-react';
 import { Button } from './ui/button';
 import { Link } from 'react-router-dom';
 import { CategoryCard } from './CategoryCard';
@@ -12,11 +12,12 @@ import { Loader2 } from 'lucide-react';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
 import { UserLevel } from './UserLevel';
 import { Alert, AlertDescription } from './ui/alert';
-import { Lightbulb } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 export function Dashboard() {
   const [userName, setUserName] = useState<string | null>(null);
   const [lastUpdateDate, setLastUpdateDate] = useState<Date | null>(null);
+  const [subscribeDialogOpen, setSubscribeDialogOpen] = useState(false);
 
   // Récupérer les informations de l'utilisateur connecté
   const { data: userData, isLoading: userLoading } = useQuery({
@@ -126,10 +127,14 @@ export function Dashboard() {
   // Récupérer le skin de l'utilisateur et l'appliquer à la page
   useEffect(() => {
     if (userData?.skin) {
-      document.documentElement.classList.remove('skin-base', 'skin-avance');
+      document.documentElement.classList.remove('skin-base', 'skin-avance', 'skin-pro', 'skin-expert', 'skin-maitre');
       document.documentElement.classList.add(`skin-${userData.skin}`);
     }
   }, [userData?.skin]);
+
+  const handleSubscribeClick = () => {
+    setSubscribeDialogOpen(true);
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -137,20 +142,31 @@ export function Dashboard() {
       <Alert className="bg-primary/5 border-primary/20">
         <Lightbulb className="h-4 w-4 text-primary" />
         <AlertDescription className="text-foreground font-medium">
-          Dépose un document, clique sur un bouton IA et récupère ton cours ou ton résumé sans effort.
+          Déposez un document, cliquez sur un bouton IA et récupérez votre cours ou résumé sans effort.
         </AlertDescription>
       </Alert>
       
       {/* Mini walkthrough visuel */}
       <div className="bg-muted rounded-lg p-4 flex items-center justify-center">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
           <span className="font-semibold">🧭</span>
-          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Dépose un doc</span>
-          <span className="text-muted-foreground">—</span>
-          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Clique sur un bouton IA</span>
-          <span className="text-muted-foreground">—</span>
-          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupère ta synthèse</span>
+          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Déposez un doc</span>
+          <span className="text-muted-foreground hidden sm:inline">—</span>
+          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Cliquez sur un bouton IA</span>
+          <span className="text-muted-foreground hidden sm:inline">—</span>
+          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupérez votre synthèse</span>
         </div>
+      </div>
+      
+      {/* Subscribe Button */}
+      <div className="flex justify-center">
+        <Button 
+          onClick={handleSubscribeClick}
+          className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-2 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+        >
+          <Zap className="h-5 w-5" />
+          Je veux m'abonner
+        </Button>
       </div>
       
       {/* Welcome Section */}
@@ -204,7 +220,7 @@ export function Dashboard() {
                   <Loader2 className="ml-2 h-3 w-3 animate-spin" />
                 </div>
               ) : (
-                <>Dernière mise à jour: {formatDateFr(lastUpdateDate)}</>
+                <>Dernière mise à jour : {formatDateFr(lastUpdateDate)}</>
               )}
             </span>
           </div>
@@ -260,6 +276,37 @@ export function Dashboard() {
       
       {/* Recent Documents Section */}
       <RecentDocuments />
+      
+      {/* Subscription Dialog */}
+      <Dialog open={subscribeDialogOpen} onOpenChange={setSubscribeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500" />
+              Abonnement EduKeeper
+            </DialogTitle>
+            <DialogDescription>
+              Merci pour votre intérêt ! Cette fonctionnalité sera bientôt disponible.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <p className="text-sm text-center">
+              Nous préparons des offres d'abonnement adaptées à vos besoins. Vous serez parmi les premiers informés lorsque cette fonctionnalité sera disponible.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <Link 
+                to="mailto:contact@edukeeper.fr?subject=Intérêt%20pour%20l'abonnement%20EduKeeper"
+                className="inline-flex items-center gap-2 text-primary hover:underline"
+              >
+                <span>Me contacter quand c'est prêt</span>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

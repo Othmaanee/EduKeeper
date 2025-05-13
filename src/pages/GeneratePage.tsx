@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useXp } from '@/hooks/use-xp';
 
@@ -34,7 +33,7 @@ const GeneratePage = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Une erreur est survenue lors de la génération.`);
       }
 
       const data = await response.json();
@@ -52,7 +51,7 @@ const GeneratePage = () => {
       console.error('Error generating course:', error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de la génération du cours: " + error.message,
+        description: "Une erreur est survenue, veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -62,7 +61,7 @@ const GeneratePage = () => {
 
   return (
     <Layout>
-      <div className="container py-6 animate-fade-in">
+      <div className="container max-w-4xl py-6 animate-fade-in">
         <Button variant="ghost" size="sm" asChild className="mb-4">
           <Link to="/" className="flex items-center text-muted-foreground">
             <ArrowLeft className="h-4 w-4 mr-1" />
@@ -72,12 +71,12 @@ const GeneratePage = () => {
         
         {/* Mini walkthrough visuel */}
         <div className="mb-6 bg-muted rounded-lg p-4 flex items-center justify-center">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
             <span className="font-semibold">🧭</span>
             <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Complétez le formulaire</span>
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground hidden sm:inline">—</span>
             <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Cliquez sur générer</span>
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground hidden sm:inline">—</span>
             <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupérez votre contrôle</span>
           </div>
         </div>
@@ -120,7 +119,7 @@ const GeneratePage = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleGenerateCourse} disabled={isLoading}>
+            <Button onClick={handleGenerateCourse} disabled={isLoading || !subject || !level}>
               {isLoading ? (
                 <>
                   Génération en cours...
@@ -140,7 +139,7 @@ const GeneratePage = () => {
               <CardDescription>Voici le contenu généré par l'IA :</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="whitespace-pre-line">{generatedContent}</div>
+              <div className="whitespace-pre-line prose max-w-none">{generatedContent}</div>
             </CardContent>
           </Card>
         )}
