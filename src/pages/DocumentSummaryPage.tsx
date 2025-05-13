@@ -6,6 +6,8 @@ import { SummaryGenerationForm } from "@/components/DocumentSummary/SummaryGener
 import { SummaryDisplay } from "@/components/DocumentSummary/SummaryDisplay";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Lightbulb } from "lucide-react";
 
 // Importons le hook corrigé
 import { useSummaryGeneration } from "@/components/DocumentSummary/useSummaryGeneration";
@@ -162,6 +164,26 @@ export function DocumentSummaryPage() {
           Générez automatiquement un résumé à partir d'un texte, d'un fichier ou d'un document existant.
         </p>
         
+        {/* Mini walkthrough visuel */}
+        <div className="mb-6 bg-muted rounded-lg p-4 flex items-center justify-center">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-semibold">🧭</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Dépose un doc</span>
+            <span className="text-muted-foreground">—</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Clique sur un bouton IA</span>
+            <span className="text-muted-foreground">—</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupère ta synthèse</span>
+          </div>
+        </div>
+        
+        {/* Instruction message */}
+        <Alert className="bg-primary/5 border-primary/20 mb-6">
+          <Lightbulb className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-foreground font-medium">
+            Dépose un document, clique sur un bouton IA et récupère ton cours ou ton résumé sans effort.
+          </AlertDescription>
+        </Alert>
+        
         <SummaryGenerationForm
           documents={documents}
           userLoading={userLoading}
@@ -186,10 +208,11 @@ export function DocumentSummaryPage() {
         {/* Loading indicator when generating summary */}
         {isGeneratingSummary && (
           <div className="mb-6 animate-fade-in">
-            <div className="text-center mb-2 text-sm text-muted-foreground">
-              Analyse et création du résumé en cours...
+            <div className="flex items-center justify-center mb-4 py-6 bg-muted/40 rounded-lg">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <span className="text-muted-foreground font-medium">Génération du résumé en cours...</span>
             </div>
-            <Progress value={undefined} className="h-1" />
+            <Progress value={40} className="h-1" />
           </div>
         )}
         

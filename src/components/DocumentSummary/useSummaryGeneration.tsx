@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import axios from 'axios';
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import { useXp } from '@/hooks/use-xp';
 import { jsPDF } from 'jspdf';
 
@@ -83,6 +83,15 @@ export function useSummaryGeneration() {
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
           await awardXp('summarize_document', 'Résumé de document');
+          
+          // Afficher un toast de confirmation avec l'XP gagnée
+          toast({
+            title: "Résumé généré avec succès !",
+            description: "+20 XP",
+            variant: "default",
+            className: "bg-green-500 text-white border-green-600"
+          });
+          
           console.log("XP attribués avec succès");
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);
@@ -149,7 +158,12 @@ export function useSummaryGeneration() {
       doc.text(`Résumé: ${summary}`, 10, 10);
       doc.save("resume.pdf");
       
-      // Nous n'ajoutons pas d'XP ici car ils ont déjà été attribués lors de la génération
+      toast({
+        title: "PDF sauvegardé",
+        description: "Votre résumé a été sauvegardé en PDF avec succès.",
+        variant: "default",
+        className: "bg-green-500 text-white border-green-600"
+      });
       
     } catch (error: any) {
       setError(error.message || "Erreur inconnue lors de la sauvegarde en PDF.");

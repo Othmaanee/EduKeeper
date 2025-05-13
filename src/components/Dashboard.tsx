@@ -11,6 +11,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
 import { UserLevel } from './UserLevel';
+import { Alert, AlertDescription } from './ui/alert';
+import { Lightbulb } from 'lucide-react';
 
 export function Dashboard() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -131,6 +133,26 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Instruction message */}
+      <Alert className="bg-primary/5 border-primary/20">
+        <Lightbulb className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-foreground font-medium">
+          Dépose un document, clique sur un bouton IA et récupère ton cours ou ton résumé sans effort.
+        </AlertDescription>
+      </Alert>
+      
+      {/* Mini walkthrough visuel */}
+      <div className="bg-muted rounded-lg p-4 flex items-center justify-center">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-semibold">🧭</span>
+          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Dépose un doc</span>
+          <span className="text-muted-foreground">—</span>
+          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Clique sur un bouton IA</span>
+          <span className="text-muted-foreground">—</span>
+          <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupère ta synthèse</span>
+        </div>
+      </div>
+      
       {/* Welcome Section */}
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/80 to-primary p-6 md:p-8 text-white">
         <div className="relative z-10">
@@ -145,7 +167,7 @@ export function Dashboard() {
             )}
           </h1>
           
-          {/* User Level and XP (New) */}
+          {/* User Level and XP */}
           {!isLoading && userData && (
             <div className="mt-4 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
               <UserLevel 

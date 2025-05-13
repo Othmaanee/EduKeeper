@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useXp } from '@/hooks/use-xp';
@@ -39,6 +40,14 @@ const GeneratePage = () => {
       const data = await response.json();
       setGeneratedContent(data.content);
       await awardXp('generate_control', `Contrôle: ${subject}`);
+      
+      // Afficher un toast de confirmation
+      toast({
+        title: "Contrôle prêt !",
+        description: "+40 XP",
+        variant: "default",
+        className: "bg-green-500 text-white border-green-600"
+      });
     } catch (error: any) {
       console.error('Error generating course:', error);
       toast({
@@ -60,6 +69,18 @@ const GeneratePage = () => {
             Retour à l'accueil
           </Link>
         </Button>
+        
+        {/* Mini walkthrough visuel */}
+        <div className="mb-6 bg-muted rounded-lg p-4 flex items-center justify-center">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-semibold">🧭</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Complétez le formulaire</span>
+            <span className="text-muted-foreground">—</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Cliquez sur générer</span>
+            <span className="text-muted-foreground">—</span>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupérez votre contrôle</span>
+          </div>
+        </div>
 
         <Card>
           <CardHeader>
