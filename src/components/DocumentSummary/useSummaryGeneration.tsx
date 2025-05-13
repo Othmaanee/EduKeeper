@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/components/ui/use-toast"
 import { useXp } from '@/hooks/use-xp';
+import { jsPDF } from 'jspdf';
 
 interface SummaryResult {
   summary: string;
@@ -13,7 +15,7 @@ export function useSummaryGeneration() {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast()
+  const { toast } = useToast();
   
   // Importer le hook useXp pour gérer les récompenses XP
   const { awardXp } = useXp();
@@ -44,7 +46,7 @@ export function useSummaryGeneration() {
         title: "Erreur",
         description: "Impossible de générer le résumé. Veuillez réessayer.",
         variant: "destructive",
-      })
+      });
       return null;
     } finally {
       setIsLoading(false);
@@ -56,7 +58,6 @@ export function useSummaryGeneration() {
     setError(null);
     
     try {
-      const { jsPDF } = await import("jspdf");
       const doc = new jsPDF();
       
       doc.text(`Résumé: ${summary}`, 10, 10);
@@ -70,7 +71,7 @@ export function useSummaryGeneration() {
         title: "Erreur",
         description: "Impossible de sauvegarder en PDF. Veuillez réessayer.",
         variant: "destructive",
-      })
+      });
     } finally {
       setIsLoading(false);
     }
