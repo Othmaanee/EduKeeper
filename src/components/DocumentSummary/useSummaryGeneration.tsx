@@ -27,21 +27,63 @@ export function useSummaryGeneration() {
     setKeywords([]);
     
     try {
-      const response = await axios.post<SummaryResult>('/api/generate', { text });
+      // Utilisation d'axios avec une configuration appropriée
+      const response = await axios.post(
+        'https://mtbcrbfchoqterxevvft.supabase.co/functions/v1/summarize-document', 
+        { documentText: text },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await window.localStorage.getItem('supabase.auth.token')) || ''}`
+          }
+        }
+      );
       
-      if (response.status !== 200) {
-        throw new Error(`Erreur lors de la génération du résumé: ${response.statusText}`);
+      // Vérification explicite de la réponse
+      if (!response || !response.data) {
+        throw new Error("Réponse invalide du serveur");
       }
       
-      setSummary(response.data.summary);
-      setKeywords(response.data.keywords);
+      const data = response.data;
       
-      // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
-      await awardXp('summarize_document', 'Résumé de document');
+      if (data.error) {
+        throw new Error(`Erreur serveur: ${data.error}`);
+      }
       
-      return response.data;
+      if (data.summary) {
+        setSummary(data.summary);
+        setKeywords(data.keywords || []);
+        
+        // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
+        try {
+          await awardXp('summarize_document', 'Résumé de document');
+          console.log("XP attribués avec succès");
+        } catch (xpError) {
+          console.error("Erreur lors de l'attribution des XP:", xpError);
+          // Ne pas bloquer l'interface pour un échec d'attribution XP
+        }
+        
+        return {
+          summary: data.summary,
+          keywords: data.keywords || []
+        };
+      } else {
+        throw new Error("Contenu du résumé manquant dans la réponse");
+      }
     } catch (error: any) {
-      setError(error.message || "Erreur inconnue lors de la génération du résumé.");
+      console.error("Erreur complète:", error);
+      
+      // Amélioration du logging pour le débogage
+      if (error.response) {
+        console.error("Détails de la réponse d'erreur:", {
+          status: error.response.status,
+          headers: error.response.headers,
+          data: error.response.data
+        });
+      }
+      
+      const errorMessage = error.message || "Erreur inconnue lors de la génération du résumé.";
+      setError(errorMessage);
       toast({
         title: "Erreur",
         description: "Impossible de générer le résumé. Veuillez réessayer.",

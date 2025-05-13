@@ -3,10 +3,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
-const supabaseUrl = Deno.env.get("SUPABASE_URL");
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -19,7 +15,53 @@ serve(async (req) => {
   }
 
   try {
-    const { sujet, classe, niveau } = await req.json();
+    // Récupérer les informations d'authentification
+    const authHeader = req.headers.get("Authorization");
+    
+    // Vérifier si l'en-tête d'autorisation est présent
+    if (!authHeader) {
+      console.error("En-tête d'autorisation manquant");
+      return new Response(
+        JSON.stringify({ error: "Authentification requise" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    // Obtenir les variables d'environnement
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!openAIApiKey) {
+      console.error("Clé API OpenAI manquante");
+      return new Response(
+        JSON.stringify({ error: "Configuration incomplète: API OpenAI" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Parse JSON de la requête
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error("Erreur lors du parsing de la requête JSON:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Format de requête invalide" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    const { sujet, classe, niveau } = requestBody;
     console.log(`Génération d'exercices - Sujet: ${sujet}, Classe: ${classe}, Niveau: ${niveau}`);
 
     if (!sujet || !classe || !niveau) {
@@ -76,7 +118,38 @@ Assurez-vous que les exercices:
       }),
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Erreur OpenAI (${response.status}):`, errorText);
+      return new Response(
+        JSON.stringify({ 
+          error: `Erreur API: ${response.status}`,
+          details: errorText
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Parse la réponse
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Erreur lors du parsing de la réponse OpenAI:", jsonError);
+      const rawResponse = await response.text();
+      console.error("Réponse brute:", rawResponse);
+      return new Response(
+        JSON.stringify({ error: "Impossible de parser la réponse de l'API" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
     console.log(`Réponse reçue d'OpenAI, longueur du contenu: ${data.choices[0]?.message?.content?.length || 0}`);
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
@@ -106,7 +179,10 @@ Assurez-vous que les exercices:
   } catch (error) {
     console.error("Erreur dans la fonction generate-exercises:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

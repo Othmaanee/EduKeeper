@@ -19,11 +19,27 @@ export function useXp() {
     try {
       setIsProcessing(true);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      // Vérifier la session utilisateur
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Erreur de session:', sessionError);
+        throw new Error('Session utilisateur non disponible');
+      }
+      
+      if (!session) {
+        console.error('Aucune session utilisateur active');
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour gagner des XP.",
+          variant: "destructive",
+        });
+        return null;
+      }
       
       const userId = session.user.id;
       const xpGained = XP_REWARDS[action];
+      
+      console.log(`Attribution de ${xpGained} XP pour l'action ${action} à l'utilisateur ${userId}`);
       
       // 1. Obtenir les XP actuels de l'utilisateur
       const { data: userData, error: userError } = await supabase
@@ -32,10 +48,15 @@ export function useXp() {
         .eq('id', userId)
         .single();
       
-      if (userError) throw userError;
+      if (userError) {
+        console.error('Erreur lors de la récupération des données utilisateur:', userError);
+        throw userError;
+      }
       
       const oldLevel = userData.level;
       const newXp = userData.xp + xpGained;
+      
+      console.log(`XP précédents: ${userData.xp}, Nouveau total: ${newXp}`);
       
       // 2. Mettre à jour les XP de l'utilisateur
       const { error: updateError } = await supabase
@@ -43,16 +64,22 @@ export function useXp() {
         .update({ xp: newXp })
         .eq('id', userId);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Erreur lors de la mise à jour des XP:', updateError);
+        throw updateError;
+      }
       
-      // 3. Récupérer le niveau après la mise à jour
+      // 3. Récupérer le niveau après la mise à jour (le trigger SQL s'occupera de mettre à jour le niveau)
       const { data: updatedUserData, error: fetchError } = await supabase
         .from('users')
-        .select('level')
+        .select('level, skin')
         .eq('id', userId)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Erreur lors de la récupération des données mises à jour:', fetchError);
+        throw fetchError;
+      }
       
       const newLevel = updatedUserData.level;
       
@@ -66,7 +93,11 @@ export function useXp() {
           xp_gained: xpGained
         }]);
       
-      if (historyError) throw historyError;
+      if (historyError) {
+        console.error('Erreur lors de l\'ajout à l\'historique:', historyError);
+        // Ne pas bloquer le flux pour une erreur d'historique
+        console.warn('L\'historique n\'a pas pu être mis à jour, mais les XP ont été attribués');
+      }
       
       // 5. Afficher un message de félicitations s'il y a eu une montée de niveau
       if (newLevel > oldLevel) {
@@ -83,14 +114,25 @@ export function useXp() {
         });
       }
       
-      return { xpGained, levelUp: newLevel > oldLevel };
+      return { xpGained, levelUp: newLevel > oldLevel, newSkin: updatedUserData.skin };
     } catch (error: any) {
-      console.error('Erreur lors de l\'attribution des XP:', error);
+      console.error('Erreur détaillée lors de l\'attribution des XP:', error);
+      
+      // Gestion plus précise des erreurs
+      let message = "Impossible d'attribuer des XP. Réessayez plus tard.";
+      
+      if (error.message && error.message.includes("duplicate key")) {
+        message = "XP déjà attribués pour cette action.";
+      } else if (error.message && error.message.includes("foreign key")) {
+        message = "Erreur de référence utilisateur.";
+      }
+      
       toast({
         title: "Erreur",
-        description: "Impossible d'attribuer des XP. Réessayez plus tard.",
+        description: message,
         variant: "destructive",
       });
+      
       return null;
     } finally {
       setIsProcessing(false);

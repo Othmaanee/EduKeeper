@@ -28,6 +28,7 @@ serve(async (req) => {
     } = await supabase.auth.getUser();
 
     if (!user) {
+      console.error("Utilisateur non authentifié");
       return new Response(
         JSON.stringify({ error: "Utilisateur non authentifié" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -35,9 +36,21 @@ serve(async (req) => {
     }
 
     // Récupérer les données de la requête
-    const { documentText } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error("Erreur de parsing JSON:", parseError.message);
+      return new Response(
+        JSON.stringify({ error: "Format de requête invalide" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { documentText } = requestData;
 
     if (!documentText || typeof documentText !== "string") {
+      console.error("Texte du document manquant ou invalide", { received: typeof documentText });
       return new Response(
         JSON.stringify({ error: "Texte du document manquant ou invalide" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -82,7 +95,8 @@ serve(async (req) => {
 
     // Logging de la réponse en cas d'erreur
     if (!response.ok) {
-      console.error(`Erreur OpenAI (${response.status}): ${await response.text()}`);
+      const errorText = await response.text();
+      console.error(`Erreur OpenAI (${response.status}):`, errorText);
       return new Response(
         JSON.stringify({ error: `L'API OpenAI a retourné une erreur: ${response.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -90,22 +104,42 @@ serve(async (req) => {
     }
 
     // Traiter la réponse JSON
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Erreur lors du parsing de la réponse OpenAI:", jsonError);
+      const rawResponse = await response.text();
+      console.error("Réponse brute:", rawResponse);
+      return new Response(
+        JSON.stringify({ error: "Impossible de parser la réponse de l'API" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Extraire le texte du résumé de la réponse
     const summaryText = data.choices[0]?.message?.content || "";
+
+    // Extraction de mots-clés simple (à améliorer)
+    const keywords = summaryText
+      .split(' ')
+      .filter(word => word.length > 5)
+      .map(word => word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ""))
+      .filter((value, index, self) => self.indexOf(value) === index)
+      .slice(0, 5);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         summary: summaryText, 
+        keywords: keywords,
         apiUsed: "OpenAI"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    console.error("Erreur:", error.message);
+    console.error("Erreur:", error.message, error.stack);
     return new Response(
       JSON.stringify({ error: `Erreur lors de la génération du résumé: ${error.message}` }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

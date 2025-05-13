@@ -28,7 +28,21 @@ serve(async (req) => {
     }
 
     // Extraire les données de la requête
-    const { sujet, classe, specialite, difficulte } = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      console.error("Erreur de parsing JSON:", parseError.message);
+      return new Response(
+        JSON.stringify({ error: "Format de requête invalide" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const { sujet, classe, specialite, difficulte } = requestData;
 
     if (!sujet || !classe || !difficulte) {
       return new Response(
@@ -96,14 +110,34 @@ serve(async (req) => {
     }
 
     // Traiter la réponse
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Erreur lors du parsing de la réponse OpenAI:", jsonError);
+      const rawResponse = await response.text();
+      console.error("Réponse brute:", rawResponse);
+      return new Response(
+        JSON.stringify({ error: "Impossible de parser la réponse de l'API" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
     const evaluation = data.choices[0]?.message?.content || "Désolé, impossible de générer le contrôle.";
     
     console.log('Réponse reçue d\'OpenAI, longueur du contenu:', evaluation.length);
 
     // Retourner les résultats
     return new Response(
-      JSON.stringify({ evaluation }),
+      JSON.stringify({ 
+        evaluation,
+        sujet,
+        classe,
+        difficulte 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
