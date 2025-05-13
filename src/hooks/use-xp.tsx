@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-type XpAction = 'summarize_document' | 'generate_control' | 'generate_exercises';
+// Définir les actions valides pour respecter la contrainte history_action_type_check
+export type XpAction = 'summarize_document' | 'generate_control' | 'generate_exercises';
 
+// Mapping des récompenses XP en fonction des actions
 const XP_REWARDS = {
   summarize_document: 20,
   generate_control: 40,
@@ -18,6 +20,11 @@ export function useXp() {
   const awardXp = async (action: XpAction, documentName: string = '') => {
     try {
       setIsProcessing(true);
+      
+      // Vérifier que l'action est valide
+      if (!Object.keys(XP_REWARDS).includes(action)) {
+        throw new Error(`Action non valide: ${action}. Actions autorisées: ${Object.keys(XP_REWARDS).join(', ')}`);
+      }
       
       // Vérifier la session utilisateur
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -84,6 +91,7 @@ export function useXp() {
       const newLevel = updatedUserData.level;
       
       // 4. Ajouter l'action à l'historique avec les XP gagnés
+      // Vérifier que action est bien une valeur valide pour l'historique
       const { error: historyError } = await supabase
         .from('history')
         .insert([{
@@ -95,6 +103,7 @@ export function useXp() {
       
       if (historyError) {
         console.error('Erreur lors de l\'ajout à l\'historique:', historyError);
+        console.error('Détail:', historyError.details || historyError.message);
         // Ne pas bloquer le flux pour une erreur d'historique
         console.warn('L\'historique n\'a pas pu être mis à jour, mais les XP ont été attribués');
       }
@@ -121,7 +130,10 @@ export function useXp() {
       // Gestion plus précise des erreurs
       let message = "Impossible d'attribuer des XP. Réessayez plus tard.";
       
-      if (error.message && error.message.includes("duplicate key")) {
+      if (error.message && error.message.includes("check constraint")) {
+        message = "Erreur de contrainte: valeur d'action non valide. Actions autorisées: " + 
+                  Object.keys(XP_REWARDS).join(', ');
+      } else if (error.message && error.message.includes("duplicate key")) {
         message = "XP déjà attribués pour cette action.";
       } else if (error.message && error.message.includes("foreign key")) {
         message = "Erreur de référence utilisateur.";

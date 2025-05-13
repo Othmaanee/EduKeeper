@@ -27,6 +27,28 @@ export function useSummaryGeneration() {
     setKeywords([]);
     
     try {
+      // Récupérer le token d'authentification Supabase
+      let authToken = '';
+      try {
+        const localStorageAuth = window.localStorage.getItem('supabase.auth.token');
+        if (localStorageAuth) {
+          const parsedAuth = JSON.parse(localStorageAuth);
+          authToken = parsedAuth.currentSession?.access_token || '';
+        } else {
+          // Essayer de récupérer via la session active
+          const { data } = await axios.get('/api/get-session');
+          authToken = data?.session?.access_token || '';
+        }
+      } catch (tokenError) {
+        console.error("Erreur lors de la récupération du token:", tokenError);
+      }
+
+      if (!authToken) {
+        throw new Error("Session d'authentification invalide. Veuillez vous reconnecter.");
+      }
+      
+      console.log("Envoi de la demande de résumé à Supabase Edge Function");
+      
       // Utilisation d'axios avec une configuration appropriée
       const response = await axios.post(
         'https://mtbcrbfchoqterxevvft.supabase.co/functions/v1/summarize-document', 
@@ -34,19 +56,23 @@ export function useSummaryGeneration() {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await window.localStorage.getItem('supabase.auth.token')) || ''}`
+            'Authorization': `Bearer ${authToken}`
           }
         }
       );
       
+      console.log("Réponse reçue:", response.status);
+      
       // Vérification explicite de la réponse
       if (!response || !response.data) {
+        console.error("Réponse invalide:", response);
         throw new Error("Réponse invalide du serveur");
       }
       
       const data = response.data;
       
       if (data.error) {
+        console.error("Erreur serveur:", data.error);
         throw new Error(`Erreur serveur: ${data.error}`);
       }
       
@@ -80,6 +106,24 @@ export function useSummaryGeneration() {
           headers: error.response.headers,
           data: error.response.data
         });
+        
+        // Essayer de récupérer le corps d'erreur
+        if (error.response.status === 401) {
+          setError("Erreur d'authentification. Veuillez vous reconnecter.");
+          toast({
+            title: "Erreur d'authentification",
+            description: "Votre session a expiré. Veuillez vous reconnecter.",
+            variant: "destructive",
+          });
+          return null;
+        }
+        
+        try {
+          const responseText = JSON.stringify(error.response.data);
+          console.error("Texte de réponse:", responseText);
+        } catch (e) {
+          console.error("Impossible de parser la réponse");
+        }
       }
       
       const errorMessage = error.message || "Erreur inconnue lors de la génération du résumé.";

@@ -15,17 +15,30 @@ serve(async (req) => {
 
   try {
     // Créer un client Supabase pour accéder aux fonctionnalités protégées
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    
+    // Log pour débogage
+    console.log("Auth Header:", authHeader ? "Present" : "Missing");
+    
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader || "" } } }
     );
 
     // Vérifier que l'utilisateur est authentifié
     const {
       data: { user },
+      error: authError
     } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Erreur d'authentification:", authError.message);
+      return new Response(
+        JSON.stringify({ error: "Erreur d'authentification", details: authError.message }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!user) {
       console.error("Utilisateur non authentifié");
@@ -98,7 +111,7 @@ serve(async (req) => {
       const errorText = await response.text();
       console.error(`Erreur OpenAI (${response.status}):`, errorText);
       return new Response(
-        JSON.stringify({ error: `L'API OpenAI a retourné une erreur: ${response.status}` }),
+        JSON.stringify({ error: `L'API OpenAI a retourné une erreur: ${response.status}`, details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
