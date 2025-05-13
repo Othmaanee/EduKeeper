@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -188,13 +187,26 @@ const ExercisesPage = () => {
       }
 
       setGeneratedContent(response.data.exercices);
+      
+      // Afficher le toast de succès AVANT d'attribuer l'XP
       toast({
         title: "Succès",
         description: "Exercices générés avec succès",
       });
       
-      // Utiliser "génération" au lieu de "generate_exercises" pour respecter les contraintes de la base de données
-      await awardXp('generate_exercises', `Exercices: ${sujet}`);
+      // Attribuer des XP avec des informations plus détaillées
+      console.log("Avant awardXp - tentative d'attribuer des XP pour la génération d'exercices");
+      const xpResult = await awardXp('generate_exercises', `Exercices: ${sujet}`);
+      console.log("Résultat awardXp:", xpResult);
+      
+      // Afficher un toast spécifique pour l'XP gagné si succès
+      if (xpResult && xpResult.success) {
+        toast({
+          title: "XP Gagnés",
+          description: `Vous avez gagné ${xpResult.xpAwarded} XP pour avoir généré des exercices`,
+          className: "bg-amber-100 border-amber-300"
+        });
+      }
     } catch (error) {
       console.error('Error generating exercises:', error);
       toast({

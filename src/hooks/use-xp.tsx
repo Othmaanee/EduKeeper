@@ -27,6 +27,7 @@ export function useXp() {
    * @param documentName Nom du document ou de l'objet concerné
    */
   const awardXp = async (actionType: ActionType, documentName: string) => {
+    console.log(`awardXp appelé avec: ${actionType}, ${documentName}`);
     try {
       setIsAwarding(true);
       
@@ -34,11 +35,13 @@ export function useXp() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.log("Utilisateur non connecté, XP non attribuée");
-        return;
+        return { success: false, error: "Utilisateur non connecté" };
       }
       
       const userId = session.user.id;
       const xpAmount = XP_VALUES[actionType] || 0;
+      
+      console.log(`Utilisateur: ${userId}, XP à attribuer: ${xpAmount}`);
       
       // Récupérer le niveau et l'XP actuel de l'utilisateur
       const { data: userData, error: userError } = await supabase
@@ -47,13 +50,20 @@ export function useXp() {
         .eq('id', userId)
         .single();
         
-      if (userError) throw userError;
+      if (userError) {
+        console.error("Erreur lors de la récupération des données utilisateur:", userError);
+        throw userError;
+      }
+      
+      console.log(`Données utilisateur récupérées:`, userData);
       
       // Calculer la nouvelle XP et le nouveau niveau
       const newXp = (userData.xp || 0) + xpAmount;
       
       // Formule simple de calcul de niveau : niveau = racine carrée de xp/100 arrondie à l'entier inférieur + 1
       const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
+      
+      console.log(`Nouvelle XP: ${newXp}, Nouveau niveau: ${newLevel}`);
       
       // 1. Mettre à jour les XP utilisateur
       const { error: userUpdateError } = await supabase
@@ -64,7 +74,10 @@ export function useXp() {
         })
         .eq('id', userId);
         
-      if (userUpdateError) throw userUpdateError;
+      if (userUpdateError) {
+        console.error("Erreur lors de la mise à jour des XP:", userUpdateError);
+        throw userUpdateError;
+      }
       
       // 2. Ajouter une entrée dans l'historique
       // Convertir actionType à une valeur acceptée par la contrainte de la base de données
@@ -106,10 +119,14 @@ export function useXp() {
           xp_gained: xpAmount
         });
         
-      if (historyError) throw historyError;
+      if (historyError) {
+        console.error("Erreur lors de l'ajout dans l'historique:", historyError);
+        throw historyError;
+      }
       
       // Montrer un toast de félicitations si le niveau a augmenté
       if (newLevel > userData.level) {
+        console.log(`Niveau augmenté! ${userData.level} -> ${newLevel}`);
         toast({
           title: `Niveau ${newLevel} atteint !`,
           description: `Félicitations ! Vous avez atteint le niveau ${newLevel}.`,
