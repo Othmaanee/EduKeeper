@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 // Définition des actions valides pour l'historique
-const VALID_ACTION_TYPES = [
+export const VALID_ACTION_TYPES = [
   'summarize_document',
   'generate_control',
   'generate_exercises',
@@ -13,7 +13,7 @@ const VALID_ACTION_TYPES = [
 ];
 
 // Mapping des XP par type d'action
-const XP_VALUES = {
+export const XP_VALUES = {
   'summarize_document': 20,
   'generate_control': 40,
   'generate_exercises': 30,
@@ -28,9 +28,9 @@ export function useXp() {
   /**
    * Attribue des points d'expérience à l'utilisateur et enregistre l'action dans l'historique
    * @param actionType Le type d'action (doit correspondre aux contraintes de la table history)
-   * @param description Description de l'action pour l'historique
+   * @param documentName Nom du document pour l'historique
    */
-  const awardXp = async (actionType: string, description: string) => {
+  const awardXp = async (actionType: string, documentName: string = 'Document') => {
     setIsLoading(true);
 
     try {
@@ -54,7 +54,6 @@ export function useXp() {
         .from('users')
         .update({ 
           xp: supabase.rpc('increment', { value: xpAmount }),
-          // Vérifier automatiquement si un level up est nécessaire via une fonction SQL
           level: supabase.rpc('calculate_level', { current_xp: supabase.rpc('get_user_xp', { user_id_param: userId }) })
         })
         .eq('id', userId);
@@ -70,8 +69,8 @@ export function useXp() {
         .insert({
           user_id: userId,
           action_type: actionType,
-          description: description,
-          xp_earned: xpAmount
+          document_name: documentName,
+          xp_gained: xpAmount
         });
 
       if (historyError) {
