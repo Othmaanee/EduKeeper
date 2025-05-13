@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { HistoryItem } from './types';
-import { Loader2, BookOpenCheck, FileText, Rocket, Trophy } from 'lucide-react';
+import { Loader2, BookOpenCheck, FileText, Rocket, Trophy, Trash } from 'lucide-react';
 
 const HistoryList = () => {
   const [userId, setUserId] = useState<string | null>(null);
@@ -123,5 +124,3 @@ const HistoryList = () => {
 };
 
 export default HistoryList;
-
-import { Trash } from "lucide-react";

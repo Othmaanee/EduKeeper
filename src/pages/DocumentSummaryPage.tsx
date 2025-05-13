@@ -17,7 +17,7 @@ export function DocumentSummaryPage() {
   const [documentText, setDocumentText] = useState<string>('');
   const [textInput, setTextInput] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [inputMethod, setInputMethod] = useState<'text' | 'file' | 'document'>('text');
+  const [inputMethod, setInputMethod] = useState<'text' | 'upload' | 'select'>('text');
   const [userData, setUserData] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [userLoading, setUserLoading] = useState<boolean>(true);
@@ -111,9 +111,9 @@ export function DocumentSummaryPage() {
     
     if (inputMethod === 'text') {
       textToSummarize = textInput;
-    } else if (inputMethod === 'document' && documentText) {
+    } else if (inputMethod === 'select' && documentText) {
       textToSummarize = documentText;
-    } else if (inputMethod === 'file' && uploadedFile) {
+    } else if (inputMethod === 'upload' && uploadedFile) {
       // Cette fonctionnalité nécessiterait un traitement de fichier côté serveur
       // Pour l'instant, nous utilisons juste le nom du fichier comme placeholder
       textToSummarize = `Contenu du fichier ${uploadedFile.name}`;
@@ -130,7 +130,7 @@ export function DocumentSummaryPage() {
   };
 
   // Fonction pour traiter le téléchargement de fichier
-  const handleFileUpload = (file: File) => {
+  const handleFileUpload = async (file: File) => {
     setUploadedFile(file);
     // Ici, on pourrait ajouter une logique pour extraire le texte du fichier
   };
