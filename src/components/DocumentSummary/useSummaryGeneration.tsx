@@ -82,7 +82,8 @@ export function useSummaryGeneration() {
         
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
-          await awardXp('summarize_document', 'Résumé de document');
+          // Modifier "summarize_document" à "generate_summary" pour correspondre aux types définis
+          await awardXp('generate_summary', 'Résumé de document');
           
           // Afficher un toast de confirmation avec l'XP gagnée
           toast({

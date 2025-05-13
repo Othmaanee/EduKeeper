@@ -14,6 +14,9 @@ const XP_VALUES = {
   create_category: 15
 };
 
+// Définir le type pour les clés de XP_VALUES
+export type ActionType = keyof typeof XP_VALUES;
+
 export function useXp() {
   const [isAwarding, setIsAwarding] = useState(false);
   const { toast } = useToast();
@@ -23,7 +26,7 @@ export function useXp() {
    * @param actionType Type d'action réalisée
    * @param documentName Nom du document ou de l'objet concerné
    */
-  const awardXp = async (actionType: keyof typeof XP_VALUES, documentName: string) => {
+  const awardXp = async (actionType: ActionType, documentName: string) => {
     try {
       setIsAwarding(true);
       
