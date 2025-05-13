@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
+import { UserLevel } from './UserLevel';
 
 export function Dashboard() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export function Dashboard() {
       // Récupérer les informations complètes de l'utilisateur
       const { data, error } = await supabase
         .from('users')
-        .select('prenom, nom')
+        .select('prenom, nom, xp, level, skin')
         .eq('id', session.user.id)
         .single();
         
@@ -120,6 +121,14 @@ export function Dashboard() {
 
   const isLoading = userLoading || categoriesLoading;
 
+  // Récupérer le skin de l'utilisateur et l'appliquer à la page
+  useEffect(() => {
+    if (userData?.skin) {
+      document.documentElement.classList.remove('skin-base', 'skin-avance');
+      document.documentElement.classList.add(`skin-${userData.skin}`);
+    }
+  }, [userData?.skin]);
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Section */}
@@ -135,7 +144,18 @@ export function Dashboard() {
               <>Bonjour, {userName || "utilisateur"}</>
             )}
           </h1>
-          <p className="mt-2 text-white/90 max-w-xl">
+          
+          {/* User Level and XP (New) */}
+          {!isLoading && userData && (
+            <div className="mt-4 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+              <UserLevel 
+                xp={userData.xp} 
+                level={userData.level} 
+              />
+            </div>
+          )}
+          
+          <p className="mt-4 text-white/90 max-w-xl">
             Bienvenue dans votre espace de ressources éducatives. Vous pouvez organiser, consulter et partager tous vos documents pédagogiques.
           </p>
           

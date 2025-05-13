@@ -96,6 +96,7 @@ export type Database = {
           document_name: string
           id: string
           user_id: string
+          xp_gained: number | null
         }
         Insert: {
           action_type: string
@@ -103,6 +104,7 @@ export type Database = {
           document_name: string
           id?: string
           user_id: string
+          xp_gained?: number | null
         }
         Update: {
           action_type?: string
@@ -110,6 +112,7 @@ export type Database = {
           document_name?: string
           id?: string
           user_id?: string
+          xp_gained?: number | null
         }
         Relationships: []
       }
@@ -188,9 +191,12 @@ export type Database = {
           date_naissance: string | null
           email: string
           id: string
+          level: number
           nom: string
           prenom: string | null
           role: string
+          skin: string
+          xp: number
         }
         Insert: {
           classe?: string | null
@@ -198,9 +204,12 @@ export type Database = {
           date_naissance?: string | null
           email: string
           id: string
+          level?: number
           nom: string
           prenom?: string | null
           role?: string
+          skin?: string
+          xp?: number
         }
         Update: {
           classe?: string | null
@@ -208,9 +217,12 @@ export type Database = {
           date_naissance?: string | null
           email?: string
           id?: string
+          level?: number
           nom?: string
           prenom?: string | null
           role?: string
+          skin?: string
+          xp?: number
         }
         Relationships: []
       }

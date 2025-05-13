@@ -34,6 +34,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
+import { useXp } from '@/hooks/use-xp';
 
 // Styles pour l'export PDF - maintenant inline dans un objet JavaScript
 const pdfExportStyles = {
@@ -89,6 +90,7 @@ const ExercisesPage = () => {
   const [userRole, setUserRole] = useState<string>('user');
   const exercisesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { awardXp } = useXp();
 
   // Ajout des styles pour PDF au montage du composant
   useEffect(() => {
@@ -159,7 +161,9 @@ const ExercisesPage = () => {
     fetchUserDocuments();
   }, [toast]);
 
-  const handleGenerateExercises = async () => {
+  const handleGenerateExercises = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!sujet.trim()) {
       toast({
         title: "Erreur",
@@ -187,6 +191,9 @@ const ExercisesPage = () => {
         title: "Succès",
         description: "Exercices générés avec succès",
       });
+      
+      // Ajouter des XP lorsque des exercices sont générés avec succès
+      await awardXp('generate_exercises', `Exercices: ${sujet}`);
     } catch (error) {
       console.error('Error generating exercises:', error);
       toast({

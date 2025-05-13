@@ -28,6 +28,7 @@ export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('user');
+  const [userSkin, setUserSkin] = useState<string>('base');
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
@@ -41,7 +42,7 @@ export function Layout({ children }: LayoutProps) {
     { label: 'Catégories', icon: FolderOpenIcon, path: '/categories', showOrder: 3 },
     { label: 'Résumer un Document', icon: FileSearch, path: '/summarize-document', showOrder: 4 },
     { label: 'Importer', icon: Upload, path: '/upload', showOrder: 5 },
-    { label: 'Générer un cours', icon: BookText, path: '/generate', showOrder: 6 },
+    { label: 'Générer un contrôle', icon: BookText, path: '/generate', showOrder: 6 },
     { label: 'Historique', icon: History, path: '/historique', showOrder: 7 },
     { label: 'Générer des exercices', icon: Pencil, path: '/exercises', showOrder: 8 }
   ];
@@ -51,7 +52,7 @@ export function Layout({ children }: LayoutProps) {
       setUser(session?.user || null);
       
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        fetchUserInfo(session.user.id);
       } else {
         setLoading(false);
         if (location.pathname !== '/login') {
@@ -64,9 +65,10 @@ export function Layout({ children }: LayoutProps) {
       setUser(session?.user || null);
       
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        fetchUserInfo(session.user.id);
       } else {
         setUserRole('user');
+        setUserSkin('base');
         setLoading(false);
         if (location.pathname !== '/login') {
           navigate('/login');
@@ -79,24 +81,26 @@ export function Layout({ children }: LayoutProps) {
     };
   }, [navigate, location.pathname]);
   
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserInfo = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('role')
+        .select('role, skin')
         .eq('id', userId)
         .single();
       
       if (error) {
-        console.error("Error fetching user role:", error);
+        console.error("Error fetching user info:", error);
         setUserRole('user');
+        setUserSkin('base');
       } else if (data) {
         setUserRole(data.role);
+        setUserSkin(data.skin || 'base');
       }
       
       setLoading(false);
     } catch (error) {
-      console.error("Failed to fetch user role:", error);
+      console.error("Failed to fetch user info:", error);
       setLoading(false);
     }
   };
@@ -129,6 +133,14 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
+  // Appliquer le skin en fonction du niveau de l'utilisateur
+  useEffect(() => {
+    if (userSkin) {
+      document.documentElement.classList.remove('skin-base', 'skin-avance');
+      document.documentElement.classList.add(`skin-${userSkin}`);
+    }
+  }, [userSkin]);
+
   if (loading) {
     return null;
   }
@@ -155,7 +167,7 @@ export function Layout({ children }: LayoutProps) {
     .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99));
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className={cn("min-h-screen flex bg-background", `skin-${userSkin}`)}>
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

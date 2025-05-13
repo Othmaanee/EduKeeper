@@ -1,171 +1,127 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { 
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell 
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, History, FileText, Trash2, BookOpen, PenTool, BookOpen as BookIcon } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { HistoryItem } from './types';
+import { Loader2, BookOpenCheck, FileText, Rocket, Trophy } from 'lucide-react';
 
-type HistoryItem = {
-  id: string;
-  action_type: string;
-  document_name: string;
-  created_at: string;
-};
-
-// Traduction et personnalisation des types d'actions
-const translateActionType = (actionType: string): string => {
-  const translations: Record<string, string> = {
-    'import': 'Document importé',
-    'suppression': 'Document supprimé',
-    'summary': 'Résumé généré',
-    'generate_course': 'Cours généré',
-    'generate_exercises': 'Exercices générés',
-    'résumé': 'Résumé généré',
-    'génération': 'Cours généré',
-    'exercice': 'Exercices générés'
-  };
+const HistoryList = () => {
+  const [userId, setUserId] = useState<string | null>(null);
   
-  return translations[actionType] || actionType;
-};
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
+    };
+    
+    fetchUserId();
+  }, []);
 
-// Obtenir l'icône correspondant au type d'action
-const getActionIcon = (actionType: string): React.ReactNode => {
-  switch(actionType) {
-    case 'import':
-      return <FileText className="h-4 w-4 text-blue-500" />;
-    case 'suppression':
-      return <Trash2 className="h-4 w-4 text-red-500" />;
-    case 'summary':
-    case 'résumé':
-      return <BookIcon className="h-4 w-4 text-purple-500" />;
-    case 'generate_course':
-    case 'génération':
-      return <BookOpen className="h-4 w-4 text-green-500" />;
-    case 'generate_exercises':
-    case 'exercice':
-      return <PenTool className="h-4 w-4 text-orange-500" />;
-    default:
-      return <History className="h-4 w-4 text-gray-500" />;
-  }
-};
-
-// Obtenir la couleur du badge selon le type d'action
-const getActionBadgeVariant = (actionType: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch(actionType) {
-    case 'import':
-      return "default";
-    case 'suppression':
-      return "destructive";
-    case 'summary':
-    case 'résumé':
-      return "secondary";
-    case 'generate_course':
-    case 'génération':
-    case 'generate_exercises':
-    case 'exercice':
-      return "outline";
-    default:
-      return "default";
-  }
-};
-
-export const HistoryList: React.FC = () => {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['history'],
+  const { data: history, isLoading, error } = useQuery({
+    queryKey: ['history', userId],
     queryFn: async () => {
-      console.log("🔍 Récupération de l'historique");
+      if (!userId) return [];
       
       const { data, error } = await supabase
         .from('history')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error("❌ Erreur lors de la récupération de l'historique:", error);
+        console.error("Erreur lors de la récupération de l'historique:", error);
         throw error;
       }
       
-      console.log("📋 Historique récupéré:", data?.length || 0, "entrées");
       return data as HistoryItem[];
     },
-    refetchOnMount: true, // Forcer le rechargement à chaque montage du composant
-    refetchOnWindowFocus: true // Recharger quand la fenêtre regagne le focus
+    enabled: !!userId, // Activer la requête seulement si userId est disponible
   });
   
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="flex items-center space-x-4">
-            <Skeleton className="h-12 w-full" />
-          </div>
-        ))}
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="ml-2">Chargement de l'historique...</span>
       </div>
     );
   }
   
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Une erreur est survenue lors du chargement de l'historique.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (!data || data.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <History className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">Aucune action enregistrée</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Vos activités récentes apparaîtront ici dès que vous commencerez à utiliser l'application.
-        </p>
+      <div className="text-red-500 py-4">
+        Erreur lors du chargement de l'historique.
       </div>
     );
   }
   
+  if (!history || history.length === 0) {
+    return (
+      <div className="text-muted-foreground py-4">
+        Aucune action enregistrée dans l'historique.
+      </div>
+    );
+  }
+  
+  const renderHistoryItem = (item: HistoryItem) => {
+    let icon = null;
+    let description = '';
+    
+    switch (item.action_type) {
+      case 'summarize_document':
+        icon = <FileText className="h-4 w-4 mr-2 text-blue-500" />;
+        description = `Résumé du document : ${item.document_name}`;
+        break;
+      case 'generate_control':
+        icon = <BookOpenCheck className="h-4 w-4 mr-2 text-green-500" />;
+        description = `Génération du contrôle : ${item.document_name}`;
+        break;
+      case 'generate_exercises':
+        icon = <Rocket className="h-4 w-4 mr-2 text-purple-500" />;
+        description = `Génération d'exercices : ${item.document_name}`;
+        break;
+      case 'suppression':
+        icon = <Trash className="h-4 w-4 mr-2 text-red-500" />;
+        description = `Suppression du document : ${item.document_name}`;
+        break;
+      default:
+        icon = <FileText className="h-4 w-4 mr-2 text-gray-500" />;
+        description = `Action inconnue : ${item.action_type} - ${item.document_name}`;
+        break;
+    }
+    
+    return (
+      <div key={item.id} className="flex items-start py-3 border-b border-gray-100">
+        {icon}
+        <div className="flex-1">
+          <div className="text-sm font-medium">{description}</div>
+          <div className="text-xs text-muted-foreground">
+            {new Date(item.created_at).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: 'numeric',
+            })}
+          </div>
+        </div>
+        
+        {item.xp_gained > 0 && (
+          <div className="ml-auto flex items-center text-amber-500 text-sm font-medium">
+            <Trophy className="h-4 w-4 mr-1" />
+            +{item.xp_gained} XP
+          </div>
+        )}
+      </div>
+    );
+  };
+  
   return (
-    <div className="space-y-6">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[180px]">Date et heure</TableHead>
-            <TableHead className="w-[200px]">Action</TableHead>
-            <TableHead>Détail</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data && data.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="font-medium">
-                {format(new Date(item.created_at), 'dd MMMM yyyy - HH:mm', { locale: fr })}
-              </TableCell>
-              <TableCell>
-                <Badge variant={getActionBadgeVariant(item.action_type)} className="flex items-center gap-2 w-fit">
-                  {getActionIcon(item.action_type)}
-                  <span>{translateActionType(item.action_type)}</span>
-                </Badge>
-              </TableCell>
-              <TableCell>{item.document_name}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div>
+      {history.map(item => renderHistoryItem(item))}
     </div>
   );
 };
+
+export default HistoryList;
+
+import { Trash } from "lucide-react";
