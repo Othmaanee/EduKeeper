@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { SkinItem } from './SkinItem';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Loader2 } from 'lucide-react';
+import { useXPStore } from '@/store/xpStore';
 
 // Définition des types de skins disponibles
 export const SKINS = [
@@ -20,6 +21,7 @@ export function SkinsList() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { xp, level, fetchUserXP } = useXPStore();
 
   useEffect(() => {
     async function getUserData() {
@@ -34,16 +36,23 @@ export function SkinsList() {
           return;
         }
         
-        // Récupérer les données utilisateur
+        // Charger les XP et niveau depuis le store global
+        await fetchUserXP();
+        
+        // Récupérer le skin actuel de l'utilisateur
         const { data: userData, error } = await supabase
           .from('users')
-          .select('id, xp, level, skin')
+          .select('id, skin')
           .eq('id', session.user.id)
           .single();
           
         if (error) throw error;
         
-        setCurrentUser(userData);
+        setCurrentUser({
+          ...userData,
+          xp, // Utiliser les données du store global
+          level // Utiliser les données du store global
+        });
       } catch (error: any) {
         console.error('Erreur lors du chargement des données utilisateur:', error);
         toast({
@@ -57,7 +66,7 @@ export function SkinsList() {
     }
     
     getUserData();
-  }, [toast]);
+  }, [toast, fetchUserXP, xp, level]);
 
   return (
     <div className="space-y-6 mx-auto max-w-4xl">

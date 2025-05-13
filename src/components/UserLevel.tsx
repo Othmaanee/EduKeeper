@@ -1,17 +1,22 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useXPStore } from '@/store/xpStore';
 
 interface UserLevelProps {
-  xp: number;
-  level: number;
   className?: string;
 }
 
-export function UserLevel({ xp, level, className }: UserLevelProps) {
+export function UserLevel({ className }: UserLevelProps) {
+  const { xp, level, isLoading, fetchUserXP } = useXPStore();
+  
+  useEffect(() => {
+    fetchUserXP();
+  }, [fetchUserXP]);
+  
   // Calcul des XP dans le niveau actuel et de la progression vers le prochain niveau
   const xpInCurrentLevel = xp % 100;
   const progressPercentage = xpInCurrentLevel;
@@ -23,6 +28,18 @@ export function UserLevel({ xp, level, className }: UserLevelProps) {
     if (xpInCurrentLevel < 75) return "Tu avances bien !";
     return "Presque au niveau suivant !";
   };
+
+  if (isLoading) {
+    return (
+      <div className={cn("space-y-2", className)}>
+        <div className="flex items-center">
+          <Trophy className="h-5 w-5 text-amber-500" />
+          <div className="font-medium ml-2">Chargement...</div>
+        </div>
+        <Progress value={0} className="h-2" />
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-2", className)}>

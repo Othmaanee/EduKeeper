@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Upload, CheckCircle, FileText, Lightbulb, Zap } from 'lucide-react';
 import { Button } from './ui/button';
@@ -184,14 +183,9 @@ export function Dashboard() {
           </h1>
           
           {/* User Level and XP */}
-          {!isLoading && userData && (
-            <div className="mt-4 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-              <UserLevel 
-                xp={userData.xp} 
-                level={userData.level} 
-              />
-            </div>
-          )}
+          <div className="mt-4 bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+            <UserLevel />
+          </div>
           
           <p className="mt-4 text-white/90 max-w-xl">
             Bienvenue dans votre espace de ressources éducatives. Vous pouvez organiser, consulter et partager tous vos documents pédagogiques.

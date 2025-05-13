@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useXPStore } from "@/store/xpStore";
 
 // Définir la structure des valeurs XP pour différentes actions
 const XP_VALUES = {
@@ -20,6 +21,7 @@ export type ActionType = keyof typeof XP_VALUES;
 export function useXp() {
   const [isAwarding, setIsAwarding] = useState(false);
   const { toast } = useToast();
+  const updateXP = useXPStore(state => state.updateXP);
 
   /**
    * Attribuer de l'XP à l'utilisateur pour une action spécifique
@@ -124,6 +126,9 @@ export function useXp() {
         throw historyError;
       }
       
+      // Mettre à jour le store global XP
+      updateXP(newXp, newLevel);
+      
       // Montrer un toast de félicitations si le niveau a augmenté
       if (newLevel > userData.level) {
         console.log(`Niveau augmenté! ${userData.level} -> ${newLevel}`);
@@ -131,6 +136,13 @@ export function useXp() {
           title: `Niveau ${newLevel} atteint !`,
           description: `Félicitations ! Vous avez atteint le niveau ${newLevel}.`,
           className: "bg-amber-500 text-white"
+        });
+      } else {
+        // Afficher un toast pour indiquer les XP gagnés même si le niveau n'a pas changé
+        toast({
+          title: `+${xpAmount} XP`,
+          description: `Vous avez gagné ${xpAmount} XP pour cette action !`,
+          className: "bg-blue-100 border-blue-300"
         });
       }
       
