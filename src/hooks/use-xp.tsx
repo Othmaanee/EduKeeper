@@ -67,11 +67,41 @@ export function useXp() {
       if (userUpdateError) throw userUpdateError;
       
       // 2. Ajouter une entrée dans l'historique
+      // Convertir actionType à une valeur acceptée par la contrainte de la base de données
+      // Remplaçons les '_' par des espaces pour correspondre à la contrainte 'génération' au lieu de 'generate_exercises'
+      let historyActionType: string;
+      
+      switch (actionType) {
+        case 'generate_exercises':
+          historyActionType = 'génération';
+          break;
+        case 'generate_summary':
+          historyActionType = 'génération';
+          break;
+        case 'generate_control':
+          historyActionType = 'génération';
+          break;
+        case 'document_upload':
+          historyActionType = 'upload';
+          break;
+        case 'document_view':
+          historyActionType = 'consultation';
+          break;
+        case 'document_share':
+          historyActionType = 'partage';
+          break;
+        case 'create_category':
+          historyActionType = 'organisation';
+          break;
+        default:
+          historyActionType = 'action';
+      }
+      
       const { error: historyError } = await supabase
         .from('history')
         .insert({
           user_id: userId,
-          action_type: actionType,
+          action_type: historyActionType,
           document_name: documentName,
           xp_gained: xpAmount
         });

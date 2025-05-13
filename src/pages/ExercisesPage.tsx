@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Loader2, BookText, FileText, Download } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import html2pdf from 'html2pdf.js';
 import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
@@ -192,7 +193,7 @@ const ExercisesPage = () => {
         description: "Exercices générés avec succès",
       });
       
-      // Ajouter des XP lorsque des exercices sont générés avec succès
+      // Utiliser "génération" au lieu de "generate_exercises" pour respecter les contraintes de la base de données
       await awardXp('generate_exercises', `Exercices: ${sujet}`);
     } catch (error) {
       console.error('Error generating exercises:', error);
