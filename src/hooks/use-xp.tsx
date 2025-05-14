@@ -134,3 +134,4 @@ export const useXP = () => {
 
 // Add an alias for the hook with the lowercase 'p'
 export const useXp = useXP;
+
