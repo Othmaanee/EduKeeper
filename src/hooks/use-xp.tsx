@@ -5,7 +5,6 @@ import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useXPStore } from "@/store/xpStore";
 
-// Define the allowed XP action types
 type XpActionType = 
   | 'document_upload'
   | 'generate_exercises'
@@ -14,21 +13,8 @@ type XpActionType =
   | 'comment'
   | 'chat_completion'
   | 'share_document'
-  | 'generate_control'
-  | 'document_view'
-  | 'document_share';
+  | 'generate_control';  // Ajout du type manquant
 
-// Define the response type from the RPC function
-interface AwardXpResponse {
-  success: boolean;
-  xp_added?: number;
-  new_xp?: number;
-  old_level?: number;
-  new_level?: number;
-  level_up?: boolean;
-}
-
-// Return type of the useXp hook
 interface UseXpReturn {
   awardXp: (actionType: XpActionType, actionDescription?: string) => Promise<{ 
     success: boolean;
@@ -42,7 +28,7 @@ interface UseXpReturn {
 export const useXp = (): UseXpReturn => {
   const { toast } = useToast();
   const [gainedXp, setGainedXp] = useState<number | null>(null);
-  const { updateXP, fetchUserXP } = useXPStore();
+  const { setXp, incrementXp } = useXPStore();
 
   // Fonction pour récupérer les XP de l'utilisateur depuis Supabase
   const fetchUserXp = useCallback(async () => {
@@ -62,6 +48,7 @@ export const useXp = (): UseXpReturn => {
       }
 
       if (data) {
+        setXp(data.xp);
         return data.xp;
       }
 
@@ -70,12 +57,12 @@ export const useXp = (): UseXpReturn => {
       console.error("Exception lors de la récupération des XP:", error);
       return null;
     }
-  }, []);
+  }, [setXp]);
 
   // Synchroniser le store local avec la base de données au chargement
   useEffect(() => {
-    fetchUserXP();
-  }, [fetchUserXP]);
+    fetchUserXp();
+  }, [fetchUserXp]);
 
   // Fonction pour attribuer des XP à l'utilisateur
   const awardXp = useCallback(async (
@@ -94,9 +81,7 @@ export const useXp = (): UseXpReturn => {
         comment: 2,
         chat_completion: 3,
         share_document: 5,
-        generate_control: 40,
-        document_view: 1,
-        document_share: 3
+        generate_control: 40  // Ajout de la nouvelle action
       };
 
       // Déterminer le montant d'XP à attribuer
@@ -114,7 +99,8 @@ export const useXp = (): UseXpReturn => {
         return { success: false, error: "Non authentifié" };
       }
 
-      // Mettre à jour localement les XP avant l'enregistrement en base
+      // Incrémenter localement les XP avant l'enregistrement en base
+      incrementXp(xpToAward);
       setGainedXp(xpToAward);
       
       console.log(`Tentative d'attribution de ${xpToAward} XP à l'utilisateur ${session.user.id}`);
@@ -142,19 +128,10 @@ export const useXp = (): UseXpReturn => {
         };
       }
 
-      // Typage correct de la réponse
-      const response = data as AwardXpResponse;
-      
       // Supposons que la fonction renvoie la nouvelle valeur XP
-      const newXpValue = response.new_xp || null;
-      const newLevelValue = response.new_level || 1;
+      const newXpValue = data?.new_xp || null;
       
       console.log(`XP attribués avec succès: ${xpToAward}, nouvelle valeur: ${newXpValue}`);
-
-      // Mettre à jour le store XP avec les nouvelles valeurs
-      if (newXpValue !== null && newLevelValue !== null) {
-        updateXP(newXpValue, newLevelValue);
-      }
 
       toast({
         title: `Félicitations! Vous avez gagné ${xpToAward} points d'expérience!`,
@@ -164,18 +141,18 @@ export const useXp = (): UseXpReturn => {
       });
 
       // Re-synchroniser avec la base de données après attribution
-      await fetchUserXP();
+      const updatedXp = await fetchUserXp();
 
       return { 
         success: true, 
         xpAwarded: xpToAward, 
-        newXp: newXpValue as number | undefined 
+        newXp: updatedXp || newXpValue 
       };
     } catch (error: any) {
       console.error("Erreur lors de l'attribution des XP:", error);
       return { success: false, error: error.message };
     }
-  }, [updateXP, toast, fetchUserXP]);
+  }, [incrementXp, toast, fetchUserXp]);
 
   return {
     awardXp,
