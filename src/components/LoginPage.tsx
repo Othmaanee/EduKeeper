@@ -8,10 +8,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [nom, setNom] = useState('');
+  const [classe, setClasse] = useState('');
+  const [etablissement, setEtablissement] = useState('');
+  const [dateNaissance, setDateNaissance] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   const navigate = useNavigate();
@@ -83,17 +89,29 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Validation de base pour les champs requis
+    if (!prenom || !nom || !classe || !etablissement || !dateNaissance) {
+      toast({
+        title: "Champs manquants",
+        description: "Veuillez remplir tous les champs obligatoires",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Ajouter les métadonnées nécessaires (pour le trigger handle_new_user)
+          // Ajouter les métadonnées nécessaires pour le trigger handle_new_user
           data: {
-            nom: email.split('@')[0],  // Valeur par défaut basée sur l'email
-            prenom: '',
-            classe: 'eleve',
-            date_naissance: new Date().toISOString().split('T')[0],
+            nom: nom,
+            prenom: prenom,
+            classe: classe,
+            etablissement: etablissement,
+            date_naissance: dateNaissance,
           }
         }
       });
@@ -178,7 +196,7 @@ const LoginPage = () => {
             <form onSubmit={handleSignUp}>
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-email">Email *</Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -189,13 +207,69 @@ const LoginPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Mot de passe</Label>
+                  <Label htmlFor="signup-password">Mot de passe *</Label>
                   <Input
                     id="signup-password"
                     type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-prenom">Prénom *</Label>
+                    <Input
+                      id="signup-prenom"
+                      type="text"
+                      placeholder="Prénom"
+                      value={prenom}
+                      onChange={(e) => setPrenom(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-nom">Nom *</Label>
+                    <Input
+                      id="signup-nom"
+                      type="text"
+                      placeholder="Nom"
+                      value={nom}
+                      onChange={(e) => setNom(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-classe">Classe *</Label>
+                  <Input
+                    id="signup-classe"
+                    type="text"
+                    placeholder="Exemple: 3ème, Terminale, BTS..."
+                    value={classe}
+                    onChange={(e) => setClasse(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-etablissement">Établissement *</Label>
+                  <Input
+                    id="signup-etablissement"
+                    type="text"
+                    placeholder="Nom de votre établissement"
+                    value={etablissement}
+                    onChange={(e) => setEtablissement(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-date">Date de naissance *</Label>
+                  <Input
+                    id="signup-date"
+                    type="date"
+                    value={dateNaissance}
+                    onChange={(e) => setDateNaissance(e.target.value)}
                     required
                   />
                 </div>

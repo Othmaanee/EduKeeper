@@ -1,13 +1,20 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DemoRequestDialog } from '@/components/DemoRequestDialog';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const LandingPage = () => {
   const [isDemoDialogOpen, setIsDemoDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   const openDemoDialog = () => {
     setIsDemoDialogOpen(true);
+  };
+
+  // Fonction pour rediriger vers la page de login
+  const redirectToLogin = () => {
+    navigate('/login');
   };
 
   return (
@@ -27,7 +34,7 @@ const LandingPage = () => {
           <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
             Connexion
           </Link>
-          <Button onClick={openDemoDialog} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={redirectToLogin} className="bg-blue-600 hover:bg-blue-700">
             Essayer gratuitement
           </Button>
         </div>
@@ -54,7 +61,7 @@ const LandingPage = () => {
               Passe à la méthode intelligente.
             </p>
             <div className="flex gap-4 items-center pt-2">
-              <Button onClick={openDemoDialog} size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-6 h-auto text-base">
+              <Button onClick={redirectToLogin} size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-6 h-auto text-base">
                 Commencer
               </Button>
               <span className="text-slate-500">🎯 En moins de 60 secondes</span>
@@ -232,7 +239,7 @@ const LandingPage = () => {
             Tu peux arrêter à tout moment. Sans engagement.
           </p>
           <Button 
-            onClick={openDemoDialog} 
+            onClick={redirectToLogin} 
             size="lg" 
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 h-auto text-lg"
           >

@@ -1,22 +1,32 @@
+
 import { useState, useEffect } from 'react';
 import { Upload, CheckCircle, FileText, Lightbulb, Zap } from 'lucide-react';
 import { Button } from './ui/button';
 import { Link } from 'react-router-dom';
 import { CategoryCard } from './CategoryCard';
 import { RecentDocuments } from './RecentDocuments';
-import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { CreateCategoryDialog } from './CreateCategoryDialog';
 import { UserLevel } from './UserLevel';
 import { Alert, AlertDescription } from './ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Label } from './ui/label';
 
-export function Dashboard() {
+interface DashboardProps {
+  onSubscribeInterest?: (message: string) => Promise<void>;
+}
+
+export function Dashboard({ onSubscribeInterest }: DashboardProps) {
   const [userName, setUserName] = useState<string | null>(null);
   const [lastUpdateDate, setLastUpdateDate] = useState<Date | null>(null);
   const [subscribeDialogOpen, setSubscribeDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Récupérer les informations de l'utilisateur connecté
   const { data: userData, isLoading: userLoading } = useQuery({
@@ -135,6 +145,40 @@ export function Dashboard() {
     setSubscribeDialogOpen(true);
   };
 
+  const handleContactClick = () => {
+    setContactDialogOpen(true);
+    setSubscribeDialogOpen(false);
+  };
+
+  const handleSendContactMessage = async () => {
+    setIsSubmitting(true);
+    try {
+      if (onSubscribeInterest) {
+        await onSubscribeInterest(contactMessage || "Intérêt pour l'abonnement EduKeeper");
+      }
+      setContactDialogOpen(false);
+      setContactMessage("");
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du message:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubscribeInterest = async () => {
+    setIsSubmitting(true);
+    try {
+      if (onSubscribeInterest) {
+        await onSubscribeInterest("Demande d'abonnement depuis le bouton principal");
+      }
+      setSubscribeDialogOpen(false);
+    } catch (error) {
+      console.error("Erreur lors de l'envoi de la demande d'abonnement:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Instruction message */}
@@ -160,8 +204,9 @@ export function Dashboard() {
       {/* Subscribe Button */}
       <div className="flex justify-center">
         <Button 
-          onClick={handleSubscribeClick}
+          onClick={handleSubscribeInterest}
           className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-2 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+          disabled={isSubmitting}
         >
           <Zap className="h-5 w-5" />
           Je veux m'abonner
@@ -288,17 +333,59 @@ export function Dashboard() {
               Nous préparons des offres d'abonnement adaptées à vos besoins. Vous serez parmi les premiers informés lorsque cette fonctionnalité sera disponible.
             </p>
             <div className="mt-4 flex justify-center">
-              <Link 
-                to="mailto:contact@edukeeper.fr?subject=Intérêt%20pour%20l'abonnement%20EduKeeper"
-                className="inline-flex items-center gap-2 text-primary hover:underline"
+              <Button
+                onClick={handleContactClick}
+                variant="link"
+                className="inline-flex items-center gap-2 text-primary"
               >
                 <span>Me contacter quand c'est prêt</span>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-              </Link>
+              </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Laissez-nous vos coordonnées</DialogTitle>
+            <DialogDescription>
+              Nous vous contacterons dès que l'abonnement sera disponible.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="contact-message">Message (optionnel)</Label>
+              <Textarea
+                id="contact-message"
+                placeholder="Dites-nous ce qui vous intéresse dans l'abonnement..."
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="submit"
+              onClick={handleSendContactMessage}
+              disabled={isSubmitting}
+              className="w-full"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Envoi en cours...
+                </>
+              ) : (
+                "Envoyer"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
