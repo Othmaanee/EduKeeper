@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "./use-toast";
-import { useXp as useXpStore } from "@/store/xpStore";
+import { useXPStore } from "@/store/xpStore";
 
 // Valeurs d'XP pour différentes actions
 const XP_VALUES = {
@@ -11,7 +11,7 @@ const XP_VALUES = {
   document_share: 15,
   generate_summary: 40,
   generate_exercises: 30,
-  generate_control: 40 // Ajouté "generate_control" aux actions
+  generate_control: 40
 };
 
 // Définir le type pour les clés de XP_VALUES
@@ -29,7 +29,7 @@ interface AwardXpResponse {
 export function useXp() {
   const [isAwarding, setIsAwarding] = useState(false);
   const { toast } = useToast();
-  const { xp, level, updateXP, fetchUserXP } = useXpStore();
+  const { xp, level, updateXP, fetchUserXP } = useXPStore();
 
   /**
    * Attribue de l'XP pour une action spécifique
