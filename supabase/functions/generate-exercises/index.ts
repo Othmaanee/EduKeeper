@@ -74,11 +74,39 @@ serve(async (req) => {
       );
     }
 
+    // Déterminer le format des exercices en fonction de la classe et du niveau
+    let formatExercices = "";
+    if (["6e", "5e", "4e", "3e"].includes(classe)) {
+      // Pour les collégiens
+      if (niveau === "Bases") {
+        formatExercices = "Format simple avec beaucoup de QCM et de questions guidées. Utiliser un vocabulaire adapté aux collégiens.";
+      } else if (niveau === "Très complet") {
+        formatExercices = "Mélange de QCM et de questions ouvertes, avec quelques exercices nécessitant une réflexion approfondie.";
+      } else {
+        formatExercices = "Équilibre entre QCM et questions à réponse courte.";
+      }
+    } else if (["2nde", "1ere", "Terminale"].includes(classe)) {
+      // Pour les lycéens
+      if (niveau === "Bases") {
+        formatExercices = "Questions de base et QCM pour établir les fondamentaux.";
+      } else if (niveau === "Très complet") {
+        formatExercices = "Questions complexes, problèmes à résoudre, analyser et synthétiser. Peu de QCM, davantage d'exercices ouverts.";
+      } else {
+        formatExercices = "Équilibré, avec des questions à développer et quelques QCM.";
+      }
+    } else {
+      // Pour les autres niveaux (supérieur, etc.)
+      formatExercices = "Privilégier les exercices ouverts, les études de cas et les questions nécessitant une analyse critique.";
+    }
+
     // Création du prompt amélioré pour OpenAI avec instructions spécifiques sur le formatage
     const prompt = `Vous êtes un professeur expérimenté. Créez 5 exercices progressifs et complets avec leurs corrigés, adaptés à une classe de ${classe} en fonction du sujet "${sujet}" et du niveau "${niveau}" :
 - Niveau "Bases" : exercices simples, notions fondamentales
 - Niveau "Classique" : exercices standards, adaptés à des évaluations de mi-parcours
 - Niveau "Très complet" : exercices complexes, croisant plusieurs notions du programme de ${classe}
+
+Instructions spécifiques pour cette classe de ${classe} :
+${formatExercices}
 
 IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
 Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).

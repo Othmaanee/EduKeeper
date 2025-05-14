@@ -20,6 +20,7 @@ import HistoryPage from "./pages/HistoryPage";
 import ExercisesPage from "./pages/ExercisesPage";
 import LandingPage from "./pages/LandingPage";
 import SkinsPage from "./pages/SkinsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/skins" element={<SkinsPage />} />
+          <Route path="/profil" element={<ProfilePage />} />
           {/* Garder la route /generate temporairement pour la rétrocompatibilité */}
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="*" element={<NotFound />} />
