@@ -3,7 +3,8 @@ import { useToast } from "./use-toast";
 import { useState, useCallback, useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useXPStore } from "@/store/xpStore";
+import { useStore } from "zustand";
+import { useXpStore } from "@/store/xpStore";
 
 type XpActionType = 
   | 'document_upload'
@@ -12,8 +13,7 @@ type XpActionType =
   | 'login'
   | 'comment'
   | 'chat_completion'
-  | 'share_document'
-  | 'generate_control';  // Ajout du type manquant
+  | 'share_document';
 
 interface UseXpReturn {
   awardXp: (actionType: XpActionType, actionDescription?: string) => Promise<{ 
@@ -28,7 +28,7 @@ interface UseXpReturn {
 export const useXp = (): UseXpReturn => {
   const { toast } = useToast();
   const [gainedXp, setGainedXp] = useState<number | null>(null);
-  const { setXp, incrementXp } = useXPStore();
+  const { setXp, incrementXp } = useXpStore();
 
   // Fonction pour récupérer les XP de l'utilisateur depuis Supabase
   const fetchUserXp = useCallback(async () => {
@@ -80,8 +80,7 @@ export const useXp = (): UseXpReturn => {
         login: 1,
         comment: 2,
         chat_completion: 3,
-        share_document: 5,
-        generate_control: 40  // Ajout de la nouvelle action
+        share_document: 5
       };
 
       // Déterminer le montant d'XP à attribuer
@@ -118,26 +117,17 @@ export const useXp = (): UseXpReturn => {
         return { success: false, error: error.message };
       }
 
-      // Sécuriser l'accès aux données
-      if (!data) {
-        console.log("Aucune donnée retournée par la fonction RPC");
-        return { 
-          success: true, 
-          xpAwarded: xpToAward, 
-          newXp: null 
-        };
-      }
-
       // Supposons que la fonction renvoie la nouvelle valeur XP
       const newXpValue = data?.new_xp || null;
       
       console.log(`XP attribués avec succès: ${xpToAward}, nouvelle valeur: ${newXpValue}`);
 
       toast({
-        title: `Félicitations! Vous avez gagné ${xpToAward} points d'expérience!`,
-        description: "",
+        title: "Félicitations!",
+        description: `Vous avez gagné ${xpToAward} points d'expérience!`,
         variant: "default",
-        className: "bg-green-500 text-white border-green-600"
+        className: "bg-green-500 text-white border-green-600",
+        icon: <Sparkles className="h-4 w-4 text-yellow-300" />
       });
 
       // Re-synchroniser avec la base de données après attribution
