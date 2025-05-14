@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useXp } from '@/hooks/use-xp';
+import { useXp, XpActionType } from '@/hooks/use-xp';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -56,13 +56,13 @@ const GeneratePage = () => {
         throw new Error("Utilisateur non connecté");
       }
 
-      // Utiliser un type valide de XpActionType comme premier paramètre
+      // Utiliser un type valide de XpActionType
       const result = await awardXP(userData.user.id, "generate_control");
 
       if (result.success) {
         toast({
           title: 'Succès',
-          description: 'Contrôle généré avec succès !',
+          description: `Contrôle généré avec succès ! ${result.message}`,
         });
         navigate('/accueil'); // Rediriger vers la page d'accueil
       } else {

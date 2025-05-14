@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
 import { useXp } from '@/hooks/use-xp';
@@ -67,7 +66,7 @@ const ExercisesPage: React.FC = () => {
       if (data?.exercises) {
         setGeneratedExercises(data.exercises);
         
-        // Award XP for generating exercises
+        // Award XP for generating exercises - using the correct XpActionType
         const result = await awardXP(user.id, 'generate_exercises');
         
         if (result.success && result.currentXp !== undefined) {

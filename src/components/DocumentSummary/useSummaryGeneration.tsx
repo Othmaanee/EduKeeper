@@ -79,7 +79,7 @@ export function useSummaryGeneration() {
           // Récupérer l'ID de l'utilisateur connecté
           const { data: userData } = await supabase.auth.getUser();
           if (userData && userData.user) {
-            // Utiliser le bon type d'action "generate_summary" comme premier paramètre
+            // Utiliser le bon type d'action "generate_summary" comme XpActionType
             const xpResult = await awardXP(userData.user.id, "generate_summary");
             console.log("Résultat de l'attribution XP:", xpResult);
             
