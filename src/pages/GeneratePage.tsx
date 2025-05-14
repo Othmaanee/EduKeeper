@@ -68,6 +68,16 @@ const GeneratePage = () => {
     }
   };
 
+  // Fonction pour transformer le markdown en HTML
+  const renderMarkdown = (text: string) => {
+    if (!text) return '';
+    
+    // Remplacer les balises markdown pour le gras par des balises strong HTML
+    const boldText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    return boldText;
+  };
+
   return (
     <Layout>
       <div className="container max-w-4xl py-6 animate-fade-in">
@@ -148,7 +158,10 @@ const GeneratePage = () => {
               <CardDescription>Voici le contenu généré par l'IA :</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="whitespace-pre-line prose max-w-none">{generatedContent}</div>
+              <div 
+                className="whitespace-pre-line prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
+              />
             </CardContent>
           </Card>
         )}
