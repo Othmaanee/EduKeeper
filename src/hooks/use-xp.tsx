@@ -1,136 +1,195 @@
 
-import { useCallback, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from './use-toast';
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useXPStore } from "@/store/xpStore";
 
-// Define the mapping of action types to XP values
-export const XP_VALUES = {
-  'generate_summary': 15,
-  'generate_control': 15,
-  'generate_exercises': 15,
-  'document_upload': 10,
-  'document_view': 3,
-  'document_share': 5,
-  'create_category': 5
-} as const;
+// Définir la structure des valeurs XP pour différentes actions
+const XP_VALUES = {
+  document_upload: 10,
+  document_view: 5,
+  document_share: 8,
+  generate_summary: 20,
+  generate_control: 40,
+  generate_exercises: 30,
+  create_category: 15
+};
 
-// Define the XpActionType from the keys of XP_VALUES
-export type XpActionType = keyof typeof XP_VALUES;
+// Définir le type pour les clés de XP_VALUES
+export type ActionType = keyof typeof XP_VALUES;
 
-export const useXP = () => {
-  const [loading, setLoading] = useState(false);
+export function useXp() {
+  const [isAwarding, setIsAwarding] = useState(false);
   const { toast } = useToast();
+  const updateXP = useXPStore(state => state.updateXP);
+  const fetchUserXP = useXPStore(state => state.fetchUserXP);
 
-  // Function to check if an action has an XP value
-  const isValidAction = (action: string): action is XpActionType => {
-    return action in XP_VALUES;
-  };
-
-  // Fetch user XP and level from Supabase
-  const fetchUserXP = useCallback(async () => {
+  /**
+   * Attribuer de l'XP à l'utilisateur pour une action spécifique
+   * @param actionType Type d'action réalisée
+   * @param documentName Nom du document ou de l'objet concerné
+   */
+  const awardXp = async (actionType: ActionType, documentName: string) => {
+    console.log(`awardXp appelé avec: ${actionType}, ${documentName}`);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      setIsAwarding(true);
       
+      // Vérifier si l'utilisateur est connecté
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        return { xp: 0, level: 1 };
+        console.log("Utilisateur non connecté, XP non attribuée");
+        return { success: false, error: "Utilisateur non connecté" };
       }
       
-      const { data, error } = await supabase
+      const userId = session.user.id;
+      const xpAmount = XP_VALUES[actionType] || 0;
+      
+      console.log(`Utilisateur: ${userId}, XP à attribuer: ${xpAmount}`);
+      
+      // Récupérer le niveau et l'XP actuel de l'utilisateur
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('xp, level')
-        .eq('id', session.user.id)
+        .eq('id', userId)
         .single();
-      
-      if (error) {
-        throw error;
+        
+      if (userError) {
+        console.error("Erreur lors de la récupération des données utilisateur:", userError);
+        throw userError;
       }
       
-      const safeXp = data?.xp || 0;
-      const safeLevel = data?.level || 1;
+      console.log(`Données utilisateur récupérées:`, userData);
       
-      // Debug logs
-      console.info('XP Store: données récupérées depuis Supabase:', { xp: safeXp, level: safeLevel });
-      console.info('XP Store: valeurs sécurisées:', { safeXp, safeLevel });
+      // Calculer la nouvelle XP et le nouveau niveau
+      const currentXp = userData?.xp || 0; // S'assurer que nous avons une valeur même si null
+      const newXp = currentXp + xpAmount;
       
-      return { xp: safeXp, level: safeLevel };
-    } catch (error) {
-      console.error('Erreur lors de la récupération des XP:', error);
-      return { xp: 0, level: 1 };
-    }
-  }, []);
-
-  // Award XP for an action
-  const awardXP = useCallback(async (actionType: XpActionType, documentName: string) => {
-    try {
-      setLoading(true);
+      console.log(`XP actuelle: ${currentXp}, Nouvelle XP: ${newXp}`);
       
-      if (!isValidAction(actionType)) {
-        console.error(`Type d'action non reconnu: ${actionType}`);
-        return { success: false, error: 'Type d\'action non reconnu' };
+      // CORRECTION IMPORTANTE: Utiliser une requête RPC (Remote Procedure Call) pour contourner les problèmes potentiels
+      // Cette requête va directement mettre à jour la base de données avec une fonction SQL
+      const { error: userUpdateError } = await supabase.rpc('update_user_xp', {
+        user_id: userId,
+        new_xp: newXp
+      });
+      
+      // Si l'RPC échoue, on essaie avec la méthode standard
+      if (userUpdateError) {
+        console.error("Erreur RPC lors de la mise à jour des XP:", userUpdateError);
+        console.log("Tentative avec update standard...");
+        
+        // Méthode standard comme backup
+        const { error: standardUpdateError } = await supabase
+          .from('users')
+          .update({ xp: newXp })
+          .eq('id', userId);
+          
+        if (standardUpdateError) {
+          console.error("Erreur standard lors de la mise à jour des XP:", standardUpdateError);
+          throw standardUpdateError;
+        }
       }
       
-      const xpValue = XP_VALUES[actionType];
+      console.log("Mise à jour des XP réussie via RPC ou méthode standard");
       
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        return { success: false, error: 'Aucune session utilisateur' };
+      // Après la mise à jour, récupérer les données mises à jour
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('xp, level')
+        .eq('id', userId)
+        .single();
+        
+      if (fetchError) {
+        console.error("Erreur lors de la récupération des données mises à jour:", fetchError);
+        throw fetchError;
       }
       
-      // Create history record
+      console.log("Données utilisateur après mise à jour:", updatedUser);
+      
+      const newLevel = updatedUser.level;
+      const confirmedXp = updatedUser.xp;
+      
+      // 2. Ajouter une entrée dans l'historique
+      // Convertir actionType à une valeur acceptée par la contrainte de la base de données
+      let historyActionType: string;
+      
+      switch (actionType) {
+        case 'generate_exercises':
+          historyActionType = 'génération';
+          break;
+        case 'generate_summary':
+          historyActionType = 'génération';
+          break;
+        case 'generate_control':
+          historyActionType = 'génération';
+          break;
+        case 'document_upload':
+          historyActionType = 'upload';
+          break;
+        case 'document_view':
+          historyActionType = 'consultation';
+          break;
+        case 'document_share':
+          historyActionType = 'partage';
+          break;
+        case 'create_category':
+          historyActionType = 'organisation';
+          break;
+        default:
+          historyActionType = 'action';
+      }
+      
       const { error: historyError } = await supabase
         .from('history')
         .insert({
-          user_id: session.user.id,
-          action_type: actionType,
+          user_id: userId,
+          action_type: historyActionType,
           document_name: documentName,
-          xp_gained: xpValue
+          xp_gained: xpAmount
         });
-      
-      if (historyError) {
-        throw historyError;
-      }
-      
-      // Update user XP
-      const { data, error } = await supabase
-        .from('users')
-        .update({ 
-          xp: supabase.rpc('increment', { amount: xpValue }) 
-        })
-        .eq('id', session.user.id)
-        .select('xp, level')
-        .single();
         
-      if (error) {
-        throw error;
+      if (historyError) {
+        console.error("Erreur lors de l'ajout dans l'historique:", historyError);
+        // Ne pas bloquer le processus si l'historique échoue
+        console.warn("L'historique n'a pas pu être mis à jour, mais les XP ont été ajoutées");
       }
       
-      toast({
-        title: `+${xpValue} XP`,
-        description: `Vous avez gagné de l'expérience !`,
-        duration: 3000,
-      });
+      // Mettre à jour le store global XP
+      updateXP(confirmedXp, newLevel);
       
-      return { 
-        success: true, 
-        xp: data.xp, 
-        level: data.level, 
-        xpAwarded: xpValue 
-      };
+      // Re-fetch les données XP du store global pour s'assurer de la synchronisation
+      fetchUserXP();
+      
+      // Montrer un toast de félicitations si le niveau a augmenté
+      if (newLevel > userData.level) {
+        console.log(`Niveau augmenté! ${userData.level} -> ${newLevel}`);
+        toast({
+          title: `Niveau ${newLevel} atteint !`,
+          description: `Félicitations ! Vous avez atteint le niveau ${newLevel}.`,
+          className: "bg-amber-500 text-white"
+        });
+      } else {
+        // Afficher un toast pour indiquer les XP gagnés même si le niveau n'a pas changé
+        toast({
+          title: `+${xpAmount} XP`,
+          description: `Vous avez gagné ${xpAmount} XP pour cette action !`,
+          className: "bg-blue-100 border-blue-300"
+        });
+      }
+      
+      return { success: true, xpAwarded: xpAmount, newXp: confirmedXp, newLevel };
     } catch (error) {
-      console.error('Erreur lors de l\'attribution des XP:', error);
+      console.error("Erreur lors de l'attribution d'XP:", error);
+      toast({
+        title: "Erreur XP",
+        description: "Impossible d'attribuer des XP, veuillez réessayer.",
+        variant: "destructive"
+      });
       return { success: false, error };
     } finally {
-      setLoading(false);
+      setIsAwarding(false);
     }
-  }, [toast]);
-
-  return {
-    awardXP,
-    fetchUserXP,
-    loading
   };
-};
 
-// Add an alias for the hook with the lowercase 'p'
-export const useXp = useXP;
+  return { awardXp, isAwarding };
+}

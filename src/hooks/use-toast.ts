@@ -1,6 +1,5 @@
 
-// Create a proper use-toast implementation
-import { type ToastProps, type ToastActionElement } from "@/components/ui/toast";
+import { Toast, ToastActionElement, type ToastProps } from "@/components/ui/toast";
 import { create } from "zustand";
 
 type ToasterToast = ToastProps & {

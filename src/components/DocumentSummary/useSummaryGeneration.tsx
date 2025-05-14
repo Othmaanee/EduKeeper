@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
-import { useXP } from '@/hooks/use-xp';
+import { useXp } from '@/hooks/use-xp';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,8 +18,8 @@ export function useSummaryGeneration() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Importer le hook useXP pour gérer les récompenses XP
-  const { awardXP } = useXP();
+  // Importer le hook useXp pour gérer les récompenses XP
+  const { awardXp } = useXp();
 
   const generateSummary = async (text: string) => {
     setIsLoading(true);
@@ -75,7 +75,7 @@ export function useSummaryGeneration() {
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
           console.log("Attribution des XP pour la génération de résumé...");
-          const xpResult = await awardXP('generate_summary', 'Résumé de document');
+          const xpResult = await awardXp('generate_summary', 'Résumé de document');
           console.log("Résultat de l'attribution XP:", xpResult);
           
           if (!xpResult.success) {
