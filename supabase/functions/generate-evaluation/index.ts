@@ -1,156 +1,207 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  // Vérifier si la méthode est OPTIONS (requête CORS preflight)
-  if (req.method === 'OPTIONS') {
+  // Gérer les requêtes CORS preflight OPTIONS
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Récupérer et valider la clé API OpenAI
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      console.error('Erreur: Clé API OpenAI manquante');
+    // Récupérer le token d'authentification
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Configuration de la clé API OpenAI manquante' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        JSON.stringify({ error: "Authentification requise" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    // Extraire les données de la requête
-    let requestData;
+    // Récupérer les variables d'environnement
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAIApiKey) {
+      return new Response(
+        JSON.stringify({ error: "Configuration incomplète: API OpenAI" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Parse le corps de la requête
+    let requestBody;
     try {
-      requestData = await req.json();
-    } catch (parseError) {
-      console.error("Erreur de parsing JSON de la requête:", parseError.message);
+      requestBody = await req.json();
+    } catch (error) {
       return new Response(
         JSON.stringify({ error: "Format de requête invalide" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    const { sujet, classe, specialite, difficulte } = requestData;
+    const { sujet, classe, specialite = "aucune", difficulte = "Moyen" } = requestBody;
 
-    if (!sujet || !classe || !difficulte) {
+    if (!sujet || !classe) {
       return new Response(
-        JSON.stringify({ error: 'Paramètres manquants : sujet, classe et difficulté sont requis' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        JSON.stringify({ error: "Les paramètres sujet et classe sont requis" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    console.log(`Génération d'un contrôle - Sujet: ${sujet}, Classe: ${classe}, Difficulté: ${difficulte}`);
-
-    // Construction du prompt pour OpenAI
-    let prompt = `Tu es un professeur expérimenté. Génère un contrôle d'entraînement pour un élève de niveau ${classe}, sur le sujet : "${sujet}"`;
+    // Adaptation du format d'évaluation en fonction du niveau scolaire
+    let formatEvaluation = "";
+    const niveauScolaire = classe.toLowerCase();
     
-    // Ajouter la spécialité si elle est fournie et n'est pas "aucune"
-    if (specialite && specialite.trim() !== '' && specialite !== 'aucune') {
-      prompt += `, spécialité : "${specialite}"`;
+    if (["6e", "5e"].includes(niveauScolaire)) {
+      // Primaire et début de collège
+      formatEvaluation = `
+      - Privilégier les QCM et exercices à trous
+      - Inclure des illustrations simples
+      - Utiliser un langage simple et direct
+      - 4-5 questions courtes avec barèmes clairs
+      - Corrigés détaillés avec démarche étape par étape`;
+    } else if (["4e", "3e"].includes(niveauScolaire)) {
+      // Fin de collège
+      formatEvaluation = `
+      - Équilibrer QCM et questions ouvertes
+      - Inclure au moins un exercice de réflexion
+      - 5-6 questions avec difficulté progressive
+      - Barème sur 20 points avec répartition équilibrée
+      - Corrigés avec explications des raisonnements`;
+    } else if (["2nde", "1ere", "terminale"].includes(niveauScolaire)) {
+      // Lycée
+      formatEvaluation = `
+      - Privilégier les questions à développement
+      - Inclure un exercice de synthèse/dissertation
+      - 4-6 questions dont certaines complexes
+      - Évaluer les capacités d'analyse et d'argumentation
+      - Structure avec partie théorique et partie pratique
+      - Barème détaillé valorisant la méthode`;
+    } else {
+      // Format par défaut pour les autres niveaux
+      formatEvaluation = `
+      - 5-6 questions variées
+      - Difficulté progressive
+      - Barème équilibré sur 20 points
+      - Corrigés pour chaque question`;
     }
-    
-    prompt += `.\n\nLe contrôle doit être adapté au niveau de difficulté suivant : ${difficulte}.\n\nDonne :\n- Un énoncé structuré\n- 3 à 10 questions pertinentes selon le niveau\n- Les corrigés à part ou directement après chaque question\n\nFormat clair, adapté à un élève qui révise seul.`;
 
-    // Ajout de logs pour débugger
-    console.log('Envoi de la requête à OpenAI avec le prompt:', prompt);
-    console.log('Modèle utilisé:', "gpt-3.5-turbo");
-    
+    // Ajustement en fonction de la difficulté demandée
+    let ajustementDifficulte = "";
+    if (difficulte.toLowerCase().includes("base") || difficulte.toLowerCase() === "facile") {
+      ajustementDifficulte = "Niveau facile: se concentrer sur les connaissances fondamentales et les exercices d'application directe.";
+    } else if (difficulte.toLowerCase().includes("complet") || difficulte.toLowerCase() === "difficile") {
+      ajustementDifficulte = "Niveau difficile: inclure des questions qui nécessitent réflexion, analyse et synthèse de plusieurs concepts.";
+    } else {
+      ajustementDifficulte = "Niveau intermédiaire: équilibrer exercices d'application et questions de réflexion.";
+    }
+
+    // Construire le prompt pour l'API OpenAI
+    const prompt = `Vous êtes un professeur expérimenté. Créez un contrôle complet avec corrigé pour une classe de ${classe} sur le sujet "${sujet}"${specialite !== "aucune" ? ` en spécialité ${specialite}` : ""}.
+
+INSTRUCTIONS SPÉCIFIQUES POUR CE NIVEAU SCOLAIRE:
+${formatEvaluation}
+
+NIVEAU DE DIFFICULTÉ: 
+${ajustementDifficulte}
+
+FORMAT:
+- Le contrôle doit commencer par un titre centré
+- Le barème doit être indiqué pour chaque question (total 20 points)
+- Les questions doivent être numérotées et clairement séparées
+- Les questions doivent être progressives en difficulté
+- Utilisez des formulations claires et adaptées à l'âge des élèves
+- Utilisez des **astérisques doubles** pour mettre en gras les éléments importants
+
+STRUCTURE:
+1. Un titre clair incluant le sujet et le niveau
+2. Une introduction brève au sujet du contrôle
+3. Entre 4 et 6 questions comportant des sous-questions si nécessaire
+4. Un corrigé détaillé de chaque question à la fin
+
+IMPORTANT: Créez un contenu complet, détaillé, et qui reproduit fidèlement la structure d'un contrôle réel pour le niveau ${classe}, avec le niveau de difficulté ${difficulte}.`;
+
+    console.log("Envoi de la requête à OpenAI...");
+
     // Appel à l'API OpenAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
+        Authorization: `Bearer ${openAIApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un professeur expérimenté qui crée des contrôles d'entraînement clairs et pédagogiques."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       }),
     });
 
-    // Vérifier si la réponse est ok
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Erreur OpenAI (${response.status}):`, errorText);
       return new Response(
-        JSON.stringify({ 
-          error: `Erreur lors de la génération du contrôle (${response.status})`,
-          details: errorText
+        JSON.stringify({
+          error: `Erreur API: ${response.status}`,
+          details: errorText,
         }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
     // Traiter la réponse
-    let data;
-    try {
-      data = await response.json();
-      console.log('Réponse OpenAI parsée correctement:', JSON.stringify(data).substring(0, 100) + "...");
-    } catch (jsonError) {
-      console.error("Erreur lors du parsing de la réponse OpenAI:", jsonError);
-      const rawResponse = await response.text();
-      console.error("Réponse brute (premiers 200 caractères):", rawResponse.substring(0, 200));
+    const data = await response.json();
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       return new Response(
-        JSON.stringify({ error: "Impossible de parser la réponse de l'API" }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        JSON.stringify({ error: "Réponse OpenAI invalide" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
-    
-    const evaluation = data.choices[0]?.message?.content || "Désolé, impossible de générer le contrôle.";
-    
-    console.log('Réponse reçue d\'OpenAI, longueur du contenu:', evaluation.length);
-    console.log('Premiers caractères du contenu:', evaluation.substring(0, 100) + "...");
 
-    // Retourner les résultats dans un format JSON valide
+    const evaluationContent = data.choices[0].message.content;
+
     return new Response(
-      JSON.stringify({ 
-        evaluation,
+      JSON.stringify({
+        evaluation: evaluationContent,
         sujet,
         classe,
-        difficulte 
+        difficulte,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
-    console.error('Erreur dans la fonction generate-evaluation:', error);
+    console.error("Erreur dans la fonction generate-evaluation:", error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Erreur inconnue lors de la génération du contrôle' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      JSON.stringify({ error: error.message, stack: error.stack }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
