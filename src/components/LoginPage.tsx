@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
@@ -300,7 +300,8 @@ const LoginPage = () => {
                     </p>
                   )}
                   
-                  {/* Conseils de sécurité */}
+                  {/* Les conseils de sécurité sont conservés dans le code mais ne sont pas affichés */}
+                  {/* 
                   <div className="mt-2 text-sm space-y-1">
                     <p className="text-muted-foreground mb-1">Pour votre sécurité :</p>
                     <div className={cn("flex items-center", password.length >= 8 ? "text-green-600" : "text-gray-400")}>
@@ -316,6 +317,7 @@ const LoginPage = () => {
                       <span>Inclure des chiffres</span>
                     </div>
                   </div>
+                  */}
                 </div>
                 
                 {/* Prénom et Nom sur la même ligne */}
