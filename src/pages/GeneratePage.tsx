@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
@@ -12,8 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 const GeneratePage = () => {
   const [subject, setSubject] = useState('');
-  const [level, setLevel] = useState('');
-  const [instructions, setInstructions] = useState('');
+  const [level, setLevel] = useState('2nde');
+  const [type, setType] = useState('standard');
   const [generatedContent, setGeneratedContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -21,28 +21,35 @@ const GeneratePage = () => {
 
   const handleGenerateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!subject) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un sujet",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
-
+    setGeneratedContent('');
+    
     try {
-      // Appel à la fonction Edge avec le supabase client
+      // Call Edge function to generate evaluation
       const { data, error } = await supabase.functions.invoke('generate-evaluation', {
-        body: {
-          sujet: subject,
-          classe: level,
-          specialite: 'aucune', // Valeur par défaut
-          difficulte: instructions || 'Moyen' // Utiliser les instructions comme niveau de difficulté
+        body: { 
+          subject,
+          level,
+          type
         }
       });
-
+      
       if (error) {
-        console.error('Error from Edge function:', error);
-        throw new Error(`Une erreur est survenue lors de la génération: ${error.message}`);
+        throw error;
       }
-
-      console.log('Données reçues de la fonction Edge:', data);
       
       if (!data || !data.evaluation) {
-        throw new Error('La réponse ne contient pas de contenu généré');
+        throw new Error("Réponse invalide du générateur d'évaluation");
       }
 
       setGeneratedContent(data.evaluation);
@@ -50,16 +57,15 @@ const GeneratePage = () => {
       
       // Afficher un toast de confirmation
       toast({
-        title: "Contrôle prêt !",
-        description: "+40 XP",
-        variant: "default",
-        className: "bg-green-500 text-white border-green-600"
+        title: "Succès",
+        description: "Évaluation générée avec succès",
       });
-    } catch (error: any) {
-      console.error('Error generating course:', error);
+      
+    } catch (error) {
+      console.error('Erreur lors de la génération:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue, veuillez réessayer.",
+        description: "Impossible de générer l'évaluation. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -69,85 +75,97 @@ const GeneratePage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl py-6 animate-fade-in">
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link to="/" className="flex items-center text-muted-foreground">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Retour à l'accueil
-          </Link>
-        </Button>
-        
-        {/* Mini walkthrough visuel */}
-        <div className="mb-6 bg-muted rounded-lg p-4 flex items-center justify-center">
-          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-            <span className="font-semibold">🧭</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Complétez le formulaire</span>
-            <span className="text-muted-foreground hidden sm:inline">—</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Cliquez sur générer</span>
-            <span className="text-muted-foreground hidden sm:inline">—</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupérez votre contrôle</span>
-          </div>
+      <div className="container py-8">
+        <Link to="/" className="inline-flex items-center mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour à l'accueil
+        </Link>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Générer une évaluation</h1>
+          <p className="text-muted-foreground mt-2">
+            Créez une évaluation personnalisée pour vos élèves en quelques clics
+          </p>
         </div>
 
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Générer un contrôle</CardTitle>
+            <CardTitle>Paramètres de génération</CardTitle>
             <CardDescription>
-              Entrez les informations pour générer un contrôle personnalisé.
+              Configurez les options pour générer une évaluation adaptée à vos besoins
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <label htmlFor="subject">Sujet</label>
-              <Input
-                id="subject"
-                placeholder="Nom du sujet"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-1">
+                  Sujet de l'évaluation
+                </label>
+                <Textarea 
+                  placeholder="Entrez le sujet de l'évaluation (ex: Les fonctions en mathématiques, La Seconde Guerre Mondiale...)" 
+                  value={subject}
+                  onChange={e => setSubject(e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-1">
+                  Niveau
+                </label>
+                <Select value={level} onValueChange={setLevel}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionnez un niveau" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6e">6ème</SelectItem>
+                    <SelectItem value="5e">5ème</SelectItem>
+                    <SelectItem value="4e">4ème</SelectItem>
+                    <SelectItem value="3e">3ème</SelectItem>
+                    <SelectItem value="2nde">2nde</SelectItem>
+                    <SelectItem value="1ere">1ère</SelectItem>
+                    <SelectItem value="Terminale">Terminale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-1">
+                  Type d'évaluation
+                </label>
+                <Select value={type} onValueChange={setType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionnez un type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="approfondie">Approfondie</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="level">Niveau</label>
-              <Input
-                id="level"
-                placeholder="Niveau scolaire"
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="instructions">Instructions</label>
-              <Textarea
-                id="instructions"
-                placeholder="Instructions spécifiques"
-                rows={4}
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleGenerateCourse} disabled={isLoading || !subject || !level}>
+            <Button onClick={handleGenerateCourse} disabled={isLoading} className="w-full">
               {isLoading ? (
                 <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Génération en cours...
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                 </>
               ) : (
-                "Générer le contrôle"
+                "Générer l'évaluation"
               )}
             </Button>
-          </CardFooter>
+          </CardContent>
         </Card>
 
         {generatedContent && (
-          <Card className="mt-6">
+          <Card>
             <CardHeader>
-              <CardTitle>Contenu généré</CardTitle>
-              <CardDescription>Voici le contenu généré par l'IA :</CardDescription>
+              <CardTitle>Évaluation générée</CardTitle>
+              <CardDescription>
+                Évaluation pour {subject} (Niveau: {level}, Type: {type})
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="whitespace-pre-line prose max-w-none">{generatedContent}</div>
+            <CardContent className="prose">
+              {generatedContent}
             </CardContent>
           </Card>
         )}

@@ -66,7 +66,7 @@ export const useXP = () => {
       
       if (!isValidAction(actionType)) {
         console.error(`Type d'action non reconnu: ${actionType}`);
-        return false;
+        return { success: false, error: 'Type d\'action non reconnu' };
       }
       
       const xpValue = XP_VALUES[actionType];
@@ -74,7 +74,7 @@ export const useXP = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        return false;
+        return { success: false, error: 'Aucune session utilisateur' };
       }
       
       // Create history record
@@ -111,7 +111,12 @@ export const useXP = () => {
         duration: 3000,
       });
       
-      return { xp: data.xp, level: data.level, success: true };
+      return { 
+        success: true, 
+        xp: data.xp, 
+        level: data.level, 
+        xpAwarded: xpValue 
+      };
     } catch (error) {
       console.error('Erreur lors de l\'attribution des XP:', error);
       return { success: false, error };

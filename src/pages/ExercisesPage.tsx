@@ -217,15 +217,15 @@ const ExercisesPage = () => {
       });
       
       // Attribuer des XP avec des informations plus détaillées
-      console.log("Avant awardXp - tentative d'attribuer des XP pour la génération d'exercices");
+      console.log("Avant awardXP - tentative d'attribuer des XP pour la génération d'exercices");
       const xpResult = await awardXP('generate_exercises', `Exercices: ${sujet}`);
-      console.log("Résultat awardXp:", xpResult);
+      console.log("Résultat awardXP:", xpResult);
       
       if (xpResult && xpResult.success) {
-        console.log(`XP attribuées avec succès: ${xpResult.xpAwarded}, nouvelle XP totale: ${xpResult.newXp}`);
+        console.log(`XP attribuées avec succès, nouvelle XP totale: ${xpResult.xp}`);
         // Affichage du toast géré directement dans le hook useXp
-      } else {
-        console.error("Échec de l'attribution d'XP:", xpResult?.error);
+      } else if (xpResult) {
+        console.error("Échec de l'attribution d'XP:", xpResult.error);
       }
     } catch (error) {
       console.error('Error generating exercises:', error);

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +19,7 @@ export function useSummaryGeneration() {
   const { toast } = useToast();
   
   // Importer le hook useXP pour gérer les récompenses XP
-  const { awardXp } = useXP();
+  const { awardXP } = useXP();
 
   const generateSummary = async (text: string) => {
     setIsLoading(true);
@@ -74,7 +75,7 @@ export function useSummaryGeneration() {
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
           console.log("Attribution des XP pour la génération de résumé...");
-          const xpResult = await awardXp('generate_summary', 'Résumé de document');
+          const xpResult = await awardXP('generate_summary', 'Résumé de document');
           console.log("Résultat de l'attribution XP:", xpResult);
           
           if (!xpResult.success) {
