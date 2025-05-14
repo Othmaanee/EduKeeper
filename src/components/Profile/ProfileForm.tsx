@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, Save, GraduationCap, Check } from "lucide-react";
+import { Loader2, Lock, Save, GraduationCap, Check, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 // Constantes pour les classes disponibles
 const CLASSES_DISPONIBLES = [
@@ -28,10 +29,12 @@ export function ProfileForm() {
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
   const [classe, setClasse] = useState("");
+  const [dateNaissance, setDateNaissance] = useState("");
   
   // État pour les crédits
   const [credits, setCredits] = useState(CREDITS_MENSUELS);
   const [creditsUtilises, setCreditsUtilises] = useState(0);
+  const [dateRenouvellement, setDateRenouvellement] = useState<string | null>(null);
   
   // États UI
   const [loading, setLoading] = useState(true);
@@ -82,6 +85,12 @@ export function ProfileForm() {
         setNom(data.nom || "");
         setClasse(data.classe || "");
         
+        // Conversion et formatage de la date de naissance
+        if (data.date_naissance) {
+          const dateParts = data.date_naissance.split('T')[0];
+          setDateNaissance(dateParts);
+        }
+        
         // Vérifier si l'utilisateur est admin
         setIsAdmin(data.role === 'admin');
         
@@ -90,9 +99,9 @@ export function ProfileForm() {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         
         // Récupérer le nombre d'actions IA dans l'historique du mois
-        const { data: historyData, error: historyError } = await supabase
+        const { data: historyData, count, error: historyError } = await supabase
           .from('history')
-          .select('*')
+          .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .gte('created_at', firstDayOfMonth.toISOString())
           .in('action_type', ['generate_summary', 'generate_control', 'generate_exercises']);
@@ -101,7 +110,11 @@ export function ProfileForm() {
           console.error("Erreur lors de la récupération de l'historique:", historyError);
         } else {
           // Calculer le nombre de crédits utilisés
-          setCreditsUtilises(historyData ? historyData.length : 0);
+          setCreditsUtilises(count || 0);
+          
+          // Calculer la date de renouvellement (1er du mois prochain)
+          const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          setDateRenouvellement(format(nextMonth, 'dd/MM/yyyy'));
         }
       } catch (error) {
         console.error("Erreur:", error);
@@ -141,6 +154,7 @@ export function ProfileForm() {
           prenom,
           nom,
           classe,
+          date_naissance: dateNaissance
         })
         .eq('id', session.user.id);
       
@@ -262,7 +276,7 @@ export function ProfileForm() {
           
           {/* Prénom */}
           <div className="space-y-2">
-            <Label htmlFor="prenom">Prénom (facultatif)</Label>
+            <Label htmlFor="prenom">Prénom</Label>
             <Input 
               id="prenom"
               value={prenom}
@@ -273,7 +287,7 @@ export function ProfileForm() {
           
           {/* Nom */}
           <div className="space-y-2">
-            <Label htmlFor="nom">Nom (facultatif)</Label>
+            <Label htmlFor="nom">Nom</Label>
             <Input 
               id="nom"
               value={nom}
@@ -297,6 +311,22 @@ export function ProfileForm() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Date de naissance */}
+          <div className="space-y-2">
+            <Label htmlFor="dateNaissance">Date de naissance</Label>
+            <div className="flex">
+              <Input 
+                id="dateNaissance"
+                type="date"
+                value={dateNaissance}
+                onChange={(e) => setDateNaissance(e.target.value)}
+              />
+              <div className="ml-2 flex items-center text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+              </div>
+            </div>
           </div>
         </CardContent>
         <CardFooter>
@@ -343,6 +373,11 @@ export function ProfileForm() {
             <p className="text-sm text-muted-foreground">
               Vous avez utilisé {creditsUtilises} crédits sur {CREDITS_MENSUELS} ce mois-ci.
             </p>
+            {dateRenouvellement && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Prochain renouvellement des crédits le : <span className="font-medium">{dateRenouvellement}</span>
+              </p>
+            )}
           </div>
         </CardContent>
         {isAdmin && (

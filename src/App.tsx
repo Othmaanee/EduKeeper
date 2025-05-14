@@ -47,6 +47,7 @@ const App = () => (
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/skins" element={<SkinsPage />} />
           <Route path="/profil" element={<ProfilePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           {/* Garder la route /generate temporairement pour la rétrocompatibilité */}
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="*" element={<NotFound />} />
