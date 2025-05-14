@@ -138,7 +138,7 @@ export function useXp() {
       
       // Mettre à jour le store local
       if (updateXP) {
-        updateXP(confirmedXp, newLevel);
+        updateXP(confirmedXp);
         console.log("XP mise à jour dans le store");
       } else {
         console.warn("Fonction updateXP non disponible dans le store");
