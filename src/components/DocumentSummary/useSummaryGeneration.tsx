@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
@@ -74,11 +75,12 @@ export function useSummaryGeneration() {
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
           console.log("Attribution des XP pour la génération de résumé...");
+          // Fix: Use the correct action type from XpActionType
           const xpResult = await awardXP('generate_summary', 'Résumé de document');
           console.log("Résultat de l'attribution XP:", xpResult);
           
           if (!xpResult.success) {
-            console.error("Échec de l'attribution des XP:", xpResult.error);
+            console.error("Échec de l'attribution des XP:", xpResult.message);
           }
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);

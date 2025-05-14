@@ -98,7 +98,7 @@ export const useXp = () => {
       today.setHours(0, 0, 0, 0);
       
       const { count, error } = await supabase
-        .from('xp_history')
+        .from('history')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('action_type', actionType)

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -33,10 +34,11 @@ const GeneratePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.subject || !formData.instructions || !formData.gradeLevel || !formData.numberOfQuestions) {
+    // Make instructions optional by removing it from the validation check
+    if (!formData.title || !formData.subject || !formData.gradeLevel || !formData.numberOfQuestions) {
       toast({
         title: 'Erreur',
-        description: 'Veuillez remplir tous les champs.',
+        description: 'Veuillez remplir tous les champs obligatoires.',
         variant: 'destructive',
       });
       return;
@@ -48,7 +50,8 @@ const GeneratePage = () => {
       // Simuler une requête à l'API (à remplacer par votre logique réelle)
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Attribuer de l'XP à l'utilisateur
+      // Fix: Use a proper actionType from XpActionType as the first parameter
+      // and pass the title as the second parameter
       const result = await awardXP('generate_control', formData.title);
 
       if (result.success) {
@@ -103,7 +106,7 @@ const GeneratePage = () => {
             />
           </div>
           <div>
-            <Label htmlFor="instructions">Instructions</Label>
+            <Label htmlFor="instructions">Instructions (facultatif)</Label>
             <Textarea
               id="instructions"
               name="instructions"

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -239,10 +238,7 @@ const ExercisesPage: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="library">
-            <ComingSoonOverlay 
-              title="Bibliothèque d'exercices" 
-              description="Cette fonctionnalité sera disponible prochainement." 
-            />
+            <ComingSoonOverlay />
           </TabsContent>
         </Tabs>
       </div>
