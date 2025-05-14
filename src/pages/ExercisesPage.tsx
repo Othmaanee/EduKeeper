@@ -1,246 +1,547 @@
-import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useRef } from 'react';
+import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Loader2, BookText, FileText, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import html2pdf from 'html2pdf.js';
 import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
+import { Label } from "@/components/ui/label";
 import { useXp } from '@/hooks/use-xp';
-import { Loader2 } from 'lucide-react';
 
-const ExercisesPage: React.FC = () => {
-  const [courseText, setCourseText] = useState('');
-  const [level, setLevel] = useState('facile');
-  const [format, setFormat] = useState('qcm');
-  const [numQuestions, setNumQuestions] = useState('5');
-  const [includeSolutions, setIncludeSolutions] = useState(true);
-  const [generatedExercises, setGeneratedExercises] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { awardXP } = useXp();
+// Styles pour l'export PDF - maintenant inline dans un objet JavaScript
+const pdfExportStyles = {
+  pdfExport: `
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    padding: 20px;
+    background: white !important;
+    color: black !important;
+  `,
+  exercisesContent: `
+    & h1, & h2, & h3 {
+      margin-top: 1em;
+      margin-bottom: 0.5em;
+    }
+  `
+};
+
+// Ajout d'une feuille de style à l'exécution pour les styles PDF
+const addPdfStyles = () => {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .pdf-export {
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+      padding: 20px;
+      background: white !important;
+      color: black !important;
+    }
+    .exercises-content h1, .exercises-content h2, .exercises-content h3 {
+      margin-top: 1em;
+      margin-bottom: 0.5em;
+    }
+    .exercises-content strong {
+      font-weight: bold;
+    }
+  `;
+  document.head.appendChild(styleEl);
+  return () => {
+    document.head.removeChild(styleEl);
+  };
+};
+
+const ExercisesPage = () => {
+  const [sujet, setSujet] = useState('');
+  const [classe, setClasse] = useState('6e');
+  const [niveau, setNiveau] = useState('Classique');
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [userRole, setUserRole] = useState<string>('user');
+  const exercisesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { awardXp } = useXp();
 
-  const handleGenerateExercises = async () => {
-    if (courseText.trim().length < 20) {
+  // Ajout des styles pour PDF au montage du composant
+  useEffect(() => {
+    const removePdfStyles = addPdfStyles();
+    
+    return () => {
+      // Nettoyage au démontage du composant
+      removePdfStyles();
+    };
+  }, []);
+
+  // Fetch user role on component mount
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) return;
+        
+        const { data, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (error) throw error;
+        
+        if (data) {
+          setUserRole(data.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  // Fetch user's documents on component mount
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchUserDocuments = async () => {
+      if (!isMounted) return;
+      
+      setIsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.log("No session found, skipping document fetch");
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('user_id', session.user.id);
+          
+        if (error) throw error;
+        
+        if (isMounted) {
+          setDocuments(data || []);
+        }
+      } catch (error: any) {
+        if (isMounted) {
+          console.error('Error fetching documents:', error);
+          // Afficher le toast seulement si c'est une erreur réseau réelle et non une annulation
+          if (error.message !== "TypeError: NetworkError when attempting to fetch resource.") {
+            toast({
+              title: "Erreur",
+              description: "Impossible de charger vos documents",
+              variant: "destructive",
+            });
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchUserDocuments();
+    
+    // Nettoyer l'effet lors du démontage pour éviter les fuites mémoire
+    return () => {
+      isMounted = false;
+    };
+  }, [toast]);
+
+  const handleGenerateExercises = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!sujet.trim()) {
       toast({
-        title: "Texte trop court",
-        description: "Veuillez entrer un cours plus détaillé pour générer des exercices pertinents.",
-        variant: "destructive"
+        title: "Erreur",
+        description: "Veuillez saisir un sujet",
+        variant: "destructive",
       });
       return;
     }
-
-    setIsGenerating(true);
-    setGeneratedExercises('');
-
+    
+    setGenerating(true);
+    setGeneratedContent('');
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Erreur d'authentification",
-          description: "Vous devez être connecté pour générer des exercices.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('generate-exercises', {
-        body: {
-          courseText,
-          level,
-          format,
-          numQuestions: parseInt(numQuestions),
-          includeSolutions
-        }
+      // Appel à la fonction Edge pour générer les exercices
+      const response = await supabase.functions.invoke('generate-exercises', {
+        body: { sujet, classe, niveau }
       });
 
-      if (error) {
-        throw new Error(error.message);
+      if (response.error) {
+        throw new Error(response.error.message || 'Erreur lors de la génération des exercices');
       }
 
-      if (data?.exercises) {
-        setGeneratedExercises(data.exercises);
-        
-        // Award XP for generating exercises - using the correct XpActionType
-        const result = await awardXP(user.id, 'generate_exercises');
-        
-        if (result.success && result.currentXp !== undefined) {
-          toast({
-            title: "Exercices générés !",
-            description: `${result.message} - Nouveau total: ${result.currentXp} XP`
-          });
-        } else {
-          toast({
-            title: "Exercices générés !",
-            description: "Vos exercices ont été créés avec succès."
-          });
-        }
+      setGeneratedContent(response.data.exercices);
+      
+      // Afficher le toast de succès AVANT d'attribuer l'XP
+      toast({
+        title: "Succès",
+        description: "Exercices générés avec succès",
+      });
+      
+      // Attribuer des XP avec des informations plus détaillées
+      console.log("Avant awardXp - tentative d'attribuer des XP pour la génération d'exercices");
+      const xpResult = await awardXp('generate_exercises', `Exercices: ${sujet}`);
+      console.log("Résultat awardXp:", xpResult);
+      
+      if (xpResult && xpResult.success) {
+        console.log(`XP attribuées avec succès: ${xpResult.xpAwarded}, nouvelle XP totale: ${xpResult.newXp}`);
+        // Affichage du toast géré directement dans le hook useXp
+      } else {
+        console.error("Échec de l'attribution d'XP:", xpResult?.error);
       }
-    } catch (error: any) {
-      console.error("Error generating exercises:", error);
+    } catch (error) {
+      console.error('Error generating exercises:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la génération des exercices.",
-        variant: "destructive"
+        description: "Impossible de générer les exercices. Veuillez réessayer.",
+        variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      setGenerating(false);
     }
+  };
+
+  const getOrCreateExerciseCategory = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Veuillez vous connecter pour enregistrer des exercices');
+      
+      // Recherche de la catégorie "Mes exercices"
+      const { data: existingCategories } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('nom', 'Mes exercices');
+        
+      if (existingCategories && existingCategories.length > 0) {
+        return existingCategories[0].id;
+      }
+      
+      // Création de la catégorie si elle n'existe pas
+      const { data: newCategory, error } = await supabase
+        .from('categories')
+        .insert([
+          { nom: 'Mes exercices', user_id: session.user.id }
+        ])
+        .select();
+        
+      if (error) throw error;
+      
+      return newCategory[0].id;
+    } catch (error) {
+      console.error('Error getting/creating exercises category:', error);
+      throw error;
+    }
+  };
+
+  const saveExercises = async () => {
+    if (!generatedContent) return;
+    setIsSaving(true);
+    
+    try {
+      // Get the category id for "Mes exercices"
+      const categoryId = await getOrCreateExerciseCategory();
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Veuillez vous connecter pour enregistrer les exercices');
+      
+      // Créer un nom descriptif pour le document
+      const documentName = `Exercices: ${sujet} (${classe}, ${niveau})`;
+      
+      // Enregistrer dans la table documents
+      const { data, error } = await supabase
+        .from('documents')
+        .insert([
+          {
+            nom: documentName,
+            content: generatedContent,
+            user_id: session.user.id,
+            is_shared: false,
+            category_id: categoryId,
+            url: null, // URL est maintenant nullable
+          },
+        ])
+        .select();
+        
+      if (error) throw error;
+      
+      // Log this action in history
+      await supabase
+        .from('history')
+        .insert([
+          {
+            user_id: session.user.id,
+            action_type: 'génération',
+            document_name: documentName,
+          }
+        ]);
+      
+      toast({
+        title: "Succès",
+        description: "Les exercices ont été sauvegardés dans vos documents",
+      });
+    } catch (error) {
+      console.error('Error saving exercises:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les exercices. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Fonction améliorée pour télécharger en PDF
+  const downloadAsPDF = async () => {
+    if (!exercisesRef.current || !generatedContent) return;
+    
+    try {
+      // Formater le contenu pour le PDF
+      const formattedContent = processGeneratedContent();
+      
+      // Créer un container temporaire avec le contenu formaté
+      const pdfContainer = document.createElement('div');
+      pdfContainer.className = 'pdf-export';
+      pdfContainer.innerHTML = `
+        <h1 style="text-align: center; margin-bottom: 20px;">Exercices : ${sujet}</h1>
+        <div style="margin-bottom: 10px;">
+          <strong>Niveau:</strong> ${niveau} | <strong>Classe:</strong> ${classe}
+        </div>
+        <div class="exercises-content">
+          ${formattedContent}
+        </div>
+        <div style="margin-top: 20px; font-size: 0.8em; text-align: right; color: #666;">
+          Généré le ${new Date().toLocaleDateString('fr-FR')}
+        </div>
+      `;
+      
+      // Options pour html2pdf
+      const options = {
+        margin: 15,
+        filename: `Exercices_${sujet.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 2, useCORS: true, logging: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // Générer et télécharger le PDF
+      await html2pdf().from(pdfContainer).set(options).save();
+      
+      toast({
+        title: "Succès",
+        description: "Les exercices ont été téléchargés en PDF",
+      });
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le PDF. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getDescription = () => {
+    if (userRole === 'eleve') {
+      return "Créez des exercices personnalisés afin de vous entraîner pour votre prochain contrôle";
+    }
+    return "Créez des exercices personnalisés pour vos élèves en quelques clics";
+  };
+
+  // Amélioration du processeur du contenu pour traiter le markdown correctement
+  const processGeneratedContent = () => {
+    if (!generatedContent) return "";
+    
+    // Formatage de base: convertir les sauts de ligne
+    let formatted = generatedContent.split("\n").join("<br/>");
+    
+    // Remplacer les textes en gras (** texte **) par du HTML en modifiant l'expression régulière
+    // pour s'assurer que les captures sont non-gourmandes (non-greedy)
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Remplacer les titres d'exercices et corrigés par du formatage HTML
+    formatted = formatted.replace(/### (Exercice \d+)/g, '<h2>$1</h2>');
+    formatted = formatted.replace(/### (Corrigé \d+)/g, '<h3>$1</h3>');
+    
+    return formatted;
   };
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Générer des Exercices</h1>
+      <div className="container py-8 relative">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Générer des exercices</h1>
+          <p className="text-muted-foreground mt-2">
+            {getDescription()}
+          </p>
         </div>
-        
-        <Tabs defaultValue="generate">
-          <TabsList className="mb-4">
-            <TabsTrigger value="generate">Générer un exercice</TabsTrigger>
-            <TabsTrigger value="library" disabled>Bibliothèque d'exercices</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="generate">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Texte du cours</CardTitle>
-                  <CardDescription>
-                    Collez le texte de votre cours pour générer des exercices personnalisés
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="courseText">Contenu du cours</Label>
-                      <Textarea
-                        id="courseText"
-                        value={courseText}
-                        onChange={(e) => setCourseText(e.target.value)}
-                        placeholder="Collez le texte de votre cours ici..."
-                        className="min-h-[200px]"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Options</CardTitle>
-                  <CardDescription>
-                    Personnalisez les paramètres de génération
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="level">Niveau de difficulté</Label>
-                      <Select value={level} onValueChange={setLevel}>
-                        <SelectTrigger id="level">
-                          <SelectValue placeholder="Sélectionnez un niveau" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="facile">Facile</SelectItem>
-                          <SelectItem value="moyen">Moyen</SelectItem>
-                          <SelectItem value="difficile">Difficile</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="format">Type d'exercice</Label>
-                      <Select value={format} onValueChange={setFormat}>
-                        <SelectTrigger id="format">
-                          <SelectValue placeholder="Sélectionnez un format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="qcm">QCM</SelectItem>
-                          <SelectItem value="questions_ouvertes">Questions ouvertes</SelectItem>
-                          <SelectItem value="vrai_faux">Vrai ou Faux</SelectItem>
-                          <SelectItem value="mixte">Format mixte</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="numQuestions">Nombre de questions</Label>
-                      <Select value={numQuestions} onValueChange={setNumQuestions}>
-                        <SelectTrigger id="numQuestions">
-                          <SelectValue placeholder="Nombre de questions" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="3">3 questions</SelectItem>
-                          <SelectItem value="5">5 questions</SelectItem>
-                          <SelectItem value="10">10 questions</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="includeSolutions" 
-                        checked={includeSolutions} 
-                        onCheckedChange={(checked) => setIncludeSolutions(checked as boolean)}
-                      />
-                      <Label htmlFor="includeSolutions">Inclure les solutions</Label>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    onClick={handleGenerateExercises} 
-                    disabled={isGenerating || courseText.trim().length < 20} 
-                    className="w-full"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                        Génération en cours...
-                      </>
-                    ) : (
-                      "Générer les exercices"
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Partie gauche: formulaire de paramètres */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Paramètres de génération</CardTitle>
+              <CardDescription>
+                Configurez les options pour générer des exercices adaptés à vos besoins
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    Sujet du cours*
+                  </Label>
+                  <Textarea 
+                    placeholder="Entrez le sujet du cours (ex: Les fractions en mathématiques, Conjugaison au passé composé...)" 
+                    value={sujet}
+                    onChange={e => setSujet(e.target.value)}
+                    className="min-h-[100px]"
+                    required
+                  />
+                </div>
 
-            {generatedExercises && (
-              <Card className="mt-6">
-                <CardHeader>
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    Classe
+                  </Label>
+                  <Select value={classe} onValueChange={setClasse}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="6e">6ème</SelectItem>
+                      <SelectItem value="5e">5ème</SelectItem>
+                      <SelectItem value="4e">4ème</SelectItem>
+                      <SelectItem value="3e">3ème</SelectItem>
+                      <SelectItem value="2nde">2nde</SelectItem>
+                      <SelectItem value="1ere">1ère</SelectItem>
+                      <SelectItem value="Terminale">Terminale</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    Niveau
+                  </Label>
+                  <Select value={niveau} onValueChange={setNiveau}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bases">Bases</SelectItem>
+                      <SelectItem value="Classique">Classique</SelectItem>
+                      <SelectItem value="Très complet">Très complet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleGenerateExercises} 
+                disabled={generating || !sujet.trim()}
+                className="w-full sm:w-auto"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Génération en cours...
+                  </>
+                ) : (
+                  <>
+                    <BookText className="mr-2 h-4 w-4" />
+                    Générer les exercices
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Partie droite: exercices générés */}
+          {generatedContent && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
                   <CardTitle>Exercices générés</CardTitle>
                   <CardDescription>
-                    Voici les exercices créés à partir de votre cours
+                    Exercices pour {sujet} (Niveau: {niveau}, Classe: {classe})
                   </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-muted rounded-md p-4 whitespace-pre-wrap">
-                    {generatedExercises}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline">
-                    Télécharger PDF
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={saveExercises} disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Enregistrer dans mes documents
+                      </>
+                    )}
                   </Button>
-                  <Button>
-                    Enregistrer dans ma bibliothèque
+                  <Button onClick={downloadAsPDF}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Télécharger en PDF
                   </Button>
-                </CardFooter>
-              </Card>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="library">
-            <ComingSoonOverlay message="La bibliothèque d'exercices sera disponible prochainement." />
-          </TabsContent>
-        </Tabs>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div 
+                  ref={exercisesRef}
+                  className="bg-muted/50 p-4 rounded-md whitespace-pre-wrap text-sm"
+                  style={{ maxHeight: '800px', overflow: 'auto' }}
+                >
+                  <div 
+                    className="exercises-content" 
+                    dangerouslySetInnerHTML={{ __html: processGeneratedContent() }} 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </Layout>
   );
