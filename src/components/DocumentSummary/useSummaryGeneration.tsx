@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
-import { useXp } from '@/hooks/use-xp';
+import { useXP } from '@/hooks/use-xp';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,8 +17,8 @@ export function useSummaryGeneration() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Importer le hook useXp pour gérer les récompenses XP
-  const { awardXp } = useXp();
+  // Importer le hook useXP pour gérer les récompenses XP
+  const { awardXp } = useXP();
 
   const generateSummary = async (text: string) => {
     setIsLoading(true);

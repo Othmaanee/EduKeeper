@@ -111,10 +111,10 @@ export const useXP = () => {
         duration: 3000,
       });
       
-      return { xp: data.xp, level: data.level };
+      return { xp: data.xp, level: data.level, success: true };
     } catch (error) {
       console.error('Erreur lors de l\'attribution des XP:', error);
-      return false;
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -126,3 +126,6 @@ export const useXP = () => {
     loading
   };
 };
+
+// Add an alias for the hook with the lowercase 'p'
+export const useXp = useXP;

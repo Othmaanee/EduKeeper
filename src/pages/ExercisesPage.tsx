@@ -34,7 +34,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
-import { useXp } from '@/hooks/use-xp';
+import { useXP } from '@/hooks/use-xp';
 
 // Styles pour l'export PDF - maintenant inline dans un objet JavaScript
 const pdfExportStyles = {
@@ -90,7 +90,7 @@ const ExercisesPage = () => {
   const [userRole, setUserRole] = useState<string>('user');
   const exercisesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { awardXp } = useXp();
+  const { awardXP } = useXP();
 
   // Ajout des styles pour PDF au montage du composant
   useEffect(() => {
@@ -218,7 +218,7 @@ const ExercisesPage = () => {
       
       // Attribuer des XP avec des informations plus détaillées
       console.log("Avant awardXp - tentative d'attribuer des XP pour la génération d'exercices");
-      const xpResult = await awardXp('generate_exercises', `Exercices: ${sujet}`);
+      const xpResult = await awardXP('generate_exercises', `Exercices: ${sujet}`);
       console.log("Résultat awardXp:", xpResult);
       
       if (xpResult && xpResult.success) {

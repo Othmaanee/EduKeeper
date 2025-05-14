@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
-import { useXp } from '@/hooks/use-xp';
+import { useXP } from '@/hooks/use-xp';
 import { supabase } from '@/integrations/supabase/client';
 
 const GeneratePage = () => {
@@ -18,7 +17,7 @@ const GeneratePage = () => {
   const [generatedContent, setGeneratedContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { awardXp } = useXp();
+  const { awardXP } = useXP();
 
   const handleGenerateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +46,7 @@ const GeneratePage = () => {
       }
 
       setGeneratedContent(data.evaluation);
-      await awardXp('generate_control', `Contrôle: ${subject}`);
+      await awardXP('generate_control', `Contrôle: ${subject}`);
       
       // Afficher un toast de confirmation
       toast({
