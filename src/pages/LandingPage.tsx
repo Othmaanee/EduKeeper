@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DemoRequestDialog } from '@/components/DemoRequestDialog';
@@ -146,6 +145,9 @@ const LandingPage = () => {
       <section className="py-16 px-6 md:px-10 lg:px-20 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
+            <div className="inline-block px-4 py-1 rounded-full bg-blue-50 text-blue-600 text-sm font-medium mb-3">
+              💎 Bénéfices visibles
+            </div>
             <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">
               Ces bénéfices vont transformer ta façon de réviser
             </h2>
@@ -154,7 +156,7 @@ const LandingPage = () => {
           <div className="grid md:grid-cols-2 gap-6 mb-12">
             <div className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                🗂️
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Tous tes documents rangés et retrouvables en 1 clic</h3>
@@ -164,7 +166,7 @@ const LandingPage = () => {
             
             <div className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                🧠
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Des résumés clairs générés automatiquement</h3>
@@ -174,7 +176,7 @@ const LandingPage = () => {
             
             <div className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                📊
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Des QCM & contrôles personnalisés en 1 bouton</h3>
@@ -184,7 +186,7 @@ const LandingPage = () => {
             
             <div className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                🎯
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Une vraie méthode pour réviser sans t'éparpiller</h3>
@@ -194,7 +196,7 @@ const LandingPage = () => {
             
             <div className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                🎮
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Tu gagnes des XP + tu débloques des skins</h3>
@@ -204,7 +206,7 @@ const LandingPage = () => {
             
             <div className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                🕹️
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Tu passes de "Je révise quand j'aurai le temps" à "Je maîtrise mes révisions"</h3>
