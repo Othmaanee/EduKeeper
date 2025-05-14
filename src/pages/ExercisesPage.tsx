@@ -131,12 +131,20 @@ const ExercisesPage = () => {
 
   // Fetch user's documents on component mount
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchUserDocuments = async () => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (!session) return;
+        if (!session) {
+          console.log("No session found, skipping document fetch");
+          setIsLoading(false);
+          return;
+        }
         
         const { data, error } = await supabase
           .from('documents')
@@ -145,20 +153,34 @@ const ExercisesPage = () => {
           
         if (error) throw error;
         
-        setDocuments(data || []);
-      } catch (error) {
-        console.error('Error fetching documents:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger vos documents",
-          variant: "destructive",
-        });
+        if (isMounted) {
+          setDocuments(data || []);
+        }
+      } catch (error: any) {
+        if (isMounted) {
+          console.error('Error fetching documents:', error);
+          // Afficher le toast seulement si c'est une erreur réseau réelle et non une annulation
+          if (error.message !== "TypeError: NetworkError when attempting to fetch resource.") {
+            toast({
+              title: "Erreur",
+              description: "Impossible de charger vos documents",
+              variant: "destructive",
+            });
+          }
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchUserDocuments();
+    
+    // Nettoyer l'effet lors du démontage pour éviter les fuites mémoire
+    return () => {
+      isMounted = false;
+    };
   }, [toast]);
 
   const handleGenerateExercises = async (e: React.FormEvent) => {
@@ -365,14 +387,15 @@ const ExercisesPage = () => {
     return "Créez des exercices personnalisés pour vos élèves en quelques clics";
   };
 
-  // Préparation du contenu pour l'affichage avec formatage amélioré
+  // Amélioration du processeur du contenu pour traiter le markdown correctement
   const processGeneratedContent = () => {
     if (!generatedContent) return "";
     
     // Formatage de base: convertir les sauts de ligne
     let formatted = generatedContent.split("\n").join("<br/>");
     
-    // Remplacer les textes en gras (** texte **) par du HTML
+    // Remplacer les textes en gras (** texte **) par du HTML en modifiant l'expression régulière
+    // pour s'assurer que les captures sont non-gourmandes (non-greedy)
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
     // Remplacer les titres d'exercices et corrigés par du formatage HTML

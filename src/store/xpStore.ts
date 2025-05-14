@@ -29,7 +29,8 @@ export const useXPStore = create<XPState>((set) => ({
       
       console.log("XPStore: Session utilisateur trouvée, récupération des XP...");
       
-      // Récupérer l'XP et le niveau de l'utilisateur
+      // Récupérer l'XP et le niveau de l'utilisateur avec une requête distincte
+      // pour éviter les problèmes de mise en cache
       const { data, error } = await supabase
         .from('users')
         .select('xp, level')
@@ -44,9 +45,15 @@ export const useXPStore = create<XPState>((set) => ({
       
       console.log("XP Store: données récupérées depuis Supabase:", data);
       
+      // Vérifier que les valeurs ne sont pas nulles ou indéfinies
+      const safeXp = data?.xp !== undefined && data?.xp !== null ? data.xp : 0;
+      const safeLevel = data?.level !== undefined && data?.level !== null ? data.level : 1;
+      
+      console.log("XP Store: valeurs sécurisées:", { safeXp, safeLevel });
+      
       set({ 
-        xp: data.xp || 0, 
-        level: data.level || 1,
+        xp: safeXp, 
+        level: safeLevel,
         isLoading: false 
       });
     } catch (error) {

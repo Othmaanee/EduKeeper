@@ -37,11 +37,15 @@ export function DocumentSummaryPage() {
 
   // Charger les données utilisateur et documents au chargement de la page
   useEffect(() => {
+    let isMounted = true;
+    
     const loadUserData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          setUserLoading(false);
+          if (isMounted) {
+            setUserLoading(false);
+          }
           return;
         }
 
@@ -52,11 +56,16 @@ export function DocumentSummaryPage() {
           .single();
 
         if (error) throw error;
-        setUserData(user);
+        
+        if (isMounted) {
+          setUserData(user);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des données utilisateur:', error);
       } finally {
-        setUserLoading(false);
+        if (isMounted) {
+          setUserLoading(false);
+        }
       }
     };
 
@@ -64,7 +73,9 @@ export function DocumentSummaryPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
-          setDocumentsLoading(false);
+          if (isMounted) {
+            setDocumentsLoading(false);
+          }
           return;
         }
 
@@ -74,11 +85,16 @@ export function DocumentSummaryPage() {
           .eq('user_id', session.user.id);
 
         if (error) throw error;
-        setDocuments(data || []);
+        
+        if (isMounted) {
+          setDocuments(data || []);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des documents:', error);
       } finally {
-        setDocumentsLoading(false);
+        if (isMounted) {
+          setDocumentsLoading(false);
+        }
       }
     };
 
@@ -93,7 +109,10 @@ export function DocumentSummaryPage() {
           .eq('user_id', session.user.id);
 
         if (error) throw error;
-        setCategories(data || []);
+        
+        if (isMounted) {
+          setCategories(data || []);
+        }
       } catch (error) {
         console.error('Erreur lors du chargement des catégories:', error);
       }
@@ -102,24 +121,31 @@ export function DocumentSummaryPage() {
     loadUserData();
     loadDocuments();
     loadCategories();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Fonction pour gérer la génération de résumé
   const handleGenerateSummary = async () => {
     let textToSummarize = '';
     
+    // Déterminer le texte à résumer en fonction de la méthode d'entrée
     if (inputMethod === 'text') {
       textToSummarize = textInput;
     } else if (inputMethod === 'select' && documentText) {
       textToSummarize = documentText;
-    } else if (inputMethod === 'upload' && uploadedFile) {
-      // Cette fonctionnalité nécessiterait un traitement de fichier côté serveur
-      textToSummarize = `Contenu du fichier ${uploadedFile.name}`;
+    } else if (inputMethod === 'upload' && documentText) {
+      textToSummarize = documentText;
     }
     
     if (!textToSummarize.trim()) {
+      console.error("Aucun texte à résumer");
       return;
     }
+    
+    console.log(`Génération de résumé pour ${inputMethod} avec ${textToSummarize.length} caractères`);
     
     const result = await generateSummary(textToSummarize);
     if (result) {
@@ -130,7 +156,10 @@ export function DocumentSummaryPage() {
   // Fonction pour traiter le téléchargement de fichier
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file);
-    // Ici, on pourrait ajouter une logique pour extraire le texte du fichier
+    
+    // Simuler l'extraction de texte du fichier (dans un vrai cas, cela serait fait par un backend)
+    const extractedText = `Contenu simulé extrait de ${file.name} - Ceci est un texte d'exemple pour démontrer la fonctionnalité. Dans une implémentation réelle, le contenu réel du fichier serait extrait et traité ici.`;
+    setDocumentText(extractedText);
   };
 
   // Mutation pour sauvegarder le résumé

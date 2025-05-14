@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, FileUp, Book, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,13 +63,40 @@ export const SummaryGenerationForm = ({
   userData,
   handleFileUpload
 }: SummaryGenerationFormProps) => {
+  const [isFileLoading, setIsFileLoading] = useState<boolean>(false);
+  
   // Fonction de gestion du téléversement de fichier
   const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
-    await handleFileUpload(file);
+    setIsFileLoading(true);
+    
+    try {
+      // Simuler l'extraction du texte du fichier (dans un cas réel, un service de backend serait utilisé)
+      // Pour le moment, nous utilisons simplement le nom du fichier comme texte
+      const extractedText = `Contenu extrait du fichier: ${file.name}`;
+      setDocumentText(extractedText);
+      setUploadedFile(file);
+      
+      // Appeler la fonction de gestion fournie par la page parente
+      await handleFileUpload(file);
+    } catch (error) {
+      console.error("Erreur lors du traitement du fichier:", error);
+    } finally {
+      setIsFileLoading(false);
+    }
   };
+  
+  // Gérer la sélection du document et définir le texte associé
+  useEffect(() => {
+    if (selectedDocumentId && documents) {
+      const selectedDoc = documents.find(doc => doc.id === selectedDocumentId);
+      if (selectedDoc && selectedDoc.content) {
+        setDocumentText(selectedDoc.content);
+      }
+    }
+  }, [selectedDocumentId, documents, setDocumentText]);
 
   // Find the selected document
   const selectedDocument = documents?.find(doc => doc.id === selectedDocumentId);
@@ -153,6 +180,13 @@ export const SummaryGenerationForm = ({
                 </label>
               </div>
               
+              {isFileLoading && (
+                <div className="flex justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <span className="ml-2">Traitement du fichier...</span>
+                </div>
+              )}
+              
               {uploadedFile && (
                 <div className="p-3 bg-muted rounded-md flex items-start space-x-3">
                   <FileText className="h-5 w-5 text-primary mt-0.5" />
@@ -192,7 +226,14 @@ export const SummaryGenerationForm = ({
                   </label>
                   <Select 
                     value={selectedDocumentId} 
-                    onValueChange={setSelectedDocumentId}
+                    onValueChange={(value) => {
+                      setSelectedDocumentId(value);
+                      // Trouvez et définissez immédiatement le contenu du document
+                      const selectedDoc = documents.find(doc => doc.id === value);
+                      if (selectedDoc && selectedDoc.content) {
+                        setDocumentText(selectedDoc.content);
+                      }
+                    }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Sélectionnez un document" />
@@ -224,6 +265,16 @@ export const SummaryGenerationForm = ({
                     <p className="text-sm text-muted-foreground">
                       Catégorie: {selectedDocument.categories?.nom || "Sans catégorie"}
                     </p>
+                    {selectedDocument.content && (
+                      <div className="mt-2">
+                        <Textarea 
+                          value={documentText}
+                          onChange={(e) => setDocumentText(e.target.value)}
+                          className="w-full min-h-[100px] text-xs"
+                          placeholder="Contenu du document... Vous pouvez modifier ce texte avant de générer le résumé."
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

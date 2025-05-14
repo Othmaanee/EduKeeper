@@ -66,22 +66,33 @@ export function useXp() {
       
       console.log(`XP actuelle: ${currentXp}, Nouvelle XP: ${newXp}`);
       
-      // Mettre à jour les XP utilisateur dans la base de données
-      // NOTE: Le niveau sera automatiquement mis à jour par le trigger DB
-      const { error: userUpdateError, data: updateResult } = await supabase
-        .from('users')
-        .update({ xp: newXp })
-        .eq('id', userId)
-        .select('xp, level');
-        
+      // CORRECTION IMPORTANTE: Utiliser une requête RPC (Remote Procedure Call) pour contourner les problèmes potentiels
+      // Cette requête va directement mettre à jour la base de données avec une fonction SQL
+      const { error: userUpdateError } = await supabase.rpc('update_user_xp', {
+        user_id: userId,
+        new_xp: newXp
+      });
+      
+      // Si l'RPC échoue, on essaie avec la méthode standard
       if (userUpdateError) {
-        console.error("Erreur lors de la mise à jour des XP:", userUpdateError);
-        throw userUpdateError;
+        console.error("Erreur RPC lors de la mise à jour des XP:", userUpdateError);
+        console.log("Tentative avec update standard...");
+        
+        // Méthode standard comme backup
+        const { error: standardUpdateError } = await supabase
+          .from('users')
+          .update({ xp: newXp })
+          .eq('id', userId);
+          
+        if (standardUpdateError) {
+          console.error("Erreur standard lors de la mise à jour des XP:", standardUpdateError);
+          throw standardUpdateError;
+        }
       }
       
-      console.log("Résultat de la mise à jour:", updateResult);
+      console.log("Mise à jour des XP réussie via RPC ou méthode standard");
       
-      // Après la mise à jour, récupérer les données mises à jour pour être sûr
+      // Après la mise à jour, récupérer les données mises à jour
       const { data: updatedUser, error: fetchError } = await supabase
         .from('users')
         .select('xp, level')
@@ -90,11 +101,13 @@ export function useXp() {
         
       if (fetchError) {
         console.error("Erreur lors de la récupération des données mises à jour:", fetchError);
-      } else {
-        console.log("Données utilisateur après mise à jour:", updatedUser);
+        throw fetchError;
       }
       
-      const newLevel = updatedUser?.level || Math.floor(Math.sqrt(newXp / 100)) + 1;
+      console.log("Données utilisateur après mise à jour:", updatedUser);
+      
+      const newLevel = updatedUser.level;
+      const confirmedXp = updatedUser.xp;
       
       // 2. Ajouter une entrée dans l'historique
       // Convertir actionType à une valeur acceptée par la contrainte de la base de données
@@ -142,7 +155,7 @@ export function useXp() {
       }
       
       // Mettre à jour le store global XP
-      updateXP(newXp, newLevel);
+      updateXP(confirmedXp, newLevel);
       
       // Re-fetch les données XP du store global pour s'assurer de la synchronisation
       fetchUserXP();
@@ -164,9 +177,14 @@ export function useXp() {
         });
       }
       
-      return { success: true, xpAwarded: xpAmount, newXp, newLevel };
+      return { success: true, xpAwarded: xpAmount, newXp: confirmedXp, newLevel };
     } catch (error) {
       console.error("Erreur lors de l'attribution d'XP:", error);
+      toast({
+        title: "Erreur XP",
+        description: "Impossible d'attribuer des XP, veuillez réessayer.",
+        variant: "destructive"
+      });
       return { success: false, error };
     } finally {
       setIsAwarding(false);
