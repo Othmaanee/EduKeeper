@@ -90,7 +90,7 @@ const ExercisesPage = () => {
   const [userRole, setUserRole] = useState<string>('user');
   const exercisesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { awardXp } = useXp();
+  const { awardXP } = useXp();
 
   // Ajout des styles pour PDF au montage du composant
   useEffect(() => {
@@ -218,7 +218,7 @@ const ExercisesPage = () => {
       
       // Attribuer des XP avec des informations plus détaillées
       console.log("Avant awardXp - tentative d'attribuer des XP pour la génération d'exercices");
-      const xpResult = await awardXp('generate_exercises', `Exercices: ${sujet}`);
+      const xpResult = await awardXP('generate_exercises', `Exercices: ${sujet}`);
       console.log("Résultat awardXp:", xpResult);
       
       if (xpResult && xpResult.success) {
