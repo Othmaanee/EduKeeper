@@ -10,7 +10,12 @@ const XP_VALUES = {
   generate_summary: 5,
   generate_exercises: 5,
   generate_control: 5,
-  document_view: 1
+  document_view: 1,
+  document_share: 2,
+  create_category: 3,
+  complete_exercise: 2,
+  profile_complete: 5,
+  daily_login: 1
 } as const;
 
 // Type dérivé des clés de XP_VALUES
@@ -137,6 +142,16 @@ export const useXp = () => {
         return "génération de contrôle";
       case 'document_view':
         return "lecture de document";
+      case 'document_share':
+        return "partage de document";
+      case 'create_category':
+        return "création de catégorie";
+      case 'complete_exercise':
+        return "exercice complété";
+      case 'profile_complete':
+        return "profil complété";
+      case 'daily_login':
+        return "connexion quotidienne";
       default:
         return "action";
     }
@@ -182,10 +197,50 @@ export const useXp = () => {
     }
   };
 
+  /**
+   * Vérifie si l'utilisateur a déjà effectué une action aujourd'hui
+   */
+  const hasCompletedActionToday = async (actionType: XpActionType): Promise<boolean> => {
+    try {
+      // Récupérer la session utilisateur
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        return false;
+      }
+      
+      const userId = session.user.id;
+      
+      // Définir le début de la journée
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      // Vérifier l'historique
+      const { count, error } = await supabase
+        .from('history')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('action_type', actionType)
+        .gte('created_at', startOfDay.toISOString());
+      
+      if (error) {
+        console.error("Erreur lors de la vérification de l'historique:", error);
+        return false;
+      }
+      
+      return (count || 0) > 0;
+      
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'historique:", error);
+      return false;
+    }
+  };
+
   return {
     awardXP,
     fetchUserXP,
     getMonthlyAIUsage,
+    hasCompletedActionToday,
     loading,
   };
 };

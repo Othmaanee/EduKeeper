@@ -1,301 +1,275 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Clock, 
-  Search, 
-  Users, 
-  Upload, 
-  Shield, 
-  FileText, 
-  PencilRuler, 
-  Brain, 
-  CheckCircle2, 
-  School,
-  Building2,
-} from 'lucide-react';
+import { Clock, Search, Brain, CheckCircle2, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { DemoRequestDialog } from '@/components/DemoRequestDialog';
 
 const LandingPage = () => {
-  const [isDemoDialogOpen, setIsDemoDialogOpen] = useState(false);
-
-  const openDemoDialog = () => {
-    setIsDemoDialogOpen(true);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 to-white">
+    <div className="min-h-screen bg-white">
       {/* Header Navigation */}
-      <header className="py-4 px-6 md:px-10 flex items-center justify-between border-b bg-white/80 backdrop-blur-md sticky top-0 z-10">
+      <header className="py-4 px-6 md:px-10 flex items-center justify-between border-b sticky top-0 z-10 bg-white">
         <div className="flex items-center gap-2">
           <img 
             src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
             alt="EduKeeper Logo" 
-            className="h-8 w-8 text-primary" 
+            className="h-8 w-8" 
           />
           <span className="font-bold text-xl">EduKeeper</span>
         </div>
         
-        <div className="hidden md:flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
             Connexion
           </Link>
-          <Button onClick={openDemoDialog}>
-            Démo gratuite
+          <Button asChild className="bg-blue-500 hover:bg-blue-600">
+            <Link to="/login">
+              Essayer gratuitement
+            </Link>
           </Button>
         </div>
-        
-        <Button className="md:hidden" asChild>
-          <Link to="/login">
-            Connexion
-          </Link>
-        </Button>
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-6 md:px-10 lg:px-20 flex flex-col items-center text-center max-w-6xl mx-auto">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-800 leading-tight mb-6">
-          Simplifiez la Gestion et la Transmission des Documents. Dès Aujourd'hui.
-        </h1>
-        <p className="text-lg md:text-xl text-gray-600 max-w-3xl mb-10">
-          Trouvez, envoyez et sécurisez vos ressources pédagogiques en un éclair. 
-          EduKeeper rend votre organisation fluide, puissante et intelligente.
-        </p>
-        <Button size="lg" onClick={openDemoDialog} className="text-base px-8 py-6 h-auto gap-3">
-          Voyez comment avec une démo gratuite
-          <span className="inline-block">👉</span>
-        </Button>
-      </section>
-
-      {/* Pain Points Section */}
-      <section className="py-14 px-6 md:px-10 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
-            Ras-le-bol du chaos documentaire ?
-          </h2>
-          
-          <div className="text-center mb-12 text-lg text-gray-600">
-            <p className="mb-4">Documents éparpillés. Exercices introuvables. Cours égarés.</p>
-            <p>Partager devient lent et pénible.</p>
+      <section className="py-16 px-6 md:px-10 max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row items-center">
+          <div className="md:w-1/2 mb-10 md:mb-0">
+            <div className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-4">
+              Révise 2x plus efficacement
+            </div>
+            
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 leading-tight mb-6">
+              Sans sacrifier<br />tes après-midi..
+            </h1>
+            
+            <p className="text-lg text-gray-600 mb-8">
+              Tu gagnes du temps, tu retiens mieux, tu sais où tu en es.
+              Passe à la méthode intelligente.
+            </p>
+            
+            <Button size="lg" asChild className="bg-blue-500 hover:bg-blue-600 text-base px-8 py-6 h-auto">
+              <Link to="/login">
+                Commencer
+              </Link>
+            </Button>
+            
+            <div className="flex items-center mt-4 text-sm text-gray-500">
+              <Clock className="h-4 w-4 mr-1" />
+              <span>En moins de 60 secondes</span>
+            </div>
+            
+            <div className="flex items-center mt-2 text-sm text-gray-500">
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              <span>Annulable à tout moment. Sans engagement.</span>
+            </div>
           </div>
           
-          <div className="text-center mb-8 font-medium text-xl text-gray-800">
-            Avec EduKeeper, tout change :
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6 md:gap-10">
-            <Card className="bg-white shadow-subtle border-primary/10 hover:shadow-elevation transition-shadow">
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <Clock className="h-10 w-10 text-primary mb-4" />
-                <h3 className="font-bold text-lg mb-2">Gagnez du temps.</h3>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white shadow-subtle border-primary/10 hover:shadow-elevation transition-shadow">
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <Search className="h-10 w-10 text-primary mb-4" />
-                <h3 className="font-bold text-lg mb-2">Retrouvez tout en un clin d'œil.</h3>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-white shadow-subtle border-primary/10 hover:shadow-elevation transition-shadow">
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <Users className="h-10 w-10 text-primary mb-4" />
-                <h3 className="font-bold text-lg mb-2">Offrez une expérience simple et moderne à vos équipes et vos élèves.</h3>
-              </CardContent>
-            </Card>
+          <div className="md:w-1/2 flex justify-center">
+            <img 
+              src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
+              alt="EduKeeper" 
+              className="w-64 h-64" 
+            />
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 px-6 md:px-10">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
-            EduKeeper, bien plus qu'un espace de stockage
-          </h2>
-          
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 mb-16">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Upload className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">Upload instantané</h3>
-                <p className="text-gray-600">Classez vos documents en quelques clics.</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">Espaces personnels</h3>
-                <p className="text-gray-600">Chaque enseignant et chaque élève a son propre espace sécurisé.</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">Envoi direct</h3>
-                <p className="text-gray-600">Les professeurs transmettent cours et exercices à leurs élèves en quelques secondes.</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Brain className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">IA embarquée</h3>
-                <p className="text-gray-600">
-                  Résumez vos documents sans effort.<br />
-                  Générez des cours clairs en quelques instants.<br />
-                  Créez des exercices adaptés en un clic.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="text-center text-lg text-gray-700 italic bg-primary/5 p-6 rounded-lg">
-            Imaginez : un bureau numérique propre, intuitif, boosté par l'intelligence artificielle.
-          </div>
-        </div>
-      </section>
-      
-      {/* Target Audience */}
+      {/* Problem Section */}
       <section className="py-16 px-6 md:px-10 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
-            Pour qui ?
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Tu révises trop ou pas du tout ?
           </h2>
           
-          <p className="text-center mb-10 text-lg">EduKeeper est conçu pour :</p>
+          <div className="text-center mb-10 text-gray-600">
+            Coincé entre des docs partout, des notes illisibles et jamais assez de temps pour tout mémoriser ?
+          </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-white shadow-subtle border-primary/10">
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <School className="h-10 w-10 text-primary mb-4" />
-                <h3 className="font-bold text-lg mb-2">CFA</h3>
-                <p className="text-gray-600">Qui veulent moderniser leur pédagogie.</p>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4">
+                <Clock className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">Pas assez de temps</h3>
+              <p className="text-gray-600">Les heures de révision s'éternisent avec peu de résultats concrets.</p>
+            </div>
             
-            <Card className="bg-white shadow-subtle border-primary/10">
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <Building2 className="h-10 w-10 text-primary mb-4" />
-                <h3 className="font-bold text-lg mb-2">Écoles et Universités</h3>
-                <p className="text-gray-600">Collèges, lycées et universités voulant fluidifier leur organisation.</p>
-              </CardContent>
-            </Card>
+            <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-600 mb-4">
+                <Search className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">Documents éparpillés</h3>
+              <p className="text-gray-600">Impossible de retrouver ce qu'on cherche quand on en a besoin.</p>
+            </div>
             
-            <Card className="bg-white shadow-subtle border-primary/10">
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <img 
-                  src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png"
-                  alt="EduKeeper Logo"
-                  className="h-10 w-10 text-primary mb-4" 
-                />
-                <h3 className="font-bold text-lg mb-2">Enseignants et élèves</h3>
-                <p className="text-gray-600">En quête de simplicité et de performance.</p>
-              </CardContent>
-            </Card>
+            <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 text-purple-600 mb-4">
+                <Brain className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">Mémorisation difficile</h3>
+              <p className="text-gray-600">Les informations ne restent pas, malgré les efforts.</p>
+            </div>
           </div>
         </div>
       </section>
       
-      {/* Offer Section */}
-      <section className="py-16 px-6 md:px-10 bg-primary/10">
+      {/* Solution Section */}
+      <section className="py-16 px-6 md:px-10 bg-white">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-6">
-            🌟 Testez EduKeeper gratuitement et sans engagement
+          <h2 className="text-3xl font-bold text-center mb-8">
+            La méthode intelligente en 3 étapes
           </h2>
           
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
-            <div className="bg-white p-6 rounded-lg shadow-subtle flex flex-col items-center text-center">
-              <CheckCircle2 className="h-8 w-8 text-primary mb-3" />
-              <p>Démo personnalisée offerte.</p>
+          <p className="text-center text-gray-600 mb-12">
+            Simple, rapide et efficace. Moins de 60 secondes pour commencer.
+          </p>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 mb-4">1</div>
+              <h3 className="font-bold text-lg mb-3">Dépose ton cours</h3>
+              <p className="text-gray-600">Importe n'importe quel document ou note de cours en quelques secondes.</p>
             </div>
             
-            <div className="bg-white p-6 rounded-lg shadow-subtle flex flex-col items-center text-center">
-              <CheckCircle2 className="h-8 w-8 text-primary mb-3" />
-              <p>Mise en place en moins d'une journée.</p>
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 mb-4">2</div>
+              <h3 className="font-bold text-lg mb-3">Obtiens un résumé ou un QCM</h3>
+              <p className="text-gray-600">Notre IA génère instantanément des supports de révision personnalisés.</p>
             </div>
             
-            <div className="bg-white p-6 rounded-lg shadow-subtle flex flex-col items-center text-center">
-              <CheckCircle2 className="h-8 w-8 text-primary mb-3" />
-              <p>Support premium dès le premier jour.</p>
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 mb-4">3</div>
+              <h3 className="font-bold text-lg mb-3">Sois prêt pour ton contrôle</h3>
+              <p className="text-gray-600">Révise efficacement, mesure tes progrès et gagne en confiance.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-16 px-6 md:px-10 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Ces bénéfices vont transformer ta façon de réviser
+          </h2>
           
-          <div className="text-center">
-            <Button size="lg" onClick={openDemoDialog} className="text-base px-8 py-6 h-auto gap-3">
-              Réserver ma démo personnalisée
-              <span className="inline-block">👉</span>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Tous tes documents rangés et retrouvables en 1 clic</h3>
+                <p className="text-gray-600">Fini les heures perdues à chercher tes notes.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Des résumés clairs générés automatiquement</h3>
+                <p className="text-gray-600">L'essentiel à retenir en quelques minutes seulement.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Des QCM & contrôles personnalisés en 1 bouton</h3>
+                <p className="text-gray-600">Teste tes connaissances instantanément, sans effort.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Une vraie méthode pour réviser sans t'éparpiller</h3>
+                <p className="text-gray-600">Structure ta préparation et gagne en efficacité.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Tu gagnes des XP + tu débloques des skins</h3>
+                <p className="text-gray-600">Reste motivé avec des récompenses pour tes efforts.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Tu passes de "Je révise quand j'aurai le temps" à "Je maîtrise mes révisions"</h3>
+                <p className="text-gray-600">Prends le contrôle de ton apprentissage.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Guarantee Section */}
+      <section className="py-16 px-6 md:px-10 bg-white">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium mb-6">
+            🔒 Résultat garanti
+          </div>
+          
+          <h2 className="text-2xl md:text-3xl font-bold mb-8">
+            Si tu n'as pas gagné au moins 2 heures par semaine ou amélioré ta méthode en 7 jours...
+          </h2>
+          
+          <p className="text-gray-600 mb-10">
+            Tu peux arrêter à tout moment. Sans engagement.
+          </p>
+          
+          <Button size="lg" asChild className="bg-blue-500 hover:bg-blue-600 text-base px-8 py-6 h-auto mb-6">
+            <Link to="/login">
+              Commencer maintenant
+            </Link>
+          </Button>
+          
+          <div className="flex items-center justify-center text-sm text-gray-500">
+            <Clock className="h-4 w-4 mr-1" />
+            <span>En moins de 60 secondes. Annulable quand tu veux.</span>
+          </div>
+        </div>
+      </section>
+      
+      {/* Footer */}
+      <footer className="py-8 px-6 md:px-10 bg-gray-100 border-t">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <img 
+              src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
+              alt="EduKeeper Logo" 
+              className="h-8 w-8" 
+            />
+            <span className="font-bold">EduKeeper</span>
+          </div>
+          
+          <div className="text-sm text-gray-600">
+            © {new Date().getFullYear()} EduKeeper. Tous droits réservés.
+          </div>
+          
+          <div>
+            <Button asChild variant="outline" className="border-blue-500 text-blue-500 hover:bg-blue-50">
+              <Link to="/login">
+                S'inscrire
+              </Link>
             </Button>
           </div>
         </div>
-      </section>
-      
-      {/* FAQ Section */}
-      <section className="py-16 px-6 md:px-10">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
-            FAQ
-          </h2>
-          
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-subtle">
-              <h3 className="font-bold text-lg mb-2">EduKeeper est-il sécurisé ?</h3>
-              <p className="text-gray-600">Oui, vos données sont protégées par un chiffrement de niveau bancaire.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-subtle">
-              <h3 className="font-bold text-lg mb-2">Combien de temps pour être opérationnel ?</h3>
-              <p className="text-gray-600">Moins d'une journée. On configure tout pour vous.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-subtle">
-              <h3 className="font-bold text-lg mb-2">Puis-je tester EduKeeper gratuitement ?</h3>
-              <p className="text-gray-600">Bien sûr. Contactez-nous pour une démo gratuite et sans engagement.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Footer CTA */}
-      <section className="py-16 px-6 md:px-10 bg-gray-800 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-6">
-            Offrez à vos équipes une nouvelle façon de travailler
-          </h2>
-          <p className="text-lg mb-8">Plus rapide. Plus claire. Plus intelligente.</p>
-          
-          <Button size="lg" variant="secondary" onClick={openDemoDialog} className="text-primary font-bold text-base px-8 py-6 h-auto mb-8 gap-3">
-            Demander ma démo gratuite maintenant
-            <span className="inline-block">👉</span>
-          </Button>
-          
-          <p>Ou contactez-nous directement : <a href="mailto:edukeeper.appli@gmail.com" className="underline hover:text-primary transition-colors">edukeeper.appli@gmail.com</a></p>
-        </div>
-      </section>
-
-      {/* Demo request dialog */}
-      <DemoRequestDialog open={isDemoDialogOpen} onOpenChange={setIsDemoDialogOpen} />
+      </footer>
     </div>
   );
 };
