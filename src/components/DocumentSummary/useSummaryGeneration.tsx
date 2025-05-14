@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
 import { useXp } from '@/hooks/use-xp';
 import { jsPDF } from 'jspdf';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SummaryResult {
   summary: string;
@@ -27,23 +27,15 @@ export function useSummaryGeneration() {
     setKeywords([]);
     
     try {
-      // Récupérer le token d'authentification Supabase
-      let authToken = '';
-      try {
-        const localStorageAuth = window.localStorage.getItem('supabase.auth.token');
-        if (localStorageAuth) {
-          const parsedAuth = JSON.parse(localStorageAuth);
-          authToken = parsedAuth.currentSession?.access_token || '';
-        } else {
-          // Essayer de récupérer via la session active
-          const { data } = await axios.get('/api/get-session');
-          authToken = data?.session?.access_token || '';
-        }
-      } catch (tokenError) {
-        console.error("Erreur lors de la récupération du token:", tokenError);
-      }
-
+      // Récupérer directement le token d'authentification via la session Supabase
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authToken = sessionData?.session?.access_token;
+      
+      console.log("Session récupérée:", !!sessionData?.session);
+      console.log("Token d'authentification présent:", !!authToken);
+      
       if (!authToken) {
+        console.error("Aucun token d'authentification trouvé");
         throw new Error("Session d'authentification invalide. Veuillez vous reconnecter.");
       }
       
@@ -85,14 +77,7 @@ export function useSummaryGeneration() {
           // Modifier "summarize_document" à "generate_summary" pour correspondre aux types définis
           await awardXp('generate_summary', 'Résumé de document');
           
-          // Afficher un toast de confirmation avec l'XP gagnée
-          toast({
-            title: "Résumé généré avec succès !",
-            description: "+20 XP",
-            variant: "default",
-            className: "bg-green-500 text-white border-green-600"
-          });
-          
+          // Le toast est maintenant géré directement dans le hook useXp
           console.log("XP attribués avec succès");
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);
