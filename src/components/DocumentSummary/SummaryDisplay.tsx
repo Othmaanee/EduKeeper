@@ -101,8 +101,8 @@ export const SummaryDisplay = ({
           </Select>
         </div>
         
-        {/* Simplified save button - just one button now */}
-        <div className="w-full">
+        {/* Save buttons */}
+        <div className="w-full flex gap-2">
           <Button 
             onClick={() => saveSummaryMutation.mutate()}
             disabled={saveSummaryMutation.isPending}
@@ -117,7 +117,26 @@ export const SummaryDisplay = ({
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Enregistrer dans Mes Documents
+                Enregistrer comme texte
+              </>
+            )}
+          </Button>
+          
+          <Button
+            onClick={saveSummaryAsPdf}
+            disabled={isSavingPdf}
+            className="w-full"
+            variant="secondary"
+          >
+            {isSavingPdf ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Création du PDF...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Enregistrer en PDF
               </>
             )}
           </Button>

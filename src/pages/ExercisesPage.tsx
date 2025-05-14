@@ -91,8 +91,6 @@ const ExercisesPage = () => {
   const exercisesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { awardXp } = useXp();
-  const [errorCount, setErrorCount] = useState(0);
-  const [lastErrorTime, setLastErrorTime] = useState(0);
 
   // Ajout des styles pour PDF au montage du composant
   useEffect(() => {
@@ -131,30 +129,20 @@ const ExercisesPage = () => {
     fetchUserRole();
   }, []);
 
-  // Fetch user's documents on component mount with improved error handling
+  // Fetch user's documents on component mount
   useEffect(() => {
     let isMounted = true;
-    let attempts = 0;
-    const maxAttempts = 3;
     
     const fetchUserDocuments = async () => {
       if (!isMounted) return;
       
-      // Si nous avons déjà atteint le nombre maximum de tentatives, arrêter
-      if (attempts >= maxAttempts) {
-        console.log(`Maximum de ${maxAttempts} tentatives atteint, arrêt des tentatives de récupération`);
-        return;
-      }
-      
       setIsLoading(true);
-      attempts++;
-      
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
           console.log("No session found, skipping document fetch");
-          if (isMounted) setIsLoading(false);
+          setIsLoading(false);
           return;
         }
         
@@ -171,26 +159,13 @@ const ExercisesPage = () => {
       } catch (error: any) {
         if (isMounted) {
           console.error('Error fetching documents:', error);
-          
-          // Gestion des erreurs avec limitation de fréquence
-          const now = Date.now();
-          if (now - lastErrorTime > 5000) { // Réinitialiser le compteur après 5 secondes
-            setErrorCount(1);
-          } else {
-            setErrorCount(prev => prev + 1);
-          }
-          setLastErrorTime(now);
-          
-          // Afficher le toast seulement si le compteur est bas (éviter le spam)
-          if (errorCount < 3) {
-            // Afficher le toast seulement si c'est une erreur réseau réelle et non une annulation
-            if (error.message !== "TypeError: NetworkError when attempting to fetch resource.") {
-              toast({
-                title: "Erreur",
-                description: "Impossible de charger vos documents",
-                variant: "destructive",
-              });
-            }
+          // Afficher le toast seulement si c'est une erreur réseau réelle et non une annulation
+          if (error.message !== "TypeError: NetworkError when attempting to fetch resource.") {
+            toast({
+              title: "Erreur",
+              description: "Impossible de charger vos documents",
+              variant: "destructive",
+            });
           }
         }
       } finally {
@@ -206,7 +181,7 @@ const ExercisesPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [toast, lastErrorTime, errorCount]);
+  }, [toast]);
 
   const handleGenerateExercises = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,23 +392,15 @@ const ExercisesPage = () => {
     if (!generatedContent) return "";
     
     // Formatage de base: convertir les sauts de ligne
-    let formatted = generatedContent;
+    let formatted = generatedContent.split("\n").join("<br/>");
+    
+    // Remplacer les textes en gras (** texte **) par du HTML en modifiant l'expression régulière
+    // pour s'assurer que les captures sont non-gourmandes (non-greedy)
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
     // Remplacer les titres d'exercices et corrigés par du formatage HTML
     formatted = formatted.replace(/### (Exercice \d+)/g, '<h2>$1</h2>');
     formatted = formatted.replace(/### (Corrigé \d+)/g, '<h3>$1</h3>');
-    
-    // Remplacer les textes en gras (** texte **) par du HTML
-    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    
-    // Formater les paragraphes
-    formatted = formatted.split("\n").map(line => {
-      // Ne pas ajouter de <br/> aux lignes qui sont déjà des titres
-      if (line.trim().startsWith('<h2>') || line.trim().startsWith('<h3>')) {
-        return line;
-      }
-      return line || "<br/>";
-    }).join("<br/>");
     
     return formatted;
   };
@@ -530,7 +497,7 @@ const ExercisesPage = () => {
             </CardFooter>
           </Card>
 
-          {/* Partie droite: exercices générés avec formatage HTML amélioré */}
+          {/* Partie droite: exercices générés */}
           {generatedContent && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -563,7 +530,7 @@ const ExercisesPage = () => {
               <CardContent>
                 <div 
                   ref={exercisesRef}
-                  className="bg-muted/50 p-4 rounded-md text-sm"
+                  className="bg-muted/50 p-4 rounded-md whitespace-pre-wrap text-sm"
                   style={{ maxHeight: '800px', overflow: 'auto' }}
                 >
                   <div 

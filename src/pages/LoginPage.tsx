@@ -1,5 +1,5 @@
 
 import LoginPage from '../components/LoginPage';
 
-// Export the component directly
+// Exporter le composant par défaut
 export default LoginPage;
