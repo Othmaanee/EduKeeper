@@ -18,6 +18,15 @@ const XP_VALUES = {
 // Définir le type pour les clés de XP_VALUES
 export type ActionType = keyof typeof XP_VALUES;
 
+// Définir le type de réponse pour l'attribution d'XP
+interface AwardXpResponse {
+  success: boolean;
+  xpAwarded?: number;
+  newXp?: number;
+  newLevel?: number;
+  error?: any;
+}
+
 export function useXp() {
   const [isAwarding, setIsAwarding] = useState(false);
   const { toast } = useToast();
@@ -29,7 +38,7 @@ export function useXp() {
    * @param actionType Type d'action réalisée
    * @param documentName Nom du document ou de l'objet concerné
    */
-  const awardXp = async (actionType: ActionType, documentName: string) => {
+  const awardXp = async (actionType: ActionType, documentName: string): Promise<AwardXpResponse> => {
     console.log(`awardXp appelé avec: ${actionType}, ${documentName}`);
     try {
       setIsAwarding(true);
@@ -68,7 +77,7 @@ export function useXp() {
       
       // CORRECTION IMPORTANTE: Utiliser une requête RPC (Remote Procedure Call) pour contourner les problèmes potentiels
       // Cette requête va directement mettre à jour la base de données avec une fonction SQL
-      const { error: userUpdateError } = await supabase.rpc('update_user_xp', {
+      const { data, error: userUpdateError } = await supabase.rpc('update_user_xp', {
         user_id: userId,
         new_xp: newXp
       });
@@ -102,6 +111,11 @@ export function useXp() {
       if (fetchError) {
         console.error("Erreur lors de la récupération des données mises à jour:", fetchError);
         throw fetchError;
+      }
+      
+      if (!updatedUser) {
+        console.error("Données utilisateur non disponibles après mise à jour");
+        return { success: false, error: "Données utilisateur non disponibles" };
       }
       
       console.log("Données utilisateur après mise à jour:", updatedUser);
@@ -177,7 +191,12 @@ export function useXp() {
         });
       }
       
-      return { success: true, xpAwarded: xpAmount, newXp: confirmedXp, newLevel };
+      return { 
+        success: true, 
+        xpAwarded: xpAmount, 
+        newXp: confirmedXp, 
+        newLevel 
+      };
     } catch (error) {
       console.error("Erreur lors de l'attribution d'XP:", error);
       toast({
