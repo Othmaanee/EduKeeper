@@ -1,194 +1,123 @@
 
 import { useState } from 'react';
-import { useXPStore } from '@/store/xpStore';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 import { useToast } from '@/components/ui/use-toast';
 
-// Valeurs d'XP pour différentes actions
-const XP_VALUES = {
-  document_upload: 10,
-  generate_summary: 5,
-  generate_exercises: 5,
-  generate_control: 5,
-  document_view: 1
-} as const;
+// XP values for different actions
+export const XP_VALUES = {
+  document_upload: 15,
+  generate_summary: 10,
+  generate_exercises: 20,
+  generate_control: 25,
+  complete_exercise: 5,
+  profile_complete: 10,
+  daily_login: 3
+};
 
-// Type dérivé des clés de XP_VALUES
-type XpActionType = keyof typeof XP_VALUES;
+// Define the XpActionType based on the keys of XP_VALUES
+export type XpActionType = keyof typeof XP_VALUES;
 
-// Type de retour pour les fonctions d'XP
-interface XpResult {
-  xp: number;
-  level: number;
+export interface XpResult {
   success: boolean;
-  error?: any;
+  message: string;
+  currentXp?: number;
 }
 
 export const useXp = () => {
-  const { xp: currentXp, level: currentLevel, fetchUserXP, updateXP } = useXPStore();
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   /**
-   * Attribue de l'XP pour une action spécifique et met à jour la base de données
+   * Award XP to a user for completing an action
    */
-  const awardXP = async (actionType: XpActionType, documentName: string): Promise<XpResult> => {
-    setLoading(true);
+  const awardXP = async (userId: string, action: XpActionType): Promise<XpResult> => {
+    if (!userId) {
+      console.error("No user ID provided to awardXP");
+      return { success: false, message: "Aucun utilisateur identifié" };
+    }
     
+    if (!XP_VALUES[action]) {
+      console.error(`Invalid action type: ${action}`);
+      return { success: false, message: "Action non reconnue" };
+    }
+
     try {
-      console.log(`Tentative d'attribution d'XP pour l'action: ${actionType}`);
+      setIsLoading(true);
       
-      // Récupérer la session utilisateur
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.error("Impossible d'attribuer de l'XP: aucune session utilisateur");
-        return { success: false, xp: currentXp, level: currentLevel, error: "Non authentifié" };
-      }
-      
-      const userId = session.user.id;
-      
-      // Déterminer la quantité d'XP à attribuer
-      const xpToAward = XP_VALUES[actionType];
-      console.log(`XP à attribuer: ${xpToAward}`);
-      
-      // Récupérer l'XP actuelle de l'utilisateur
-      const { data: userData, error: userError } = await supabase
+      // Fetch current user XP
+      const { data: userData, error: fetchError } = await supabase
         .from('users')
-        .select('xp, level')
+        .select('xp')
         .eq('id', userId)
         .single();
-      
-      if (userError) {
-        console.error("Erreur lors de la récupération de l'XP utilisateur:", userError);
-        return { success: false, xp: currentXp, level: currentLevel, error: userError };
+        
+      if (fetchError) {
+        throw new Error(fetchError.message);
       }
       
-      // Calculer la nouvelle XP
-      const newXp = (userData?.xp || 0) + xpToAward;
-      console.log(`Nouvelle XP totale: ${newXp}`);
+      const currentXp = userData?.xp || 0;
+      const xpToAdd = XP_VALUES[action];
+      const newXp = currentXp + xpToAdd;
       
-      // Calculer le nouveau niveau (formule simple: niveau = XP / 100 + 1)
-      const newLevel = Math.floor(newXp / 100) + 1;
-      console.log(`Nouveau niveau: ${newLevel}`);
-      
-      // Mettre à jour l'XP de l'utilisateur dans la base de données
-      const { error: updateError } = await supabase.rpc('update_user_xp', {
-        user_id: userId,
-        new_xp: newXp
-      });
-      
+      // Update user XP using the update_user_xp RPC function
+      const { error: updateError } = await supabase
+        .rpc('update_user_xp', {
+          user_id: userId,
+          new_xp: newXp
+        });
+        
       if (updateError) {
-        console.error("Erreur lors de la mise à jour de l'XP:", updateError);
-        return { success: false, xp: currentXp, level: currentLevel, error: updateError };
-      }
-      
-      // Enregistrer l'action dans l'historique
-      await supabase.from('history').insert({
-        user_id: userId,
-        action_type: actionType,
-        document_name: documentName,
-        xp_gained: xpToAward
-      });
-      
-      // Mettre à jour le state local
-      updateXP(newXp, newLevel);
-      
-      // Vérifier si l'utilisateur a gagné un niveau
-      const levelUp = newLevel > (userData?.level || 1);
-      
-      if (levelUp) {
-        toast({
-          title: "🎉 Niveau supérieur !",
-          description: `Félicitations ! Vous avez atteint le niveau ${newLevel}.`,
-        });
-      } else if (actionType !== 'document_view') { // Ne pas afficher pour les vues de document
-        toast({
-          description: `+${xpToAward} XP pour ${getActionDescription(actionType)}`,
-        });
+        throw new Error(updateError.message);
       }
       
       return { 
         success: true, 
-        xp: newXp, 
-        level: newLevel
+        message: `+${xpToAdd} XP (${action})`, 
+        currentXp: newXp 
       };
-      
-    } catch (error) {
-      console.error("Erreur lors de l'attribution d'XP:", error);
-      return { success: false, xp: currentXp, level: currentLevel, error };
+    } catch (error: any) {
+      console.error("Error awarding XP:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur XP",
+        description: "Impossible de mettre à jour vos points d'expérience."
+      });
+      return { success: false, message: error.message };
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   /**
-   * Obtient une description lisible de l'action
+   * Check if a user has completed a specific action today
    */
-  const getActionDescription = (actionType: XpActionType): string => {
-    switch (actionType) {
-      case 'document_upload':
-        return "importation de document";
-      case 'generate_summary':
-        return "génération de résumé";
-      case 'generate_exercises':
-        return "génération d'exercices";
-      case 'generate_control':
-        return "génération de contrôle";
-      case 'document_view':
-        return "lecture de document";
-      default:
-        return "action";
-    }
-  };
-
-  /**
-   * Récupère le nombre d'actions IA effectuées ce mois-ci
-   */
-  const getMonthlyAIUsage = async (): Promise<number> => {
+  const hasCompletedActionToday = async (userId: string, actionType: string): Promise<boolean> => {
     try {
-      // Récupérer la session utilisateur
-      const { data: { session } } = await supabase.auth.getSession();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      if (!session) {
-        return 0;
-      }
-      
-      const userId = session.user.id;
-      
-      // Définir le début du mois en cours
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      
-      // Compter les actions liées à l'IA
       const { count, error } = await supabase
-        .from('history')
+        .from('xp_history')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .gte('created_at', startOfMonth.toISOString())
-        .or('action_type.eq.generate_summary,action_type.eq.generate_exercises,action_type.eq.generate_control');
+        .eq('action_type', actionType)
+        .gte('created_at', today.toISOString());
       
       if (error) {
-        console.error("Erreur lors de la récupération de l'utilisation mensuelle:", error);
-        return 0;
+        throw error;
       }
       
-      return count || 0;
-      
+      return count !== null && count > 0;
     } catch (error) {
-      console.error("Erreur lors de la récupération de l'utilisation mensuelle:", error);
-      return 0;
+      console.error("Error checking completed actions:", error);
+      return false;
     }
   };
 
   return {
     awardXP,
-    fetchUserXP,
-    getMonthlyAIUsage,
-    loading,
+    isLoading,
+    hasCompletedActionToday,
   };
 };
-
-// Pour la compatibilité avec le code existant qui pourrait utiliser useXP au lieu de useXp
-export const useXP = useXp;
