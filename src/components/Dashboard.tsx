@@ -141,8 +141,12 @@ export function Dashboard({ onSubscribeInterest }: DashboardProps) {
     }
   }, [userData?.skin]);
 
+  // URL du formulaire Google Forms
+  const subscriptionFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdw_yRI9VGfH7UpCA-7_2zBwzlKUWg_MRLWufSWWLYRokXtQw/viewform";
+
   const handleSubscribeClick = () => {
-    setSubscribeDialogOpen(true);
+    // Ouvrir l'URL dans une nouvelle fenêtre/onglet
+    window.open(subscriptionFormUrl, '_blank');
   };
 
   const handleContactClick = () => {
@@ -165,6 +169,7 @@ export function Dashboard({ onSubscribeInterest }: DashboardProps) {
     }
   };
 
+  // Cette fonction n'est plus utilisée maintenant que nous redirigeons vers Google Forms
   const handleSubscribeInterest = async () => {
     setIsSubmitting(true);
     try {
@@ -204,7 +209,7 @@ export function Dashboard({ onSubscribeInterest }: DashboardProps) {
       {/* Subscribe Button */}
       <div className="flex justify-center">
         <Button 
-          onClick={handleSubscribeInterest}
+          onClick={handleSubscribeClick}
           className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-medium py-2 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
           disabled={isSubmitting}
         >

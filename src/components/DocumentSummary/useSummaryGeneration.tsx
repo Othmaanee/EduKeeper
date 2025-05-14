@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
@@ -78,7 +79,7 @@ export function useSummaryGeneration() {
           console.log("Résultat de l'attribution XP:", xpResult);
           
           if (!xpResult.success) {
-            console.error("Échec de l'attribution des XP:", xpResult.error);
+            console.error("Échec de l'attribution des XP:", xpResult.message);
           }
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);

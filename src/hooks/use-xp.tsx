@@ -1,123 +1,160 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
-// XP values for different actions
-export const XP_VALUES = {
-  document_upload: 15,
+// Définir les types d'actions qui peuvent générer de l'XP
+export type XpActionType = 
+  | 'document_upload'
+  | 'generate_summary'
+  | 'generate_exercises'
+  | 'generate_control'
+  | 'complete_exercise'
+  | 'profile_complete'
+  | 'daily_login';
+
+// Valeurs d'XP pour chaque type d'action
+const XP_VALUES: Record<XpActionType, number> = {
+  document_upload: 5,
   generate_summary: 10,
-  generate_exercises: 20,
-  generate_control: 25,
-  complete_exercise: 5,
-  profile_complete: 10,
+  generate_exercises: 15,
+  generate_control: 20,
+  complete_exercise: 25,
+  profile_complete: 50,
   daily_login: 3
 };
 
-// Define the XpActionType based on the keys of XP_VALUES
-export type XpActionType = keyof typeof XP_VALUES;
-
+// Interface pour le résultat de l'attribution d'XP
 export interface XpResult {
   success: boolean;
   message: string;
-  currentXp?: number;
+  xpEarned?: number;
+  newLevel?: number;
+  newTotalXp?: number;
 }
 
-export const useXp = () => {
-  const [isLoading, setIsLoading] = useState(false);
+// Hook personnalisé pour gérer l'XP
+export function useXp() {
   const { toast } = useToast();
-
-  /**
-   * Award XP to a user for completing an action
-   */
-  const awardXP = async (userId: string, action: XpActionType): Promise<XpResult> => {
-    if (!userId) {
-      console.error("No user ID provided to awardXP");
-      return { success: false, message: "Aucun utilisateur identifié" };
-    }
-    
-    if (!XP_VALUES[action]) {
-      console.error(`Invalid action type: ${action}`);
-      return { success: false, message: "Action non reconnue" };
-    }
-
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Attribuer de l'XP à l'utilisateur pour une action spécifique
+  const awardXP = async (actionType: XpActionType, description: string): Promise<XpResult> => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
+      // Vérifier si l'utilisateur est connecté
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      // Fetch current user XP
-      const { data: userData, error: fetchError } = await supabase
+      if (!sessionData.session) {
+        console.error("Aucune session utilisateur trouvée");
+        return { 
+          success: false, 
+          message: "Veuillez vous connecter pour gagner de l'XP" 
+        };
+      }
+      
+      const userId = sessionData.session.user.id;
+      const xpValue = XP_VALUES[actionType];
+      
+      // Vérifier si l'utilisateur a déjà effectué cette action aujourd'hui
+      // pour les actions limitées à une fois par jour
+      if (actionType === 'daily_login') {
+        const alreadyDone = await hasCompletedActionToday(userId, actionType);
+        if (alreadyDone) {
+          console.log("Action déjà complétée aujourd'hui");
+          return { 
+            success: false, 
+            message: "Vous avez déjà gagné de l'XP pour cette action aujourd'hui" 
+          };
+        }
+      }
+      
+      // Enregistrer l'action dans l'historique XP
+      const { error: historyError } = await supabase
+        .from('xp_history')
+        .insert({
+          user_id: userId,
+          action_type: actionType,
+          xp_amount: xpValue,
+          description: description
+        });
+      
+      if (historyError) {
+        console.error("Erreur lors de l'enregistrement de l'historique XP:", historyError);
+        return { 
+          success: false, 
+          message: "Erreur lors de l'attribution de l'XP" 
+        };
+      }
+      
+      // Mettre à jour l'XP totale de l'utilisateur
+      // Cette opération est gérée par un trigger côté base de données
+      
+      // Récupérer les informations mises à jour de l'utilisateur
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('xp')
+        .select('xp, level')
         .eq('id', userId)
         .single();
-        
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      
+      if (userError) {
+        console.error("Erreur lors de la récupération des données utilisateur:", userError);
+        return { 
+          success: true, 
+          message: `Vous avez gagné ${xpValue} XP!`,
+          xpEarned: xpValue 
+        };
       }
       
-      const currentXp = userData?.xp || 0;
-      const xpToAdd = XP_VALUES[action];
-      const newXp = currentXp + xpToAdd;
-      
-      // Update user XP using the update_user_xp RPC function
-      const { error: updateError } = await supabase
-        .rpc('update_user_xp', {
-          user_id: userId,
-          new_xp: newXp
-        });
-        
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
+      // Afficher un toast de réussite
+      toast({
+        title: `+${xpValue} XP gagnés!`,
+        description: description,
+        className: "bg-green-500 text-white border-green-600"
+      });
       
       return { 
         success: true, 
-        message: `+${xpToAdd} XP (${action})`, 
-        currentXp: newXp 
+        message: `Vous avez gagné ${xpValue} XP!`,
+        xpEarned: xpValue,
+        newTotalXp: userData.xp,
+        newLevel: userData.level
       };
-    } catch (error: any) {
-      console.error("Error awarding XP:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur XP",
-        description: "Impossible de mettre à jour vos points d'expérience."
-      });
-      return { success: false, message: error.message };
+      
+    } catch (error) {
+      console.error("Erreur lors de l'attribution d'XP:", error);
+      return { 
+        success: false, 
+        message: "Une erreur s'est produite lors de l'attribution de l'XP" 
+      };
     } finally {
       setIsLoading(false);
     }
   };
-
-  /**
-   * Check if a user has completed a specific action today
-   */
-  const hasCompletedActionToday = async (userId: string, actionType: string): Promise<boolean> => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const { count, error } = await supabase
-        .from('xp_history')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('action_type', actionType)
-        .gte('created_at', today.toISOString());
-      
-      if (error) {
-        throw error;
-      }
-      
-      return count !== null && count > 0;
-    } catch (error) {
-      console.error("Error checking completed actions:", error);
+  
+  // Vérifier si l'utilisateur a déjà réalisé une action aujourd'hui
+  const hasCompletedActionToday = async (userId: string, actionType: XpActionType): Promise<boolean> => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { count, error } = await supabase
+      .from('xp_history')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('action_type', actionType)
+      .gte('created_at', today.toISOString());
+    
+    if (error) {
+      console.error("Erreur lors de la vérification de l'historique des actions:", error);
       return false;
     }
+    
+    return (count || 0) > 0;
   };
-
+  
   return {
     awardXP,
     isLoading,
-    hasCompletedActionToday,
+    hasCompletedActionToday
   };
-};
+}

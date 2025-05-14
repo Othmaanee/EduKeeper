@@ -1,149 +1,152 @@
 import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
+import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useXp } from '@/hooks/use-xp';
-import { useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 const GeneratePage = () => {
-  const [formData, setFormData] = useState({
-    title: '',
-    subject: '',
-    instructions: '',
-    gradeLevel: '',
-    numberOfQuestions: '5',
-  });
-  const [loading, setLoading] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [level, setLevel] = useState('');
+  const [quantity, setQuantity] = useState(5);
+  const [generatedContent, setGeneratedContent] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { awardXP } = useXp();
-  const navigate = useNavigate();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSelectChange = (value: string) => {
-    setFormData({ ...formData, gradeLevel: value });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.title || !formData.subject || !formData.instructions || !formData.gradeLevel || !formData.numberOfQuestions) {
-      toast({
-        title: 'Erreur',
-        description: 'Veuillez remplir tous les champs.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setLoading(true);
+    setIsLoading(true);
+    setGeneratedContent(null);
 
     try {
-      // Simuler une requête à l'API (à remplacer par votre logique réelle)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://mtbcrbfchoqterxevvft.supabase.co'}/functions/v1/generate-control`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10YmNyYmZjaG9xdGVyeGV2dmZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1NDUwNzUsImV4cCI6MjA1NzEyMTA3NX0.97PG3U92JkmrsoxmxFNxiFMwxsHc8GnQM8Xpailfhy0'}`,
+        },
+        body: JSON.stringify({ topic, level, quantity }),
+      });
 
-      // Attribuer de l'XP à l'utilisateur
-      const result = await awardXP('generate_control', formData.title);
-
-      if (result.success) {
-        toast({
-          title: 'Succès',
-          description: 'Contrôle généré avec succès !',
-        });
-        navigate('/accueil'); // Rediriger vers la page d'accueil
-      } else {
-        toast({
-          title: 'Erreur',
-          description: "Erreur lors de l'attribution d'XP.",
-          variant: 'destructive',
-        });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } catch (error) {
+
+      const data = await response.json();
+      setGeneratedContent(data);
+      handleSuccess(data);
+    } catch (error: any) {
+      console.error("Erreur lors de la génération du contenu:", error);
       toast({
-        title: 'Erreur',
-        description: 'Une erreur est survenue lors de la génération du contrôle. Veuillez réessayer.',
-        variant: 'destructive',
+        title: "Erreur",
+        description: "Impossible de générer le contrôle. Veuillez réessayer.",
+        variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Mettre à jour la fonction handleSuccess pour utiliser le bon type d'action XP
+  const handleSuccess = async (generatedContent: any) => {
+    toast({
+      title: "Contrôle généré!",
+      description: "Votre contrôle a été généré avec succès.",
+    });
+
+    // Attribuer des XP pour la génération de contrôle
+    try {
+      const xpResult = await awardXP('generate_control', 'Génération de contrôle');
+      
+      if (xpResult.success) {
+        console.log("XP attribuée avec succès:", xpResult.message);
+      } else {
+        console.warn("Impossible d'attribuer XP:", xpResult.message);
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'attribution des XP:", error);
     }
   };
 
   return (
     <Layout>
-      <div className="container max-w-2xl mx-auto mt-8 p-4">
-        <h1 className="text-2xl font-bold mb-4">Générer un Contrôle</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Titre du Contrôle</Label>
-            <Input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Ex: Contrôle de Mathématiques - Chapitre 3"
-            />
-          </div>
-          <div>
-            <Label htmlFor="subject">Matière</Label>
-            <Input
-              type="text"
-              id="subject"
-              name="subject"
-              value={formData.subject}
-              onChange={handleChange}
-              placeholder="Ex: Mathématiques"
-            />
-          </div>
-          <div>
-            <Label htmlFor="instructions">Instructions</Label>
-            <Textarea
-              id="instructions"
-              name="instructions"
-              value={formData.instructions}
-              onChange={handleChange}
-              placeholder="Ex: Répondez à toutes les questions. Justifiez vos réponses."
-            />
-          </div>
-          <div>
-            <Label htmlFor="gradeLevel">Niveau Scolaire</Label>
-            <Select onValueChange={handleSelectChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sélectionner un niveau" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="6ème">6ème</SelectItem>
-                <SelectItem value="5ème">5ème</SelectItem>
-                <SelectItem value="4ème">4ème</SelectItem>
-                <SelectItem value="3ème">3ème</SelectItem>
-                <SelectItem value="2nde">2nde</SelectItem>
-                <SelectItem value="1ère">1ère</SelectItem>
-                <SelectItem value="Terminale">Terminale</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="numberOfQuestions">Nombre de Questions</Label>
-            <Input
-              type="number"
-              id="numberOfQuestions"
-              name="numberOfQuestions"
-              value={formData.numberOfQuestions}
-              onChange={handleChange}
-              placeholder="Ex: 5"
-            />
-          </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Génération en cours...' : 'Générer le Contrôle'}
-          </Button>
-        </form>
+      <div className="container mx-auto py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Générer un contrôle</CardTitle>
+            <CardDescription>Entrez les détails pour générer un contrôle personnalisé.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="topic">Sujet</Label>
+                <Input
+                  id="topic"
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Entrez le sujet du contrôle"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="level">Niveau</Label>
+                <Input
+                  id="level"
+                  type="text"
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value)}
+                  placeholder="Entrez le niveau (ex: collège, lycée)"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="quantity">Nombre de questions</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  placeholder="Nombre de questions"
+                  min="1"
+                  max="20"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Génération...
+                  </>
+                ) : (
+                  "Générer le contrôle"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {generatedContent && (
+          <Card className="max-w-md mx-auto mt-8">
+            <CardHeader>
+              <CardTitle>Contrôle généré</CardTitle>
+              <CardDescription>Voici le contrôle généré selon vos critères.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={generatedContent.control}
+                className="min-h-[300px]"
+                readOnly
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

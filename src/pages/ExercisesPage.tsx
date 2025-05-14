@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,11 +95,13 @@ const ExercisesPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Générer des Exercices</h1>
-        </div>
+      <div className="container mx-auto py-8 px-4 max-w-5xl">
+        <h1 className="text-3xl font-bold mb-6">Exercices et révisions</h1>
         
+        <ComingSoonOverlay 
+          message="La section exercices sera bientôt disponible"
+        />
+
         <Tabs defaultValue="generate">
           <TabsList className="mb-4">
             <TabsTrigger value="generate">Générer un exercice</TabsTrigger>
