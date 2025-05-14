@@ -74,11 +74,43 @@ serve(async (req) => {
       );
     }
 
+    // Déterminer les instructions spécifiques en fonction de la classe
+    let instructionsSpecifiques = "";
+    const niveauScolaire = classe.toLowerCase();
+    
+    if (["6e", "5e", "4e", "3e"].includes(niveauScolaire)) {
+      // Collège
+      instructionsSpecifiques = `
+- Utilisez un vocabulaire adapté aux élèves de ${classe}
+- Privilégiez des QCM et des questions à réponses courtes
+- Évitez les concepts trop abstraits
+- Utilisez des exemples concrets et ludiques
+- Limitez la complexité mathématique à ce qui est étudié en ${classe}`;
+    } else if (["2nde", "1ere", "premiere", "1ère"].includes(niveauScolaire)) {
+      // Lycée (2nde, 1ère)
+      instructionsSpecifiques = `
+- Adaptez le contenu au programme de ${classe}
+- Équilibrez QCM et questions à développement
+- Introduisez des concepts qui demandent réflexion
+- Ajoutez des questions qui nécessitent une analyse critique
+- Utilisez le vocabulaire technique approprié pour ce niveau`;
+    } else if (["terminale", "term"].includes(niveauScolaire)) {
+      // Terminale
+      instructionsSpecifiques = `
+- Adoptez un niveau correspondant aux exigences du baccalauréat
+- Favorisez les questions à développement et l'analyse approfondie
+- Incluez des questions qui demandent une synthèse de plusieurs notions
+- Utilisez le vocabulaire technique précis de la discipline
+- Proposez des exercices qui préparent aux études supérieures`;
+    }
+
     // Création du prompt amélioré pour OpenAI avec instructions spécifiques sur le formatage
     const prompt = `Vous êtes un professeur expérimenté. Créez 5 exercices progressifs et complets avec leurs corrigés, adaptés à une classe de ${classe} en fonction du sujet "${sujet}" et du niveau "${niveau}" :
 - Niveau "Bases" : exercices simples, notions fondamentales
 - Niveau "Classique" : exercices standards, adaptés à des évaluations de mi-parcours
 - Niveau "Très complet" : exercices complexes, croisant plusieurs notions du programme de ${classe}
+
+${instructionsSpecifiques}
 
 IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
 Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).

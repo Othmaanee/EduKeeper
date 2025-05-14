@@ -201,14 +201,6 @@ export function DocumentSummaryPage() {
           </div>
         </div>
         
-        {/* Instruction message */}
-        <Alert className="bg-primary/5 border-primary/20 mb-6">
-          <Lightbulb className="h-4 w-4 text-primary" />
-          <AlertDescription className="text-foreground font-medium">
-            Déposez un document, cliquez sur un bouton IA et récupérez votre cours ou votre résumé sans effort.
-          </AlertDescription>
-        </Alert>
-        
         <SummaryGenerationForm
           documents={documents}
           userLoading={userLoading}
