@@ -60,12 +60,13 @@ export function useXp() {
       console.log(`Données utilisateur récupérées:`, userData);
       
       // Calculer la nouvelle XP et le nouveau niveau
-      const newXp = (userData.xp || 0) + xpAmount;
+      const currentXp = userData?.xp || 0; // S'assurer que nous avons une valeur même si null
+      const newXp = currentXp + xpAmount;
       
       // Formule simple de calcul de niveau : niveau = racine carrée de xp/100 arrondie à l'entier inférieur + 1
       const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
       
-      console.log(`Nouvelle XP: ${newXp}, Nouveau niveau: ${newLevel}`);
+      console.log(`XP actuelle: ${currentXp}, Nouvelle XP: ${newXp}, Nouveau niveau: ${newLevel}`);
       
       // 1. Mettre à jour les XP utilisateur
       const { error: userUpdateError } = await supabase
@@ -83,7 +84,6 @@ export function useXp() {
       
       // 2. Ajouter une entrée dans l'historique
       // Convertir actionType à une valeur acceptée par la contrainte de la base de données
-      // Remplaçons les '_' par des espaces pour correspondre à la contrainte 'génération' au lieu de 'generate_exercises'
       let historyActionType: string;
       
       switch (actionType) {

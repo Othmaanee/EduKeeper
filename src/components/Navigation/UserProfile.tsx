@@ -48,11 +48,7 @@ export const UserProfile = ({ user, onLogout, loggingOut }: UserProfileProps) =>
     <div className="mt-auto border-t pt-4 px-4 pb-6">
       {userProfile ? (
         <>
-          <UserLevel 
-            xp={userProfile.xp || 0} 
-            level={userProfile.level || 1}
-            className="mb-4" 
-          />
+          <UserLevel className="mb-4" />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

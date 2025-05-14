@@ -199,13 +199,11 @@ const ExercisesPage = () => {
       const xpResult = await awardXp('generate_exercises', `Exercices: ${sujet}`);
       console.log("Résultat awardXp:", xpResult);
       
-      // Afficher un toast spécifique pour l'XP gagné si succès
       if (xpResult && xpResult.success) {
-        toast({
-          title: "XP Gagnés",
-          description: `Vous avez gagné ${xpResult.xpAwarded} XP pour avoir généré des exercices`,
-          className: "bg-amber-100 border-amber-300"
-        });
+        console.log(`XP attribuées avec succès: ${xpResult.xpAwarded}, nouvelle XP totale: ${xpResult.newXp}`);
+        // Affichage du toast géré directement dans le hook useXp
+      } else {
+        console.error("Échec de l'attribution d'XP:", xpResult?.error);
       }
     } catch (error) {
       console.error('Error generating exercises:', error);

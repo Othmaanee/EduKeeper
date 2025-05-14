@@ -39,9 +39,11 @@ export const useXPStore = create<XPState>((set) => ({
         return;
       }
       
+      console.log("XP Store: données récupérées depuis Supabase:", data);
+      
       set({ 
-        xp: data.xp, 
-        level: data.level,
+        xp: data.xp || 0, 
+        level: data.level || 1,
         isLoading: false 
       });
     } catch (error) {
@@ -51,6 +53,7 @@ export const useXPStore = create<XPState>((set) => ({
   },
   
   updateXP: (newXp, newLevel) => {
+    console.log("XP Store: mise à jour avec", { newXp, newLevel });
     set({ xp: newXp, level: newLevel });
   }
 }));
