@@ -92,7 +92,7 @@ export const useXp = () => {
   /**
    * Check if a user has completed a specific action today
    */
-  const hasCompletedActionToday = async (userId: string, actionType: string): Promise<boolean> => {
+  const hasCompletedActionToday = async (userId: string, actionType: XpActionType): Promise<boolean> => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
