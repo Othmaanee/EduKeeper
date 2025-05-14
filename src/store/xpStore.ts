@@ -18,8 +18,16 @@ export const useXPStore = create<XPState>((set) => ({
   fetchUserXP: async () => {
     set({ isLoading: true });
     try {
+      console.log("XPStore: Début du chargement des XP...");
+      
       // Récupérer la session utilisateur
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("XPStore: Erreur de session", sessionError);
+        set({ isLoading: false });
+        return;
+      }
       
       if (!session) {
         console.log("XPStore: Aucune session utilisateur trouvée");
@@ -35,7 +43,7 @@ export const useXPStore = create<XPState>((set) => ({
         .from('users')
         .select('xp, level')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Erreur lors de la récupération de l'XP:", error);
