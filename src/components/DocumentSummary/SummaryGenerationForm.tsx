@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { FileText, FileUp, Book, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,12 +64,6 @@ export const SummaryGenerationForm = ({
   handleFileUpload
 }: SummaryGenerationFormProps) => {
   const [isFileLoading, setIsFileLoading] = useState<boolean>(false);
-  const [localDocumentText, setLocalDocumentText] = useState<string>("");
-  
-  // Mettre à jour le texte local quand documentText change
-  useEffect(() => {
-    setLocalDocumentText(documentText);
-  }, [documentText]);
   
   // Fonction de gestion du téléversement de fichier
   const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +76,6 @@ export const SummaryGenerationForm = ({
       // Simuler l'extraction du texte du fichier (dans un cas réel, un service de backend serait utilisé)
       // Pour le moment, nous utilisons simplement le nom du fichier comme texte
       const extractedText = `Contenu extrait du fichier: ${file.name}`;
-      setLocalDocumentText(extractedText);
       setDocumentText(extractedText);
       setUploadedFile(file);
       
@@ -102,26 +94,9 @@ export const SummaryGenerationForm = ({
       const selectedDoc = documents.find(doc => doc.id === selectedDocumentId);
       if (selectedDoc && selectedDoc.content) {
         setDocumentText(selectedDoc.content);
-        setLocalDocumentText(selectedDoc.content);
       }
     }
   }, [selectedDocumentId, documents, setDocumentText]);
-
-  // Déterminer si le bouton doit être actif
-  const isGenerateButtonEnabled = () => {
-    if (isGeneratingSummary) return false;
-    
-    switch (inputMethod) {
-      case 'text':
-        return textInput.trim().length > 0;
-      case 'upload':
-        return localDocumentText.trim().length > 0;
-      case 'select':
-        return selectedDocumentId !== '' && localDocumentText.trim().length > 0;
-      default:
-        return false;
-    }
-  };
 
   // Find the selected document
   const selectedDocument = documents?.find(doc => doc.id === selectedDocumentId);
@@ -220,14 +195,11 @@ export const SummaryGenerationForm = ({
                     <p className="text-sm text-muted-foreground">
                       {Math.round(uploadedFile.size / 1024)} Ko
                     </p>
-                    {localDocumentText && (
+                    {documentText && (
                       <div className="mt-2">
                         <Textarea 
-                          value={localDocumentText}
-                          onChange={(e) => {
-                            setLocalDocumentText(e.target.value);
-                            setDocumentText(e.target.value);
-                          }}
+                          value={documentText}
+                          onChange={(e) => setDocumentText(e.target.value)}
                           className="w-full min-h-[100px] text-xs"
                           placeholder="Contenu extrait du fichier... Vous pouvez modifier ce texte avant de générer le résumé."
                         />
@@ -260,7 +232,6 @@ export const SummaryGenerationForm = ({
                       const selectedDoc = documents.find(doc => doc.id === value);
                       if (selectedDoc && selectedDoc.content) {
                         setDocumentText(selectedDoc.content);
-                        setLocalDocumentText(selectedDoc.content);
                       }
                     }}
                   >
@@ -294,14 +265,11 @@ export const SummaryGenerationForm = ({
                     <p className="text-sm text-muted-foreground">
                       Catégorie: {selectedDocument.categories?.nom || "Sans catégorie"}
                     </p>
-                    {localDocumentText && (
+                    {selectedDocument.content && (
                       <div className="mt-2">
                         <Textarea 
-                          value={localDocumentText}
-                          onChange={(e) => {
-                            setLocalDocumentText(e.target.value);
-                            setDocumentText(e.target.value);
-                          }}
+                          value={documentText}
+                          onChange={(e) => setDocumentText(e.target.value)}
                           className="w-full min-h-[100px] text-xs"
                           placeholder="Contenu du document... Vous pouvez modifier ce texte avant de générer le résumé."
                         />
@@ -324,7 +292,12 @@ export const SummaryGenerationForm = ({
       <CardFooter>
         <Button 
           onClick={onGenerateSummary} 
-          disabled={!isGenerateButtonEnabled()}
+          disabled={
+            isGeneratingSummary || 
+            (inputMethod === 'text' && !textInput.trim()) ||
+            (inputMethod === 'upload' && !documentText.trim()) ||
+            (inputMethod === 'select' && !selectedDocumentId)
+          }
           className="w-full"
         >
           {isGeneratingSummary ? (
