@@ -15,7 +15,7 @@ export const XP_VALUES = {
   daily_login: 3
 };
 
-// Define the XpActionType based on the keys of XP_VALUES
+// Define the XpActionType as a union of string literals based on the keys of XP_VALUES
 export type XpActionType = keyof typeof XP_VALUES;
 
 export interface XpResult {
