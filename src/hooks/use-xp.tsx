@@ -22,6 +22,7 @@ export function useXp() {
   const [isAwarding, setIsAwarding] = useState(false);
   const { toast } = useToast();
   const updateXP = useXPStore(state => state.updateXP);
+  const fetchUserXP = useXPStore(state => state.fetchUserXP);
 
   /**
    * Attribuer de l'XP à l'utilisateur pour une action spécifique
@@ -63,18 +64,13 @@ export function useXp() {
       const currentXp = userData?.xp || 0; // S'assurer que nous avons une valeur même si null
       const newXp = currentXp + xpAmount;
       
-      // Formule simple de calcul de niveau : niveau = racine carrée de xp/100 arrondie à l'entier inférieur + 1
-      const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
+      console.log(`XP actuelle: ${currentXp}, Nouvelle XP: ${newXp}`);
       
-      console.log(`XP actuelle: ${currentXp}, Nouvelle XP: ${newXp}, Nouveau niveau: ${newLevel}`);
-      
-      // 1. Mettre à jour les XP utilisateur avec un upsert pour être sûr
+      // Mettre à jour les XP utilisateur dans la base de données
+      // NOTE: Le niveau sera automatiquement mis à jour par le trigger DB
       const { error: userUpdateError, data: updateResult } = await supabase
         .from('users')
-        .update({ 
-          xp: newXp,
-          level: newLevel
-        })
+        .update({ xp: newXp })
         .eq('id', userId)
         .select('xp, level');
         
@@ -84,6 +80,21 @@ export function useXp() {
       }
       
       console.log("Résultat de la mise à jour:", updateResult);
+      
+      // Après la mise à jour, récupérer les données mises à jour pour être sûr
+      const { data: updatedUser, error: fetchError } = await supabase
+        .from('users')
+        .select('xp, level')
+        .eq('id', userId)
+        .single();
+        
+      if (fetchError) {
+        console.error("Erreur lors de la récupération des données mises à jour:", fetchError);
+      } else {
+        console.log("Données utilisateur après mise à jour:", updatedUser);
+      }
+      
+      const newLevel = updatedUser?.level || Math.floor(Math.sqrt(newXp / 100)) + 1;
       
       // 2. Ajouter une entrée dans l'historique
       // Convertir actionType à une valeur acceptée par la contrainte de la base de données
@@ -132,6 +143,9 @@ export function useXp() {
       
       // Mettre à jour le store global XP
       updateXP(newXp, newLevel);
+      
+      // Re-fetch les données XP du store global pour s'assurer de la synchronisation
+      fetchUserXP();
       
       // Montrer un toast de félicitations si le niveau a augmenté
       if (newLevel > userData.level) {

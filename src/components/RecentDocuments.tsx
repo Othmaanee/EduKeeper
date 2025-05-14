@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Eye, Download, Clock, FileText, FileImage, FileVideo, FileAudio, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -133,48 +132,63 @@ export function RecentDocuments() {
   const { data: documents = [], isLoading, error } = useQuery({
     queryKey: ['recentDocuments'],
     queryFn: async () => {
-      // Get current user's role to determine what documents to fetch
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error("Non connecté");
-      }
-      
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+      try {
+        // Get current user's role to determine what documents to fetch
+        const { data: { session } } = await supabase.auth.getSession();
         
-      if (userError) throw userError;
-      
-      // Query documents based on user role
-      let query = supabase
-        .from('documents')
-        .select('*, categories(id, nom)')
-        .order('created_at', { ascending: false })
-        .limit(6);
-      
-      // For regular users, only show their documents and shared documents
-      if (userData.role === 'user') {
-        query = query.or(`user_id.eq.${session.user.id},is_shared.eq.true`);
+        if (!session) {
+          console.log("RecentDocuments: Utilisateur non connecté");
+          return [];
+        }
+        
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (userError) {
+          console.error("RecentDocuments: Erreur de récupération du rôle utilisateur", userError);
+          return [];
+        }
+        
+        // Query documents based on user role
+        let query = supabase
+          .from('documents')
+          .select('*, categories(id, nom)')
+          .order('created_at', { ascending: false })
+          .limit(6);
+        
+        // For regular users, only show their documents and shared documents
+        if (userData.role === 'user') {
+          query = query.or(`user_id.eq.${session.user.id},is_shared.eq.true`);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("RecentDocuments: Erreur de récupération des documents", error);
+          return [];
+        }
+        
+        // Transform data to match SupabaseDocument type
+        return (data || []).map(doc => ({
+          id: doc.id,
+          title: doc.nom,
+          type: getDocumentType(doc.nom),
+          category: doc.categories?.nom || 'Sans catégorie',
+          categoryId: doc.category_id || '',
+          date: doc.created_at,
+          url: doc.url
+        }));
+      } catch (err) {
+        console.error("RecentDocuments: Exception lors de la récupération", err);
+        throw err;
       }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Transform data to match SupabaseDocument type
-      return (data || []).map(doc => ({
-        id: doc.id,
-        title: doc.nom,
-        type: getDocumentType(doc.nom),
-        category: doc.categories?.nom || 'Sans catégorie',
-        categoryId: doc.category_id || '',
-        date: doc.created_at,
-        url: doc.url
-      }));
-    }
+    },
+    // Désactiver le rechargement automatique
+    staleTime: 1000 * 60 * 5, // Donées considérées fraîches pendant 5 minutes
+    retry: 1, // Limiter à une nouvelle tentative en cas d'échec
   });
 
   if (isLoading) {
@@ -211,4 +225,3 @@ export function RecentDocuments() {
     </div>
   );
 }
-

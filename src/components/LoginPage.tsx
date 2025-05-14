@@ -1,93 +1,134 @@
 
-import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { XCircle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
+import { useXPStore } from "@/store/xpStore";
 
-const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [classLevel, setClassLevel] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
-  
-  const { toast } = useToast();
+export default function LoginPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { fetchUserXP } = useXPStore();
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [registrationEmail, setRegistrationEmail] = useState("");
+  const [registrationPassword, setRegistrationPassword] = useState("");
+  const [registrationNom, setRegistrationNom] = useState("");
+  const [registrationPrenom, setRegistrationPrenom] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Vérifier si l'utilisateur est déjà connecté
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log("Utilisateur déjà connecté, redirection vers l'accueil");
+        navigate("/");
+      }
+    };
+    
+    checkSession();
+    
+    // Écouter les changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Événement d'authentification:", event);
+      if (event === 'SIGNED_IN' && session) {
+        console.log("Utilisateur connecté, redirection vers l'accueil");
+        // Mettre à jour le store XP après connexion
+        fetchUserXP();
+        navigate("/");
+      } else if (event === 'SIGNED_OUT') {
+        console.log("Utilisateur déconnecté");
+      }
+    });
+
+    // Cleanup
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, fetchUserXP]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      if (isLogin) {
-        // Login
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) throw error;
-        
-        // S'assurer que la session est stockée correctement
-        const session = data.session;
-        if (!session) throw new Error("Session d'authentification invalide");
-        
-        console.log("Connexion réussie, session:", session);
-        console.log("Access token:", session.access_token);
-        console.log("Refresh token:", session.refresh_token);
+      if (error) {
+        throw error;
+      }
 
-        toast({
-          title: "Connexion réussie",
-          description: "Vous êtes maintenant connecté.",
-          variant: "default",
-        });
+      console.log("Connexion réussie:", data);
+      toast({
+        title: "Connexion réussie",
+        description: "Vous êtes maintenant connecté.",
+        className: "bg-green-500 text-white",
+      });
+      
+      // Mettre à jour les données XP
+      fetchUserXP();
+    } catch (error: any) {
+      console.error("Erreur de connexion:", error);
+      toast({
+        title: "Erreur de connexion",
+        description: error.message || "Une erreur est survenue lors de la connexion",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        navigate('/accueil');
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: registrationEmail,
+        password: registrationPassword,
+        options: {
+          data: {
+            nom: registrationNom,
+            prenom: registrationPrenom,
+            role: "eleve", // Rôle par défaut
+          }
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Inscription réussie",
+        description: "Votre compte a été créé avec succès.",
+        className: "bg-green-500 text-white",
+      });
+      
+      // Redirection automatique après inscription réussie
+      if (data.session) {
+        // Mettre à jour les données XP
+        fetchUserXP();
+        navigate("/");
       } else {
-        // Register
-        if (!email || !password || !firstName || !lastName) {
-          throw new Error('Veuillez remplir tous les champs obligatoires');
-        }
-
-        // Signup with meta data
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              nom: lastName,
-              prenom: firstName,
-              classe: classLevel || 'user', // Default value if not provided
-              date_naissance: birthDate || null, // Default value if not provided
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Inscription réussie",
-          description: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
-          variant: "default",
-        });
-
-        // Switch to login view after successful registration
-        setIsLogin(true);
+        setActiveTab("login");
       }
     } catch (error: any) {
-      console.error('Erreur d\'authentification:', error);
+      console.error("Erreur d'inscription:", error);
       toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue. Veuillez réessayer.",
+        title: "Erreur d'inscription",
+        description: error.message || "Une erreur est survenue lors de l'inscription",
         variant: "destructive",
       });
     } finally {
@@ -96,132 +137,125 @@ const LoginPage = () => {
   };
 
   return (
-    <Layout>
-      <div className="container max-w-md py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
-            <CardDescription>
-              {isLogin 
-                ? "Accédez à votre compte pour utiliser l'application." 
-                : "Créez un compte pour commencer à utiliser l'application."}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              {!isLogin && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">Prénom</Label>
-                      <Input
-                        id="firstName"
-                        placeholder="Prénom"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Nom</Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Nom"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        required
-                      />
-                    </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 px-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl font-bold">EduKeeper</CardTitle>
+          <CardDescription>
+            Connectez-vous à votre compte ou créez-en un nouveau
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Connexion</TabsTrigger>
+              <TabsTrigger value="register">Inscription</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="votre@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <a href="#" className="text-sm text-blue-600 hover:text-blue-800">
+                      Mot de passe oublié?
+                    </a>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="classLevel">Classe</Label>
-                      <Input
-                        id="classLevel"
-                        placeholder="Ex: Terminale S"
-                        value={classLevel}
-                        onChange={(e) => setClassLevel(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="birthDate">Date de naissance</Label>
-                      <Input
-                        id="birthDate"
-                        type="date"
-                        value={birthDate}
-                        onChange={(e) => setBirthDate(e.target.value)}
-                      />
-                    </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connexion en cours...
+                    </>
+                  ) : (
+                    "Se connecter"
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="register">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom</Label>
+                    <Input
+                      id="nom"
+                      placeholder="Dupont"
+                      value={registrationNom}
+                      onChange={(e) => setRegistrationNom(e.target.value)}
+                      required
+                    />
                   </div>
-                </>
-              )}
-            </CardContent>
-            <CardFooter className="flex flex-col">
-              <Button 
-                type="submit" 
-                className="w-full mb-4"
-                disabled={loading}
-              >
-                {loading ? "Chargement..." : isLogin ? "Se connecter" : "S'inscrire"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => setIsLogin(!isLogin)}
-                className="w-full"
-              >
-                {isLogin ? "Créer un compte" : "Déjà un compte ? Se connecter"}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-        
-        {/* Indications de sécurité */}
-        <div className="mt-6 space-y-2">
-          <h3 className="text-sm font-medium">Pour votre sécurité :</h3>
-          <div className="text-xs text-muted-foreground">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Utilisez un mot de passe unique</span>
-            </div>
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Minimum 8 caractères avec lettres et chiffres</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-destructive" />
-              <span>Évitez les informations personnelles facilement devinables</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
+                  <div className="space-y-2">
+                    <Label htmlFor="prenom">Prénom</Label>
+                    <Input
+                      id="prenom"
+                      placeholder="Jean"
+                      value={registrationPrenom}
+                      onChange={(e) => setRegistrationPrenom(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registrationEmail">Email</Label>
+                  <Input
+                    id="registrationEmail"
+                    type="email"
+                    placeholder="votre@email.com"
+                    value={registrationEmail}
+                    onChange={(e) => setRegistrationEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registrationPassword">Mot de passe</Label>
+                  <Input
+                    id="registrationPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={registrationPassword}
+                    onChange={(e) => setRegistrationPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Inscription en cours...
+                    </>
+                  ) : (
+                    "S'inscrire"
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+        <CardFooter className="text-center text-sm text-gray-600">
+          En vous connectant, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+        </CardFooter>
+      </Card>
+    </div>
   );
-};
-
-export default LoginPage;
+}
