@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useXp } from '@/hooks/use-xp';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const GeneratePage = () => {
   const [formData, setFormData] = useState({
@@ -50,9 +50,14 @@ const GeneratePage = () => {
       // Simuler une requête à l'API (à remplacer par votre logique réelle)
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Fix: Use a proper actionType from XpActionType as the first parameter
-      // and pass the title as the second parameter
-      const result = await awardXP('generate_control', formData.title);
+      // Récupérer l'ID de l'utilisateur connecté
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData || !userData.user) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      // Utiliser un type valide de XpActionType comme premier paramètre
+      const result = await awardXP(userData.user.id, "generate_control");
 
       if (result.success) {
         toast({
