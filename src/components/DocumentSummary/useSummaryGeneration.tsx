@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
-import { useXp, XpActionType } from '@/hooks/use-xp';
+import { useXp } from '@/hooks/use-xp';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -75,17 +74,11 @@ export function useSummaryGeneration() {
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
           console.log("Attribution des XP pour la génération de résumé...");
+          const xpResult = await awardXP('generate_summary', 'Résumé de document');
+          console.log("Résultat de l'attribution XP:", xpResult);
           
-          // Récupérer l'ID de l'utilisateur connecté
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData && userData.user) {
-            // Utiliser le bon type d'action "generate_summary" comme XpActionType
-            const xpResult = await awardXP(userData.user.id, "generate_summary");
-            console.log("Résultat de l'attribution XP:", xpResult);
-            
-            if (!xpResult.success) {
-              console.error("Échec de l'attribution des XP:", xpResult.message);
-            }
+          if (!xpResult.success) {
+            console.error("Échec de l'attribution des XP:", xpResult.error);
           }
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);

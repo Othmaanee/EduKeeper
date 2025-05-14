@@ -6,9 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useXp, XpActionType } from '@/hooks/use-xp';
+import { useXp } from '@/hooks/use-xp';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 
 const GeneratePage = () => {
   const [formData, setFormData] = useState({
@@ -34,11 +33,10 @@ const GeneratePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Make instructions optional by removing it from the validation check
-    if (!formData.title || !formData.subject || !formData.gradeLevel || !formData.numberOfQuestions) {
+    if (!formData.title || !formData.subject || !formData.instructions || !formData.gradeLevel || !formData.numberOfQuestions) {
       toast({
         title: 'Erreur',
-        description: 'Veuillez remplir tous les champs obligatoires.',
+        description: 'Veuillez remplir tous les champs.',
         variant: 'destructive',
       });
       return;
@@ -50,19 +48,13 @@ const GeneratePage = () => {
       // Simuler une requête à l'API (à remplacer par votre logique réelle)
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Récupérer l'ID de l'utilisateur connecté
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData || !userData.user) {
-        throw new Error("Utilisateur non connecté");
-      }
-
-      // Utiliser un type valide de XpActionType
-      const result = await awardXP(userData.user.id, "generate_control");
+      // Attribuer de l'XP à l'utilisateur
+      const result = await awardXP('generate_control', formData.title);
 
       if (result.success) {
         toast({
           title: 'Succès',
-          description: `Contrôle généré avec succès ! ${result.message}`,
+          description: 'Contrôle généré avec succès !',
         });
         navigate('/accueil'); // Rediriger vers la page d'accueil
       } else {
@@ -111,7 +103,7 @@ const GeneratePage = () => {
             />
           </div>
           <div>
-            <Label htmlFor="instructions">Instructions (facultatif)</Label>
+            <Label htmlFor="instructions">Instructions</Label>
             <Textarea
               id="instructions"
               name="instructions"

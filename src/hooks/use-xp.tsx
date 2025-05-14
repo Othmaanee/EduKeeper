@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useToast } from '@/components/ui/use-toast';
-import { useXPStore } from '@/store/xpStore';
 
 // XP values for different actions
 export const XP_VALUES = {
@@ -16,7 +15,7 @@ export const XP_VALUES = {
   daily_login: 3
 };
 
-// Define the XpActionType as a union of string literals based on the keys of XP_VALUES
+// Define the XpActionType based on the keys of XP_VALUES
 export type XpActionType = keyof typeof XP_VALUES;
 
 export interface XpResult {
@@ -28,7 +27,6 @@ export interface XpResult {
 export const useXp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { updateXP, fetchUserXP } = useXPStore();
 
   /**
    * Award XP to a user for completing an action
@@ -50,7 +48,7 @@ export const useXp = () => {
       // Fetch current user XP
       const { data: userData, error: fetchError } = await supabase
         .from('users')
-        .select('xp, level')
+        .select('xp')
         .eq('id', userId)
         .single();
         
@@ -59,7 +57,6 @@ export const useXp = () => {
       }
       
       const currentXp = userData?.xp || 0;
-      const currentLevel = userData?.level || 1;
       const xpToAdd = XP_VALUES[action];
       const newXp = currentXp + xpToAdd;
       
@@ -73,23 +70,6 @@ export const useXp = () => {
       if (updateError) {
         throw new Error(updateError.message);
       }
-      
-      // Add entry to history table for tracking
-      await supabase
-        .from('history')
-        .insert({
-          user_id: userId,
-          action_type: action,
-          xp_gained: xpToAdd,
-          document_name: action // Default document name
-        });
-      
-      // Update the XP store to reflect new values immediately in UI
-      // This will trigger any UI components that depend on XP to re-render
-      updateXP(newXp, Math.floor(newXp / 100) + 1);
-      
-      // Re-fetch XP to ensure we have the latest values including updated level
-      fetchUserXP();
       
       return { 
         success: true, 
@@ -112,13 +92,13 @@ export const useXp = () => {
   /**
    * Check if a user has completed a specific action today
    */
-  const hasCompletedActionToday = async (userId: string, actionType: XpActionType): Promise<boolean> => {
+  const hasCompletedActionToday = async (userId: string, actionType: string): Promise<boolean> => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       const { count, error } = await supabase
-        .from('history')
+        .from('xp_history')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('action_type', actionType)

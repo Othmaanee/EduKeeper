@@ -2,14 +2,11 @@
 import React from 'react';
 
 interface ComingSoonOverlayProps {
-  message?: string; // Prop message rendue facultative avec "?"
-  show?: boolean; // Prop pour rendre l'affichage optionnel
+  message: string;
+  show?: boolean; // Nouvelle prop pour rendre l'affichage optionnel
 }
 
-export const ComingSoonOverlay = ({ 
-  message = "Fonctionnalité bientôt disponible", // Valeur par défaut
-  show = true 
-}: ComingSoonOverlayProps) => {
+export const ComingSoonOverlay = ({ message, show = true }: ComingSoonOverlayProps) => {
   if (!show) return null;
   
   return (
