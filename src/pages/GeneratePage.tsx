@@ -1,157 +1,157 @@
-
 import React, { useState } from 'react';
-import { Layout } from '../components/Layout';
+import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
-import { useXp } from '@/hooks/use-xp';
+import { useXp, XpActionType } from '@/hooks/use-xp';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const GeneratePage = () => {
-  const [subject, setSubject] = useState('');
-  const [level, setLevel] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [generatedContent, setGeneratedContent] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    subject: '',
+    instructions: '',
+    gradeLevel: '',
+    numberOfQuestions: '5',
+  });
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { awardXp } = useXp();
+  const { awardXP } = useXp();
+  const navigate = useNavigate();
 
-  const handleGenerateCourse = async (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData({ ...formData, gradeLevel: value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+
+    // Make instructions optional by removing it from the validation check
+    if (!formData.title || !formData.subject || !formData.gradeLevel || !formData.numberOfQuestions) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez remplir tous les champs obligatoires.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      // Appel à la fonction Edge avec le supabase client
-      const { data, error } = await supabase.functions.invoke('generate-evaluation', {
-        body: {
-          sujet: subject,
-          classe: level,
-          specialite: 'aucune', // Valeur par défaut
-          difficulte: instructions || 'Moyen' // Utiliser les instructions comme niveau de difficulté
-        }
-      });
+      // Simuler une requête à l'API (à remplacer par votre logique réelle)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      if (error) {
-        console.error('Error from Edge function:', error);
-        throw new Error(`Une erreur est survenue lors de la génération: ${error.message}`);
+      // Récupérer l'ID de l'utilisateur connecté
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData || !userData.user) {
+        throw new Error("Utilisateur non connecté");
       }
 
-      console.log('Données reçues de la fonction Edge:', data);
-      
-      if (!data || !data.evaluation) {
-        throw new Error('La réponse ne contient pas de contenu généré');
-      }
+      // Utiliser un type valide de XpActionType
+      const result = await awardXP(userData.user.id, "generate_control");
 
-      setGeneratedContent(data.evaluation);
-      await awardXp('generate_control', `Contrôle: ${subject}`);
-      
-      // Afficher un toast de confirmation
+      if (result.success) {
+        toast({
+          title: 'Succès',
+          description: `Contrôle généré avec succès ! ${result.message}`,
+        });
+        navigate('/accueil'); // Rediriger vers la page d'accueil
+      } else {
+        toast({
+          title: 'Erreur',
+          description: "Erreur lors de l'attribution d'XP.",
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Contrôle prêt !",
-        description: "+40 XP",
-        variant: "default",
-        className: "bg-green-500 text-white border-green-600"
-      });
-    } catch (error: any) {
-      console.error('Error generating course:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue, veuillez réessayer.",
-        variant: "destructive",
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de la génération du contrôle. Veuillez réessayer.',
+        variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <Layout>
-      <div className="container max-w-4xl py-6 animate-fade-in">
-        <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link to="/" className="flex items-center text-muted-foreground">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Retour à l'accueil
-          </Link>
-        </Button>
-        
-        {/* Mini walkthrough visuel */}
-        <div className="mb-6 bg-muted rounded-lg p-4 flex items-center justify-center">
-          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-            <span className="font-semibold">🧭</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">1. Complétez le formulaire</span>
-            <span className="text-muted-foreground hidden sm:inline">—</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">2. Cliquez sur générer</span>
-            <span className="text-muted-foreground hidden sm:inline">—</span>
-            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">3. Récupérez votre contrôle</span>
+      <div className="container max-w-2xl mx-auto mt-8 p-4">
+        <h1 className="text-2xl font-bold mb-4">Générer un Contrôle</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="title">Titre du Contrôle</Label>
+            <Input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="Ex: Contrôle de Mathématiques - Chapitre 3"
+            />
           </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Générer un contrôle</CardTitle>
-            <CardDescription>
-              Entrez les informations pour générer un contrôle personnalisé.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <label htmlFor="subject">Sujet</label>
-              <Input
-                id="subject"
-                placeholder="Nom du sujet"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="level">Niveau</label>
-              <Input
-                id="level"
-                placeholder="Niveau scolaire"
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="instructions">Instructions</label>
-              <Textarea
-                id="instructions"
-                placeholder="Instructions spécifiques"
-                rows={4}
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleGenerateCourse} disabled={isLoading || !subject || !level}>
-              {isLoading ? (
-                <>
-                  Génération en cours...
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                </>
-              ) : (
-                "Générer le contrôle"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {generatedContent && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Contenu généré</CardTitle>
-              <CardDescription>Voici le contenu généré par l'IA :</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="whitespace-pre-line prose max-w-none">{generatedContent}</div>
-            </CardContent>
-          </Card>
-        )}
+          <div>
+            <Label htmlFor="subject">Matière</Label>
+            <Input
+              type="text"
+              id="subject"
+              name="subject"
+              value={formData.subject}
+              onChange={handleChange}
+              placeholder="Ex: Mathématiques"
+            />
+          </div>
+          <div>
+            <Label htmlFor="instructions">Instructions (facultatif)</Label>
+            <Textarea
+              id="instructions"
+              name="instructions"
+              value={formData.instructions}
+              onChange={handleChange}
+              placeholder="Ex: Répondez à toutes les questions. Justifiez vos réponses."
+            />
+          </div>
+          <div>
+            <Label htmlFor="gradeLevel">Niveau Scolaire</Label>
+            <Select onValueChange={handleSelectChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Sélectionner un niveau" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6ème">6ème</SelectItem>
+                <SelectItem value="5ème">5ème</SelectItem>
+                <SelectItem value="4ème">4ème</SelectItem>
+                <SelectItem value="3ème">3ème</SelectItem>
+                <SelectItem value="2nde">2nde</SelectItem>
+                <SelectItem value="1ère">1ère</SelectItem>
+                <SelectItem value="Terminale">Terminale</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="numberOfQuestions">Nombre de Questions</Label>
+            <Input
+              type="number"
+              id="numberOfQuestions"
+              name="numberOfQuestions"
+              value={formData.numberOfQuestions}
+              onChange={handleChange}
+              placeholder="Ex: 5"
+            />
+          </div>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Génération en cours...' : 'Générer le Contrôle'}
+          </Button>
+        </form>
       </div>
     </Layout>
   );
