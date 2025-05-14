@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { useXp } from '@/hooks/use-xp';
+import { supabase } from '@/integrations/supabase/client';
 
 const GeneratePage = () => {
   const [subject, setSubject] = useState('');
@@ -24,20 +25,28 @@ const GeneratePage = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/generate-course', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ subject, level, instructions }),
+      // Appel à la fonction Edge avec le supabase client
+      const { data, error } = await supabase.functions.invoke('generate-evaluation', {
+        body: {
+          sujet: subject,
+          classe: level,
+          specialite: 'aucune', // Valeur par défaut
+          difficulte: instructions || 'Moyen' // Utiliser les instructions comme niveau de difficulté
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Une erreur est survenue lors de la génération.`);
+      if (error) {
+        console.error('Error from Edge function:', error);
+        throw new Error(`Une erreur est survenue lors de la génération: ${error.message}`);
       }
 
-      const data = await response.json();
-      setGeneratedContent(data.content);
+      console.log('Données reçues de la fonction Edge:', data);
+      
+      if (!data || !data.evaluation) {
+        throw new Error('La réponse ne contient pas de contenu généré');
+      }
+
+      setGeneratedContent(data.evaluation);
       await awardXp('generate_control', `Contrôle: ${subject}`);
       
       // Afficher un toast de confirmation
@@ -51,7 +60,7 @@ const GeneratePage = () => {
       console.error('Error generating course:', error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue, veuillez réessayer.",
+        description: error.message || "Une erreur est survenue, veuillez réessayer.",
         variant: "destructive",
       });
     } finally {

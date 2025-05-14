@@ -32,7 +32,7 @@ serve(async (req) => {
     try {
       requestData = await req.json();
     } catch (parseError) {
-      console.error("Erreur de parsing JSON:", parseError.message);
+      console.error("Erreur de parsing JSON de la requête:", parseError.message);
       return new Response(
         JSON.stringify({ error: "Format de requête invalide" }),
         { 
@@ -113,10 +113,11 @@ serve(async (req) => {
     let data;
     try {
       data = await response.json();
+      console.log('Réponse OpenAI parsée correctement:', JSON.stringify(data).substring(0, 100) + "...");
     } catch (jsonError) {
       console.error("Erreur lors du parsing de la réponse OpenAI:", jsonError);
       const rawResponse = await response.text();
-      console.error("Réponse brute:", rawResponse);
+      console.error("Réponse brute (premiers 200 caractères):", rawResponse.substring(0, 200));
       return new Response(
         JSON.stringify({ error: "Impossible de parser la réponse de l'API" }),
         { 
@@ -129,8 +130,9 @@ serve(async (req) => {
     const evaluation = data.choices[0]?.message?.content || "Désolé, impossible de générer le contrôle.";
     
     console.log('Réponse reçue d\'OpenAI, longueur du contenu:', evaluation.length);
+    console.log('Premiers caractères du contenu:', evaluation.substring(0, 100) + "...");
 
-    // Retourner les résultats
+    // Retourner les résultats dans un format JSON valide
     return new Response(
       JSON.stringify({ 
         evaluation,
