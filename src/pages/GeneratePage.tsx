@@ -47,21 +47,15 @@ const GeneratePage = () => {
       }
 
       setGeneratedContent(data.evaluation);
+      await awardXp('generate_control', `Contrôle: ${subject}`);
       
-      try {
-        await awardXp('generate_control', `Contrôle: ${subject}`);
-        
-        // Afficher un toast de confirmation
-        toast({
-          title: "Contrôle prêt !",
-          description: "+40 XP",
-          variant: "default",
-          className: "bg-green-500 text-white border-green-600"
-        });
-      } catch (xpError) {
-        console.error("Erreur lors de l'attribution des XP:", xpError);
-        // On ne bloque pas l'utilisation en cas d'erreur d'attribution d'XP
-      }
+      // Afficher un toast de confirmation
+      toast({
+        title: "Contrôle prêt !",
+        description: "+40 XP",
+        variant: "default",
+        className: "bg-green-500 text-white border-green-600"
+      });
     } catch (error: any) {
       console.error('Error generating course:', error);
       toast({
@@ -72,18 +66,6 @@ const GeneratePage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const processGeneratedContent = () => {
-    if (!generatedContent) return '';
-    
-    // Remplacer les doubles astérisques par des balises <strong>
-    let processed = generatedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Remplacer les sauts de ligne par des balises <br/>
-    processed = processed.replace(/\n/g, '<br/>');
-    
-    return processed;
   };
 
   return (
@@ -166,10 +148,7 @@ const GeneratePage = () => {
               <CardDescription>Voici le contenu généré par l'IA :</CardDescription>
             </CardHeader>
             <CardContent>
-              <div 
-                className="prose max-w-none" 
-                dangerouslySetInnerHTML={{ __html: processGeneratedContent() }}
-              />
+              <div className="whitespace-pre-line prose max-w-none">{generatedContent}</div>
             </CardContent>
           </Card>
         )}

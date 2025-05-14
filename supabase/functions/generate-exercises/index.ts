@@ -74,42 +74,11 @@ serve(async (req) => {
       );
     }
 
-    // Adaptation du format d'exercice en fonction du niveau scolaire
-    let formatExercices = "";
-    const niveauScolaire = classe.toLowerCase();
-    
-    if (["6e", "5e", "4e", "3e"].includes(niveauScolaire)) {
-      // Collège: plus de QCM et exercices guidés
-      formatExercices = `
-      - Inclure au moins un QCM avec 3-4 options par question
-      - Proposer des exercices à trous ou d'appariement
-      - Utiliser un vocabulaire simple et des phrases courtes
-      - Inclure des explications détaillées dans les corrigés
-      - Privilégier des exercices courts et variés`;
-    } else if (["2nde", "1ere", "terminale"].includes(niveauScolaire)) {
-      // Lycée: plus de rédaction et d'analyse
-      formatExercices = `
-      - Inclure des exercices de rédaction et d'argumentation
-      - Proposer des problèmes complexes nécessitant plusieurs étapes
-      - Inclure des questions de réflexion et d'analyse critique
-      - Évaluer la capacité à justifier et à démontrer
-      - Proposer au moins un exercice de synthèse`;
-    } else {
-      // Format par défaut pour les autres niveaux
-      formatExercices = `
-      - Équilibrer QCM et questions ouvertes
-      - Adapter la complexité au niveau demandé
-      - Inclure une variété de formats d'exercices`;
-    }
-
     // Création du prompt amélioré pour OpenAI avec instructions spécifiques sur le formatage
     const prompt = `Vous êtes un professeur expérimenté. Créez 5 exercices progressifs et complets avec leurs corrigés, adaptés à une classe de ${classe} en fonction du sujet "${sujet}" et du niveau "${niveau}" :
 - Niveau "Bases" : exercices simples, notions fondamentales
 - Niveau "Classique" : exercices standards, adaptés à des évaluations de mi-parcours
 - Niveau "Très complet" : exercices complexes, croisant plusieurs notions du programme de ${classe}
-
-IMPORTANT - ADAPTATION AU NIVEAU SCOLAIRE:
-${formatExercices}
 
 IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
 Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).

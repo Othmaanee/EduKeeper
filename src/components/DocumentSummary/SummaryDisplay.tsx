@@ -1,5 +1,5 @@
 
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, FileText, Download } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 interface Category {
   id: string;
@@ -42,6 +42,7 @@ export const SummaryDisplay = ({
   selectedCategoryId,
   setSelectedCategoryId,
   saveSummaryMutation,
+  saveSummaryAsPdf,
   isSavingPdf
 }: SummaryDisplayProps) => {
   const summaryRef = useRef<HTMLDivElement | null>(null);
@@ -100,8 +101,8 @@ export const SummaryDisplay = ({
           </Select>
         </div>
         
-        {/* Un seul bouton pour enregistrer dans Mes Documents */}
-        <div className="w-full">
+        {/* Save buttons */}
+        <div className="w-full flex gap-2">
           <Button 
             onClick={() => saveSummaryMutation.mutate()}
             disabled={saveSummaryMutation.isPending}
@@ -116,7 +117,26 @@ export const SummaryDisplay = ({
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Enregistrer dans Mes Documents
+                Enregistrer comme texte
+              </>
+            )}
+          </Button>
+          
+          <Button
+            onClick={saveSummaryAsPdf}
+            disabled={isSavingPdf}
+            className="w-full"
+            variant="secondary"
+          >
+            {isSavingPdf ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Création du PDF...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Enregistrer en PDF
               </>
             )}
           </Button>

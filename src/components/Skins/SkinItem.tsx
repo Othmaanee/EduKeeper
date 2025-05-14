@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Lock, Unlock, Crown, Loader2 } from 'lucide-react';
+import { Crown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -61,10 +61,10 @@ export function SkinItem({ skin, isUnlocked, isActive, userId }: SkinItemProps) 
     <Card className={`overflow-hidden transition-all ${isActive ? 'ring-2 ring-primary' : ''}`}>
       <div className={`h-3 w-full ${skin.colorClass}`}></div>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <h3 className="font-medium">🎨 Skin {skin.name}</h3>
+        <h3 className="font-medium">{skin.name}</h3>
         {isActive && (
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-            <Check className="h-3 w-3 mr-1" /> Actif
+            Actif
           </Badge>
         )}
       </CardHeader>
@@ -75,17 +75,9 @@ export function SkinItem({ skin, isUnlocked, isActive, userId }: SkinItemProps) 
           </div>
           <div>
             <p className="text-sm font-medium">Niveau requis : {skin.requiredLevel}</p>
-            <div className="flex items-center mt-1">
-              {isUnlocked ? (
-                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                  <Check className="h-3 w-3 mr-1" /> Débloqué
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
-                  <Lock className="h-3 w-3 mr-1" /> Verrouillé
-                </Badge>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {isUnlocked ? 'Débloqué' : 'Non débloqué'}
+            </p>
           </div>
         </div>
         
@@ -103,25 +95,16 @@ export function SkinItem({ skin, isUnlocked, isActive, userId }: SkinItemProps) 
           className="w-full"
         >
           {isActive ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              Skin actuel
-            </>
+            'Actuellement actif'
           ) : isActivating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Activation...
             </>
           ) : isUnlocked ? (
-            <>
-              <Unlock className="h-4 w-4 mr-2" />
-              Activer
-            </>
+            'Activer'
           ) : (
-            <>
-              <Lock className="h-4 w-4 mr-2" />
-              Verrouillé
-            </>
+            'Verrouillé'
           )}
         </Button>
       </CardFooter>
