@@ -16,7 +16,9 @@ const XP_VALUES = {
 };
 
 // Définir le type pour les clés de XP_VALUES
-export type ActionType = keyof typeof XP_VALUES;
+export type ActionType = 'document_upload' | 'document_view' | 'document_share' | 
+                        'generate_summary' | 'generate_control' | 'generate_exercises' | 
+                        'create_category';
 
 export function useXp() {
   const [isAwarding, setIsAwarding] = useState(false);

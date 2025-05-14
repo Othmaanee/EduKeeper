@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GraduationCap, Save, Lock, RefreshCw } from "lucide-react";
+import { Loader2, Lock, Save, GraduationCap, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +36,6 @@ export function ProfileForm() {
   // États UI
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [resetting, setResetting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const { toast } = useToast();
@@ -84,26 +83,31 @@ export function ProfileForm() {
         setClasse(data.classe || "");
         
         // Vérifier si l'utilisateur est admin
-        setIsAdmin(data.role === "admin" || data.role === "enseignant");
+        setIsAdmin(data.role === 'admin');
         
-        // Simuler un nombre de crédits utilisés (à remplacer par une vraie logique dans une version future)
-        // Par exemple, on pourrait compter les actions IA dans la table history
-        const actions = await supabase
+        // Calculer les crédits utilisés (nombre d'actions d'IA dans l'historique du mois courant)
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        // Récupérer le nombre d'actions IA dans l'historique du mois
+        const { data: historyData, error: historyError } = await supabase
           .from('history')
           .select('*')
           .eq('user_id', session.user.id)
-          .count();
+          .gte('created_at', firstDayOfMonth.toISOString())
+          .in('action_type', ['generate_summary', 'generate_control', 'generate_exercises']);
           
-        const nbActions = actions.count || 0;
-        const creditsConsommes = Math.min(nbActions, CREDITS_MENSUELS);
-        
-        setCreditsUtilises(creditsConsommes);
-        setCredits(CREDITS_MENSUELS - creditsConsommes);
+        if (historyError) {
+          console.error("Erreur lors de la récupération de l'historique:", historyError);
+        } else {
+          // Calculer le nombre de crédits utilisés
+          setCreditsUtilises(historyData ? historyData.length : 0);
+        }
       } catch (error) {
         console.error("Erreur:", error);
         toast({
           title: "Erreur",
-          description: "Une erreur est survenue lors du chargement du profil.",
+          description: "Une erreur s'est produite lors du chargement de votre profil.",
           variant: "destructive",
         });
       } finally {
@@ -114,84 +118,117 @@ export function ProfileForm() {
     fetchUserProfile();
   }, [toast]);
 
+  // Enregistrer les modifications du profil
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
       
-      if (!profile) return;
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Mettre à jour le profil utilisateur
+      if (!session) {
+        toast({
+          title: "Pas de session",
+          description: "Votre session a expiré. Veuillez vous reconnecter.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Mettre à jour les informations du profil
       const { error } = await supabase
         .from('users')
         .update({
-          prenom: prenom,
-          nom: nom,
-          classe: classe
+          prenom,
+          nom,
+          classe,
         })
-        .eq('id', profile.id);
-        
-      if (error) throw error;
+        .eq('id', session.user.id);
+      
+      if (error) {
+        console.error("Erreur lors de la mise à jour du profil:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de mettre à jour votre profil.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       toast({
         title: "Profil mis à jour",
         description: "Vos informations ont été enregistrées avec succès.",
         variant: "default",
-        className: "bg-green-500 text-white border-green-600"
       });
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du profil:", error);
+      console.error("Erreur:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder votre profil.",
+        description: "Une erreur s'est produite lors de la mise à jour de votre profil.",
         variant: "destructive",
       });
     } finally {
       setSaving(false);
     }
   };
-  
+
+  // Réinitialiser les crédits (admin seulement)
   const handleResetCredits = async () => {
+    // Cette fonction est disponible uniquement pour les administrateurs
+    if (!isAdmin) return;
+    
     try {
-      setResetting(true);
+      setSaving(true);
       
-      if (!isAdmin || !profile) return;
+      // Supprimer l'historique des actions IA du mois en cours
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       
-      // Simuler une réinitialisation des crédits (à implémenter réellement plus tard)
-      // Pour l'instant, nous supprimons simplement les entrées d'historique pour réduire le compteur
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
+      
       const { error } = await supabase
         .from('history')
         .delete()
-        .eq('user_id', profile.id);
-        
-      if (error) throw error;
+        .eq('user_id', session.user.id)
+        .gte('created_at', firstDayOfMonth.toISOString())
+        .in('action_type', ['generate_summary', 'generate_control', 'generate_exercises']);
       
-      // Mettre à jour l'interface
+      if (error) {
+        console.error("Erreur lors de la réinitialisation des crédits:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de réinitialiser vos crédits.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Mettre à jour l'affichage
       setCreditsUtilises(0);
-      setCredits(CREDITS_MENSUELS);
       
       toast({
         title: "Crédits réinitialisés",
-        description: "Vous avez à nouveau 50 crédits disponibles.",
+        description: "Vos crédits ont été réinitialisés avec succès.",
         variant: "default",
-        className: "bg-green-500 text-white border-green-600"
       });
     } catch (error) {
-      console.error("Erreur lors de la réinitialisation des crédits:", error);
+      console.error("Erreur:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de réinitialiser vos crédits.",
+        description: "Une erreur s'est produite lors de la réinitialisation de vos crédits.",
         variant: "destructive",
       });
     } finally {
-      setResetting(false);
+      setSaving(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Chargement de votre profil...</p>
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="h-6 w-6 text-primary animate-spin" />
+        <span className="ml-2">Chargement de votre profil...</span>
       </div>
     );
   }
@@ -202,127 +239,134 @@ export function ProfileForm() {
         <CardHeader>
           <CardTitle>Informations personnelles</CardTitle>
           <CardDescription>
-            Gérez les informations de votre profil
+            Modifiez vos informations personnelles ci-dessous.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2">
+          {/* Email (lecture seule) */}
+          <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="flex">
-              <Input
+              <Input 
                 id="email"
                 value={email}
-                className="bg-muted"
-                disabled
                 readOnly
+                className="bg-muted"
               />
-              <Lock className="h-4 w-4 ml-2 self-center text-muted-foreground" />
-            </div>
-            <p className="text-xs text-muted-foreground">Votre adresse email ne peut pas être modifiée.</p>
-          </div>
-          
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="firstname">Prénom</Label>
-              <Input
-                id="firstname"
-                value={prenom}
-                onChange={(e) => setPrenom(e.target.value)}
-                placeholder="Votre prénom"
-              />
-            </div>
-            <div>
-              <Label htmlFor="lastname">Nom</Label>
-              <Input
-                id="lastname"
-                value={nom}
-                onChange={(e) => setNom(e.target.value)}
-                placeholder="Votre nom"
-              />
+              <div className="ml-2 flex items-center text-muted-foreground">
+                <Lock className="h-4 w-4 mr-1" />
+                <span className="text-xs">Lecture seule</span>
+              </div>
             </div>
           </div>
           
-          <div className="grid gap-2">
-            <Label htmlFor="class">Classe</Label>
+          {/* Prénom */}
+          <div className="space-y-2">
+            <Label htmlFor="prenom">Prénom (facultatif)</Label>
+            <Input 
+              id="prenom"
+              value={prenom}
+              onChange={(e) => setPrenom(e.target.value)}
+              placeholder="Votre prénom"
+            />
+          </div>
+          
+          {/* Nom */}
+          <div className="space-y-2">
+            <Label htmlFor="nom">Nom (facultatif)</Label>
+            <Input 
+              id="nom"
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              placeholder="Votre nom"
+            />
+          </div>
+          
+          {/* Classe */}
+          <div className="space-y-2">
+            <Label htmlFor="classe">Classe</Label>
             <Select value={classe} onValueChange={setClasse}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionnez votre classe" />
               </SelectTrigger>
               <SelectContent>
-                {CLASSES_DISPONIBLES.map((classe) => (
-                  <SelectItem key={classe} value={classe}>{classe}</SelectItem>
+                {CLASSES_DISPONIBLES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center mt-1">
-              <GraduationCap className="h-4 w-4 mr-1 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
-                Sélectionnez votre niveau scolaire pour des contenus adaptés.
-              </p>
-            </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button onClick={handleSaveProfile} disabled={saving}>
+        <CardFooter>
+          <Button 
+            className="w-full"
+            onClick={handleSaveProfile}
+            disabled={saving}
+          >
             {saving ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Enregistrement...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
-                Enregistrer
+                <Save className="mr-2 h-4 w-4" />
+                Enregistrer les modifications
               </>
             )}
           </Button>
         </CardFooter>
       </Card>
       
+      {/* Section Crédits IA */}
       <Card>
         <CardHeader>
-          <CardTitle>Utilisation des crédits IA</CardTitle>
+          <CardTitle>Crédits IA</CardTitle>
           <CardDescription>
-            Suivez votre consommation des fonctionnalités IA
+            Vos crédits mensuels pour les fonctionnalités d'intelligence artificielle
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <div className="flex justify-between mb-2">
-              <span>Crédits restants : <Badge variant="outline" className="ml-1 font-mono">{credits}</Badge></span>
-              <span>Total : <Badge variant="outline" className="ml-1 font-mono">{CREDITS_MENSUELS}</Badge></span>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span>Crédits utilisés ce mois-ci</span>
+              <Badge variant={creditsUtilises >= CREDITS_MENSUELS ? "destructive" : "outline"}>
+                {creditsUtilises} / {CREDITS_MENSUELS}
+              </Badge>
             </div>
-            <Progress value={(credits / CREDITS_MENSUELS) * 100} className="h-2" />
-          </div>
-          
-          <div className="bg-muted p-4 rounded-lg">
-            <p className="text-sm">
-              Vous avez utilisé <span className="font-semibold text-primary">{creditsUtilises} crédits</span> sur {CREDITS_MENSUELS} ce mois-ci.
-              Ces crédits sont consommés à chaque utilisation des fonctionnalités d'intelligence artificielle (génération de résumés, exercices ou contrôles).
+            <Progress 
+              value={(creditsUtilises / CREDITS_MENSUELS) * 100} 
+              className="h-2" 
+            />
+            <p className="text-sm text-muted-foreground">
+              Vous avez utilisé {creditsUtilises} crédits sur {CREDITS_MENSUELS} ce mois-ci.
             </p>
           </div>
-          
-          {isAdmin && (
+        </CardContent>
+        {isAdmin && (
+          <CardFooter>
             <Button 
-              variant="outline"
-              onClick={handleResetCredits}
-              disabled={resetting || creditsUtilises === 0}
+              variant="outline" 
               className="w-full"
+              onClick={handleResetCredits}
+              disabled={saving || creditsUtilises === 0}
             >
-              {resetting ? (
+              {saving ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Réinitialisation...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Réinitialiser mes crédits
+                  <GraduationCap className="mr-2 h-4 w-4" />
+                  Réinitialiser les crédits (Admin)
                 </>
               )}
             </Button>
-          )}
-        </CardContent>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
