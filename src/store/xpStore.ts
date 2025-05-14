@@ -22,9 +22,12 @@ export const useXPStore = create<XPState>((set) => ({
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        console.log("XPStore: Aucune session utilisateur trouvée");
         set({ isLoading: false });
         return;
       }
+      
+      console.log("XPStore: Session utilisateur trouvée, récupération des XP...");
       
       // Récupérer l'XP et le niveau de l'utilisateur
       const { data, error } = await supabase

@@ -68,19 +68,22 @@ export function useXp() {
       
       console.log(`XP actuelle: ${currentXp}, Nouvelle XP: ${newXp}, Nouveau niveau: ${newLevel}`);
       
-      // 1. Mettre à jour les XP utilisateur
-      const { error: userUpdateError } = await supabase
+      // 1. Mettre à jour les XP utilisateur avec un upsert pour être sûr
+      const { error: userUpdateError, data: updateResult } = await supabase
         .from('users')
         .update({ 
           xp: newXp,
           level: newLevel
         })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('xp, level');
         
       if (userUpdateError) {
         console.error("Erreur lors de la mise à jour des XP:", userUpdateError);
         throw userUpdateError;
       }
+      
+      console.log("Résultat de la mise à jour:", updateResult);
       
       // 2. Ajouter une entrée dans l'historique
       // Convertir actionType à une valeur acceptée par la contrainte de la base de données
@@ -123,7 +126,8 @@ export function useXp() {
         
       if (historyError) {
         console.error("Erreur lors de l'ajout dans l'historique:", historyError);
-        throw historyError;
+        // Ne pas bloquer le processus si l'historique échoue
+        console.warn("L'historique n'a pas pu être mis à jour, mais les XP ont été ajoutées");
       }
       
       // Mettre à jour le store global XP

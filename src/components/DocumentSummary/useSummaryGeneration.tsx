@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +33,6 @@ export function useSummaryGeneration() {
       const authToken = sessionData?.session?.access_token;
       
       console.log("Session récupérée:", !!sessionData?.session);
-      console.log("Token d'authentification présent:", !!authToken);
       
       if (!authToken) {
         console.error("Aucun token d'authentification trouvé");
@@ -74,11 +74,13 @@ export function useSummaryGeneration() {
         
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
-          // Modifier "summarize_document" à "generate_summary" pour correspondre aux types définis
-          await awardXp('generate_summary', 'Résumé de document');
+          console.log("Attribution des XP pour la génération de résumé...");
+          const xpResult = await awardXp('generate_summary', 'Résumé de document');
+          console.log("Résultat de l'attribution XP:", xpResult);
           
-          // Le toast est maintenant géré directement dans le hook useXp
-          console.log("XP attribués avec succès");
+          if (!xpResult.success) {
+            console.error("Échec de l'attribution des XP:", xpResult.error);
+          }
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);
           // Ne pas bloquer l'interface pour un échec d'attribution XP
