@@ -56,21 +56,54 @@ serve(async (req) => {
 
     console.log(`Génération d'un contrôle - Sujet: ${sujet}, Classe: ${classe}, Difficulté: ${difficulte}`);
 
+    // Adapter le prompt en fonction du niveau scolaire
+    let formatControle = "";
+    let notationGuidelines = "";
+    
+    if (["6e", "5e", "4e", "3e"].includes(classe)) {
+      // Format pour le collège
+      formatControle = "Format adapté aux collégiens avec consignes clairement détaillées. Utiliser un langage simple et direct. Inclure une variété d'exercices dont au moins un QCM.";
+      notationGuidelines = "Barème sur 20 points clairement indiqué pour chaque exercice. Privilégier des questions à points progressifs.";
+    } else if (["2nde", "1ere", "Terminale"].includes(classe)) {
+      // Format pour le lycée
+      formatControle = "Format formel de contrôle de lycée avec une partie théorique et une partie pratique. Inclure des questions de difficulté progressive.";
+      notationGuidelines = "Barème détaillé sur 20 points avec indication des points par question et sous-question.";
+    } else {
+      // Format supérieur ou autre
+      formatControle = "Format académique avec problématiques complexes et questions ouvertes. Privilégier l'analyse critique et la résolution de problèmes.";
+      notationGuidelines = "Barème sur 20 points avec évaluation détaillée des compétences attendues.";
+    }
+
     // Construction du prompt pour OpenAI
-    let prompt = `Tu es un professeur expérimenté. Génère un contrôle d'entraînement pour un élève de niveau ${classe}, sur le sujet : "${sujet}"`;
+    let prompt = `Tu es un professeur expérimenté. Crée un contrôle complet et structuré pour un élève de niveau ${classe}, sur le sujet "${sujet}".
+
+Format du contrôle:
+- Titre clair et numéro du contrôle
+- Introduction avec contexte et consignes générales
+- ${formatControle}
+- 3 à 5 exercices distincts organisés par difficulté progressive
+- Chaque exercice doit comporter plusieurs questions cohérentes
+- ${notationGuidelines}
+- Durée recommandée: 1 à 2 heures selon le niveau
+
+Le contrôle doit être adapté au niveau de difficulté ${difficulte}.
+
+IMPORTANT:
+1. Il DOIT s'agir d'un contrôle COMPLET et STRUCTURÉ, pas de questions isolées
+2. Respecter scrupuleusement le niveau ${classe}
+3. Fournir une présentation professionnelle type Éducation Nationale
+4. Inclure le corrigé détaillé après le contrôle`;
     
     // Ajouter la spécialité si elle est fournie et n'est pas "aucune"
     if (specialite && specialite.trim() !== '' && specialite !== 'aucune') {
-      prompt += `, spécialité : "${specialite}"`;
+      prompt += `, spécialité "${specialite}"`;
     }
-    
-    prompt += `.\n\nLe contrôle doit être adapté au niveau de difficulté suivant : ${difficulte}.\n\nDonne :\n- Un énoncé structuré\n- 3 à 10 questions pertinentes selon le niveau\n- Les corrigés à part ou directement après chaque question\n\nFormat clair, adapté à un élève qui révise seul.`;
 
     // Ajout de logs pour débugger
-    console.log('Envoi de la requête à OpenAI avec le prompt:', prompt);
-    console.log('Modèle utilisé:', "gpt-3.5-turbo");
+    console.log('Envoi de la requête à OpenAI avec le prompt amélioré');
+    console.log('Modèle utilisé:', "gpt-4o-mini");
     
-    // Appel à l'API OpenAI
+    // Appel à l'API OpenAI avec un modèle plus performant
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -78,11 +111,11 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",  // Utilisation d'un modèle plus performant
         messages: [
           {
             role: "system",
-            content: "Tu es un professeur expérimenté qui crée des contrôles d'entraînement clairs et pédagogiques."
+            content: "Tu es un professeur expérimenté de l'Éducation Nationale qui crée des contrôles d'évaluation professionnels, complets et structurés."
           },
           {
             role: "user",

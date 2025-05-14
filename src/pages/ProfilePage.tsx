@@ -1,12 +1,14 @@
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { SkinsList } from '@/components/Skins/SkinsList';
+import { ProfileForm } from '@/components/Profile/ProfileForm';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
 
-const SkinsPage = () => {
+export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
@@ -49,12 +51,20 @@ const SkinsPage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">🎨 Mes Skins</h1>
-        <SkinsList />
+      <div className="container max-w-4xl py-6">
+        <Button variant="ghost" size="sm" asChild className="mb-4">
+          <Link to="/accueil" className="flex items-center text-muted-foreground">
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Retour à l'accueil
+          </Link>
+        </Button>
+        
+        <h1 className="text-2xl font-bold mb-6">Mon profil</h1>
+        
+        <ProfileForm />
       </div>
     </Layout>
   );
-};
+}
 
-export default SkinsPage;
+export default ProfilePage;
