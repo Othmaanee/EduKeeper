@@ -75,12 +75,8 @@ export function useSummaryGeneration() {
         // Ajouter des XP à l'utilisateur lorsqu'un résumé est généré avec succès
         try {
           console.log("Attribution des XP pour la génération de résumé...");
-          const xpResult = await awardXP('generate_summary');
-          console.log("Résultat de l'attribution XP:", xpResult);
+          await awardXP('generate_summary');
           
-          if (!xpResult.success) {
-            console.error("Échec de l'attribution des XP:", xpResult.message);
-          }
         } catch (xpError) {
           console.error("Erreur lors de l'attribution des XP:", xpError);
           // Ne pas bloquer l'interface pour un échec d'attribution XP

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -149,23 +150,33 @@ export function DocumentGrid({ initialCategoryId }: DocumentGridProps) {
       console.log("🗑️ Début du processus de suppression pour le document:", document.id, document.nom);
       
       try {
-        const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
-  
-        if (!filePath) {
-          throw new Error("Impossible de récupérer le chemin du fichier");
+        // Vérifier si le document a une URL qui pointe vers Storage
+        const isStorageDocument = document.url && document.url.includes('/storage/v1/object/public/');
+        
+        // Si c'est un document stocké dans Storage, on supprime le fichier
+        if (isStorageDocument) {
+          try {
+            const filePath = document.url.split("/storage/v1/object/public/documents/")[1];
+            
+            if (filePath) {
+              console.log("📂 Tentative de suppression du fichier:", filePath);
+              const { error: storageError } = await supabase.storage
+                .from("documents")
+                .remove([filePath]);
+              
+              if (storageError) {
+                console.error("❌ Erreur suppression fichier storage:", storageError);
+                // On continue malgré l'erreur pour supprimer au moins l'enregistrement en BDD
+              } else {
+                console.log("✅ Fichier supprimé avec succès du stockage");
+              }
+            }
+          } catch (storageError) {
+            console.error("❌ Erreur lors de l'analyse de l'URL du fichier:", storageError);
+            // On continue malgré l'erreur pour supprimer au moins l'enregistrement en BDD
+          }
         }
-  
-        console.log("📂 Tentative de suppression du fichier:", filePath);
-        const { error: storageError } = await supabase.storage
-          .from("documents")
-          .remove([filePath]);
-  
-        if (storageError) {
-          console.error("❌ Erreur suppression fichier storage:", storageError);
-          throw new Error(storageError.message);
-        }
-  
-        console.log("✅ Fichier supprimé avec succès du stockage");
+        
         console.log("🗄️ Tentative de suppression de l'enregistrement en base de données");
         
         const { error: dbError } = await supabase
