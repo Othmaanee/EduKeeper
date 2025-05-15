@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -205,9 +204,15 @@ export function DocumentView() {
         throw new Error("L'URL du document est invalide");
       }
       
-      window.open(documentUrl, '_blank');
+      // Create an anchor element and trigger download instead of opening in new tab
+      const a = document.createElement('a');
+      a.href = documentUrl;
+      a.download = documentData.nom || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       
-      toast.success("Document ouvert dans un nouvel onglet");
+      toast.success("Téléchargement du document commencé");
     } catch (error: any) {
       toast.error(`Erreur d'accès au document: ${error.message}`);
       console.error("Erreur lors de l'accès au document:", error);

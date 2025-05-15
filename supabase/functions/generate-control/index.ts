@@ -1,145 +1,155 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
-  // Vérifier si la méthode est OPTIONS (requête CORS preflight)
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Récupérer et valider la clé API OpenAI
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      console.error('Erreur: Clé API OpenAI manquante');
+    // Create authenticated Supabase client
+    const authHeader = req.headers.get('Authorization');
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader || "" } } }
+    );
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error("Erreur d'authentification:", authError?.message || "Utilisateur non authentifié");
       return new Response(
-        JSON.stringify({ error: 'Configuration de la clé API OpenAI manquante' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: "Authentication error" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Extraire les données de la requête
-    let requestData;
-    try {
-      requestData = await req.json();
-    } catch (parseError) {
-      console.error("Erreur de parsing JSON de la requête:", parseError.message);
-      return new Response(
-        JSON.stringify({ error: "Format de requête invalide" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const { topic, level, quantity } = requestData;
-
-    if (!topic || !level) {
-      return new Response(
-        JSON.stringify({ error: 'Paramètres manquants : sujet et niveau sont requis' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    console.log(`Génération d'un contrôle - Sujet: ${topic}, Niveau: ${level}, Questions: ${quantity}`);
-
-    // Construction du prompt amélioré pour OpenAI
-    const prompt = `Tu es un professeur expert dans la création de contrôles et évaluations pédagogiques. Génère un contrôle complet de niveau "${level}" sur le thème "${topic}".
-
-Ce contrôle doit contenir ${quantity || 5} questions au total, avec la structure suivante :
-1. Un titre et une introduction claire
-2. Les questions doivent être variées et comprendre :
-   - Des questions courtes de connaissances (QCM, vrai/faux, définitions...)
-   - Au moins ${Math.max(1, Math.floor((quantity || 5) / 3))} question(s) à développement long avec un énoncé structuré
-   - Au moins ${Math.max(1, Math.floor((quantity || 5) / 4))} exercice(s) d'application pratique complexe(s)
-3. Des énoncés clairs et complets pour chaque question
-4. Le barème de notation pour chaque question
-5. Des corrigés détaillés et pédagogiques pour toutes les questions
-6. Des conseils pour la résolution des questions difficiles
-
-Adapte rigoureusement la complexité au niveau "${level}" indiqué. Le document final doit être bien structuré, avec une typographie claire et une organisation qui facilite l'utilisation par l'élève qui travaille en autonomie.`;
-
-    console.log('Envoi de la requête à OpenAI avec le prompt amélioré');
+    // Parse request body
+    const { subject, level, questionCount } = await req.json();
     
-    // Appel à l'API OpenAI
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    console.log(`Génération d'un contrôle - Sujet: ${subject}, Niveau: ${level}, Questions: ${questionCount}`);
+
+    // Improved prompt for better control generation
+    const prompt = `Génère un contrôle de mathématiques sur le sujet "${subject}" pour un niveau ${level}. 
+    
+1. Le contrôle doit contenir EXACTEMENT ${questionCount} questions numérotées clairement (pas une de moins).
+2. Au moins 2 questions doivent être des questions complexes avec un contexte complet et plusieurs sous-parties.
+3. Les questions doivent être variées en termes de difficulté : commencer avec des questions simples et progresser vers des problèmes plus difficiles.
+4. Chaque question doit avoir un énoncé clair et un corrigé détaillé.
+5. Format de sortie : utilise une structure en markdown bien organisée avec des titres clairs "## Question X" et "## Corrigé" sans ajouter des # excessifs.
+
+Types de questions à inclure :
+- Questions de calcul de base
+- Questions d'application directe de formules
+- Questions de démonstration
+- Problèmes contextualisés (ex: problèmes concrets)
+- Au moins une question qui demande une justification ou un raisonnement complet
+
+Niveau de détail:
+- Très détaillé et complet, exactement comme un vrai contrôle scolaire
+- Toutes les formules mathématiques doivent être claires et bien écrites`;
+
+    // Check if OpenAI API key is available
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "OpenAI API key is missing" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Envoi de la requête à OpenAI avec le prompt amélioré");
+
+    // Make request to OpenAI API
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
-          {
-            role: "system",
-            content: "Tu es un professeur expérimenté qui crée des contrôles d'entraînement complets, structurés et adaptés au niveau demandé. Tu fournis des questions variées incluant des problèmes élaborés et leurs corrections détaillées."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
+          { role: "system", content: "Tu es un professeur de mathématiques expert qui crée des contrôles de qualité adaptés au niveau scolaire demandé." },
+          { role: "user", content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 2500,
-      }),
+        max_tokens: 2000
+      })
     });
 
-    // Vérifier si la réponse est ok
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Erreur OpenAI (${response.status}):`, errorText);
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error(`Erreur OpenAI (${openaiResponse.status}):`, errorText);
       return new Response(
-        JSON.stringify({ 
-          error: `Erreur lors de la génération du contrôle (${response.status})`,
-          details: errorText
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: `OpenAI API error: ${openaiResponse.status}`, details: errorText }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Traiter la réponse
-    const data = await response.json();
-    const control = data.choices[0]?.message?.content || "Désolé, impossible de générer le contrôle.";
+    const responseData = await openaiResponse.json();
+    const controlContent = responseData.choices[0]?.message?.content || "";
     
-    console.log('Réponse reçue d\'OpenAI, longueur du contenu:', control.length);
+    console.log("Réponse reçue d'OpenAI, longueur du contenu:", controlContent.length);
 
-    // Retourner les résultats dans un format JSON valide
+    // Create document in the database
+    const documentName = `Contrôle : ${subject} (${level})`;
+    const { data: document, error: documentError } = await supabase
+      .from("documents")
+      .insert([
+        {
+          nom: documentName,
+          content: controlContent,
+          user_id: user.id,
+        },
+      ])
+      .select()
+      .single();
+
+    if (documentError) {
+      console.error("Error creating document:", documentError);
+      return new Response(
+        JSON.stringify({ error: "Failed to save control", details: documentError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Record XP for generating control
+    const { error: historyError } = await supabase
+      .from('history')
+      .insert({
+        user_id: user.id,
+        action_type: 'generate_control',
+        document_name: documentName,
+        xp_gained: 20
+      });
+
+    if (historyError) {
+      console.error("Error recording XP history:", historyError);
+    }
+
     return new Response(
-      JSON.stringify({ 
-        control,
-        topic,
-        level,
-        quantity 
+      JSON.stringify({
+        success: true,
+        control: controlContent,
+        documentId: document.id,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error('Erreur dans la fonction generate-control:', error);
+    console.error("Error in generate-control function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Erreur inconnue lors de la génération du contrôle' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

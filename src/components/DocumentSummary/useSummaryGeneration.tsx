@@ -22,6 +22,15 @@ export function useSummaryGeneration() {
   const { awardXP } = useXp();
 
   const generateSummary = async (text: string) => {
+    if (!text || text.trim().length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez fournir du texte à résumer",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
     setIsLoading(true);
     setError(null);
     setSummary('');
@@ -139,7 +148,25 @@ export function useSummaryGeneration() {
     try {
       const doc = new jsPDF();
       
-      doc.text(`Résumé: ${summary}`, 10, 10);
+      // Improve PDF rendering by properly formatting the content
+      const formattedSummary = summary.replace(/^#{1,6}\s+(.+)$/gm, '$1\n')
+                                     .replace(/\*\*(.*?)\*\*/g, '$1')
+                                     .replace(/\n\n/g, '\n');
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.text("Résumé de document", 14, 20);
+      
+      // Add date
+      doc.setFontSize(10);
+      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
+      
+      // Add content with proper formatting
+      doc.setFontSize(12);
+      
+      const splitText = doc.splitTextToSize(formattedSummary, 180);
+      doc.text(splitText, 14, 40);
+      
       doc.save("resume.pdf");
       
       toast({
