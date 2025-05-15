@@ -16,6 +16,7 @@ export function useSummaryGeneration() {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSavingToDocuments, setIsSavingToDocuments] = useState<boolean>(false);
   const { toast } = useToast();
   
   // Importer le hook useXp pour gérer les récompenses XP
@@ -139,11 +140,21 @@ export function useSummaryGeneration() {
     try {
       const doc = new jsPDF();
       
-      doc.text(`Résumé: ${summary}`, 10, 10);
-      doc.save("resume.pdf");
+      // Formatage pour le PDF
+      const formattedSummary = summary
+        .replace(/^### (.*$)/gim, '\n\n$1\n')
+        .replace(/^## (.*$)/gim, '\n\n$1\n')
+        .replace(/^# (.*$)/gim, '\n\n$1\n');
+      
+      // Ajouter du texte au PDF avec largeur limitée et retour automatique à la ligne
+      const splitText = doc.splitTextToSize(formattedSummary, 180);
+      doc.text(splitText, 15, 20);
+      
+      // Télécharger le PDF avec un nom de fichier significatif
+      doc.save("resume-" + new Date().toISOString().slice(0, 10) + ".pdf");
       
       toast({
-        title: "PDF sauvegardé",
+        title: "PDF enregistré",
         description: "Votre résumé a été sauvegardé en PDF avec succès.",
         variant: "default",
         className: "bg-green-500 text-white border-green-600"
@@ -161,12 +172,66 @@ export function useSummaryGeneration() {
     }
   };
 
+  // Nouvelle fonction pour enregistrer le résumé dans "Mes documents"
+  const saveToDocuments = async (categoryId: string | null = null) => {
+    setIsSavingToDocuments(true);
+    
+    try {
+      // Vérifier si l'utilisateur est connecté
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        throw new Error("Veuillez vous connecter pour enregistrer ce document");
+      }
+      
+      // Préparer les données
+      const documentData = {
+        nom: `Résumé: Document du ${new Date().toLocaleDateString('fr-FR')}`,
+        content: summary,
+        user_id: sessionData.session.user.id,
+        category_id: categoryId === 'no-category' ? null : categoryId,
+        is_shared: false
+      };
+      
+      // Enregistrer dans la table documents
+      const { data, error } = await supabase
+        .from('documents')
+        .insert([documentData])
+        .select();
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Document enregistré",
+        description: "Le résumé a été enregistré dans vos documents.",
+        className: "bg-green-500 text-white border-green-600"
+      });
+      
+      return data;
+    } catch (error: any) {
+      console.error("Erreur lors de l'enregistrement du résumé dans les documents:", error);
+      
+      toast({
+        title: "Erreur",
+        description: `Impossible d'enregistrer le résumé: ${error.message}`,
+        variant: "destructive",
+      });
+      
+      return null;
+    } finally {
+      setIsSavingToDocuments(false);
+    }
+  };
+
   return {
     summary,
     keywords,
     isLoading,
     error,
+    isSavingToDocuments,
     generateSummary,
-    saveAsPdf
+    saveAsPdf,
+    saveToDocuments
   };
 }

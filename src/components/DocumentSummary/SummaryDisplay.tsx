@@ -1,5 +1,5 @@
 
-import { Save, Loader2, FileText, Download } from "lucide-react";
+import { Save, Loader2, FileText, Download, BookmarkPlus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -34,6 +34,8 @@ interface SummaryDisplayProps {
   };
   saveSummaryAsPdf: () => void;
   isSavingPdf: boolean;
+  saveToDocuments?: () => void;
+  isSavingToDocuments?: boolean;
 }
 
 export const SummaryDisplay = ({
@@ -43,15 +45,26 @@ export const SummaryDisplay = ({
   setSelectedCategoryId,
   saveSummaryMutation,
   saveSummaryAsPdf,
-  isSavingPdf
+  isSavingPdf,
+  saveToDocuments,
+  isSavingToDocuments = false
 }: SummaryDisplayProps) => {
   const summaryRef = useRef<HTMLDivElement | null>(null);
   
-  // Formatage du texte avec des sauts de ligne HTML et conversion des deux sauts de ligne consécutifs en paragraphes
+  // Formatage du texte en remplaçant les # par des balises appropriées et en ajoutant des sauts de paragraphe
   const processedSummary = generatedSummary ? 
-    generatedSummary.split("\n").map((line, i) => 
-      `<div key=${i}>${line || "&nbsp;"}</div>`
-    ).join("") : 
+    generatedSummary
+      // Remplacer les titres avec des balises HTML appropriées
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-5 mb-3">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-3">$1</h1>')
+      // Ajouter des paragraphes pour les lignes vides
+      .split('\n\n')
+      .map((paragraph, i) => {
+        if (paragraph.trim().startsWith('<h')) return paragraph;
+        return `<p class="mb-3" key=${i}>${paragraph.replace(/\n/g, '<br />')}</p>`;
+      })
+      .join('') : 
     '';
 
   if (!generatedSummary) return null;
@@ -67,7 +80,7 @@ export const SummaryDisplay = ({
       <CardContent>
         <div 
           ref={summaryRef}
-          className="whitespace-pre-line bg-muted p-4 rounded-md text-sm leading-relaxed"
+          className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm leading-relaxed prose prose-slate max-w-none"
           dangerouslySetInnerHTML={{ __html: processedSummary }}
         />
       </CardContent>
@@ -102,11 +115,11 @@ export const SummaryDisplay = ({
         </div>
         
         {/* Save buttons */}
-        <div className="w-full flex gap-2">
+        <div className="w-full flex flex-wrap gap-2">
           <Button 
             onClick={() => saveSummaryMutation.mutate()}
             disabled={saveSummaryMutation.isPending}
-            className="w-full"
+            className="flex-1"
             variant="default"
           >
             {saveSummaryMutation.isPending ? (
@@ -125,7 +138,7 @@ export const SummaryDisplay = ({
           <Button
             onClick={saveSummaryAsPdf}
             disabled={isSavingPdf}
-            className="w-full"
+            className="flex-1"
             variant="secondary"
           >
             {isSavingPdf ? (
@@ -136,11 +149,33 @@ export const SummaryDisplay = ({
             ) : (
               <>
                 <FileText className="mr-2 h-4 w-4" />
-                Enregistrer en PDF
+                Télécharger en PDF
               </>
             )}
           </Button>
         </div>
+        
+        {/* Added button to save to "Mes documents" */}
+        {saveToDocuments && (
+          <Button 
+            onClick={saveToDocuments}
+            disabled={isSavingToDocuments}
+            className="w-full"
+            variant="outline"
+          >
+            {isSavingToDocuments ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enregistrement dans Mes Documents...
+              </>
+            ) : (
+              <>
+                <BookmarkPlus className="mr-2 h-4 w-4" />
+                Enregistrer dans Mes Documents
+              </>
+            )}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
