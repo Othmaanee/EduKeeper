@@ -16,10 +16,9 @@ export interface NavItem {
 
 interface NavigationItemProps {
   item: NavItem;
-  onMobileNavClick?: () => void;
 }
 
-export const NavigationItem = ({ item, onMobileNavClick }: NavigationItemProps) => {
+export const NavigationItem = ({ item }: NavigationItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === item.path;
   
@@ -47,7 +46,6 @@ export const NavigationItem = ({ item, onMobileNavClick }: NavigationItemProps) 
           ? "bg-primary/10 text-primary" 
           : "text-muted-foreground hover:bg-secondary hover:text-foreground"
       )}
-      onClick={onMobileNavClick}
     >
       <item.icon className="h-5 w-5 mr-3" />
       <span>{item.label}</span>

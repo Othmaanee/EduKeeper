@@ -53,11 +53,7 @@ export const Sidebar = ({
         
         <nav className="flex-1 px-3 py-6 space-y-1">
           {navItems.map((item) => (
-            <NavigationItem 
-              key={item.path} 
-              item={item} 
-              onMobileNavClick={onClose} 
-            />
+            <NavigationItem key={item.path} item={item} />
           ))}
         </nav>
         
