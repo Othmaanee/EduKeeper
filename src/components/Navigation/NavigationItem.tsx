@@ -16,9 +16,10 @@ export interface NavItem {
 
 interface NavigationItemProps {
   item: NavItem;
+  onClick?: () => void;
 }
 
-export const NavigationItem = ({ item }: NavigationItemProps) => {
+export const NavigationItem = ({ item, onClick }: NavigationItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === item.path;
   
@@ -46,6 +47,7 @@ export const NavigationItem = ({ item }: NavigationItemProps) => {
           ? "bg-primary/10 text-primary" 
           : "text-muted-foreground hover:bg-secondary hover:text-foreground"
       )}
+      onClick={onClick}
     >
       <item.icon className="h-5 w-5 mr-3" />
       <span>{item.label}</span>
