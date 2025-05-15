@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -25,14 +24,6 @@ export const Sidebar = ({
   onLogout, 
   loggingOut 
 }: SidebarProps) => {
-  const navigate = useNavigate();
-  
-  // Modified logout handler to navigate to landing page
-  const handleLogout = async () => {
-    await onLogout();
-    navigate('/landing');
-  };
-  
   return (
     <aside 
       className={cn(
@@ -62,17 +53,13 @@ export const Sidebar = ({
         
         <nav className="flex-1 px-3 py-6 space-y-1">
           {navItems.map((item) => (
-            <NavigationItem 
-              key={item.path} 
-              item={item} 
-              onClick={onClose} // Close sidebar when a navigation item is clicked
-            />
+            <NavigationItem key={item.path} item={item} />
           ))}
         </nav>
         
         <UserProfile 
           user={user} 
-          onLogout={handleLogout} // Updated to use our new handler
+          onLogout={onLogout} 
           loggingOut={loggingOut} 
         />
       </div>
