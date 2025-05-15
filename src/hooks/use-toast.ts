@@ -1,73 +1,45 @@
 
-import { Toast, ToastActionElement, type ToastProps } from "@/components/ui/toast";
-import { create } from "zustand";
+import { toast as sonnerToast, type Toast } from "sonner"
 
-type ToasterToast = ToastProps & {
-  id: string;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  action?: ToastActionElement;
-};
+import {
+  ToastAction,
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
 
-type ToasterState = {
-  toasts: ToasterToast[];
-};
+export type ToastVariant = NonNullable<ToastProps["variant"]>
 
-type ToasterStore = ToasterState & {
-  add: (toast: Omit<ToasterToast, "id">) => void;
-  dismiss: (toastId: string) => void;
-  remove: (toastId: string) => void;
-};
+export type ToasterToast = Omit<ToastProps, keyof Toast>
 
-// Create the store for managing toasts
-const useToastStore = create<ToasterStore>((set) => ({
-  toasts: [],
-  add: (toast) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    set((state) => ({
-      toasts: [...state.toasts, { ...toast, id }],
-    }));
-    return id;
-  },
-  dismiss: (toastId) => {
-    set((state) => ({
-      toasts: state.toasts.map((toast) =>
-        toast.id === toastId ? { ...toast, open: false } : toast
-      ),
-    }));
-  },
-  remove: (toastId) => {
-    set((state) => ({
-      toasts: state.toasts.filter((toast) => toast.id !== toastId),
-    }));
-  },
-}));
+export interface ToastOptions extends ToasterToast {
+  description?: React.ReactNode
+}
 
-// Export the hooks and toast functions
+const DEFAULT_TOAST_DURATION = 5000 // 5 seconds
+
+export function toast({
+  variant = "default",
+  title,
+  description,
+  action,
+  ...props
+}: ToastOptions) {
+  return sonnerToast(title, {
+    ...props,
+    description: description,
+    duration: props.duration || DEFAULT_TOAST_DURATION,
+    className: variant ? `variant-${variant}` : undefined,
+    action,
+  })
+}
+
 export const useToast = () => {
-  const { add, dismiss, remove, toasts } = useToastStore();
-
-  // Enhanced success toast
-  const successToast = (title: string, description?: string) => {
-    add({
-      title,
-      description,
-      variant: "default",
-      className: "bg-green-500 text-white border-green-600"
-    });
-  };
-
   return {
-    toast: (props: Omit<ToasterToast, "id">) => add(props),
-    dismiss,
-    remove,
-    toasts,
-    successToast
-  };
-};
-
-// Also export toast function for direct usage
-export const toast = (props: Omit<ToasterToast, "id">) => {
-  const { add } = useToastStore();
-  return add(props);
-};
+    toast,
+    dismiss: sonnerToast.dismiss,
+    error: (message: string) =>
+      toast({ title: "Error", description: message, variant: "destructive" }),
+    success: (message: string) =>
+      toast({ title: "Success", description: message }),
+  }
+}
