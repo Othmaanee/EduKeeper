@@ -1,5 +1,6 @@
 
-import LoginPage from '../components/LoginPage';
+import LoginPageComponent from '../components/LoginPage';
 
-// Exporter le composant par défaut
-export default LoginPage;
+export default function LoginPage() {
+  return <LoginPageComponent />;
+}

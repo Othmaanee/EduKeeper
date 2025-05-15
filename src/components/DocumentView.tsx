@@ -99,6 +99,14 @@ export function DocumentView() {
       
       console.log("🗑️ Début du processus de suppression du document:", documentId);
       
+      // Vérifier si c'est un document généré par IA
+      const isAIGenerated = documentData?.nom?.startsWith('Cours :');
+      
+      if (isAIGenerated) {
+        console.log("❌ Tentative de suppression d'un document généré par IA - opération non autorisée");
+        throw new Error("Les documents générés par IA ne peuvent pas être supprimés");
+      }
+      
       const urlParts = documentData.url.split('/');
       const bucketName = urlParts[urlParts.length - 2];
       const fileName = urlParts[urlParts.length - 1];
@@ -144,7 +152,7 @@ export function DocumentView() {
         .from('history')
         .insert([{
           user_id: userId,
-          action_type: 'suppression',  // Modifié de 'delete' à 'suppression'
+          action_type: 'suppression',
           document_name: documentData.nom,
         }]);
       
@@ -344,19 +352,21 @@ export function DocumentView() {
             )}
             Modifier la catégorie
           </Button>
-          <Button 
-            variant="outline" 
-            className="text-destructive hover:bg-destructive/10" 
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Trash className="h-4 w-4 mr-2" />
-            )}
-            Supprimer
-          </Button>
+          {!isAIGenerated && (
+            <Button 
+              variant="outline" 
+              className="text-destructive hover:bg-destructive/10" 
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash className="h-4 w-4 mr-2" />
+              )}
+              Supprimer
+            </Button>
+          )}
         </div>
       </div>
       

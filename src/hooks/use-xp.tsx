@@ -39,7 +39,7 @@ export function useXp() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Attribuer de l'XP à l'utilisateur pour une action spécifique
-  const awardXP = async (actionType: XpActionType, description: string): Promise<XpResult> => {
+  const awardXP = async (actionType: XpActionType): Promise<XpResult> => {
     setIsLoading(true);
     try {
       // Vérifier si l'utilisateur est connecté
@@ -71,12 +71,12 @@ export function useXp() {
       
       // Enregistrer l'action dans l'historique XP
       const { error: historyError } = await supabase
-        .from('xp_history')
+        .from('history')
         .insert({
           user_id: userId,
           action_type: actionType,
-          xp_amount: xpValue,
-          description: description
+          xp_gained: xpValue,
+          document_name: `Action: ${actionType}`
         });
       
       if (historyError) {
@@ -109,7 +109,7 @@ export function useXp() {
       // Afficher un toast de réussite
       toast({
         title: `+${xpValue} XP gagnés!`,
-        description: description,
+        description: `Action: ${actionType}`,
         className: "bg-green-500 text-white border-green-600"
       });
       
@@ -138,7 +138,7 @@ export function useXp() {
     today.setHours(0, 0, 0, 0);
     
     const { count, error } = await supabase
-      .from('xp_history')
+      .from('history')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('action_type', actionType)
