@@ -1,6 +1,7 @@
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,207 +12,207 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create authenticated Supabase client
-    const authHeader = req.headers.get('Authorization');
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader || "" } } }
-    );
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Récupérer les informations d'authentification
+    const authHeader = req.headers.get("Authorization");
+    
+    // Vérifier si l'en-tête d'autorisation est présent
+    if (!authHeader) {
+      console.error("En-tête d'autorisation manquant");
       return new Response(
-        JSON.stringify({ error: "Authentication error" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Authentification requise" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    // Obtenir les variables d'environnement
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!openAIApiKey) {
+      console.error("Clé API OpenAI manquante");
+      return new Response(
+        JSON.stringify({ error: "Configuration incomplète: API OpenAI" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Parse request body
-    const { difficultyLevel, format, inputMode, inputText } = await req.json();
+    // Parse JSON de la requête
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error("Erreur lors du parsing de la requête JSON:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Format de requête invalide" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     
-    console.log(`Génération d'exercices - Mode: ${inputMode}, Niveau: ${difficultyLevel}, Format: ${format}`);
-    
-    // Select model
-    const model = "gpt-4o-mini";
-    console.log(`Modèle utilisé: ${model}`);
+    // Vérifier le mode d'entrée
+    const { courseText, subject, level, format, numQuestions, includeSolutions, inputMode } = requestBody;
+    console.log(`Génération d'exercices - Mode: ${inputMode}, Niveau: ${level}, Format: ${format}`);
 
-    // Create the instruction for the AI based on request parameters
-    let prompt = "";
-    
-    if (inputMode === 'text' && inputText) {
-      // Mode texte: générer des exercices à partir d'un texte fourni
-      prompt = `Utilise le texte suivant comme base pour générer des exercices d'entraînement de niveau ${difficultyLevel} :
-      
-${inputText}
+    // Vérifier que les paramètres requis sont présents selon le mode
+    if ((inputMode === 'text' && !courseText) || (inputMode === 'subject' && !subject)) {
+      return new Response(
+        JSON.stringify({ error: "Les paramètres requis sont manquants selon le mode de génération." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
-Génère des exercices adaptés au contexte du texte fourni avec le format ${format}.`;
-    } else if (inputMode === 'subject') {
-      // Mode sujet: générer des exercices sur un sujet spécifique
-      prompt = `Crée une série complète d'exercices de mathématiques sur le sujet "${inputText}" avec des difficultés ${difficultyLevel}.
+    // Création du prompt en fonction du mode d'entrée
+    let prompt;
+    if (inputMode === 'text') {
+      prompt = `Vous êtes un professeur expérimenté. Créez ${numQuestions} exercices progressifs et complets avec leurs corrigés, adaptés au texte du cours suivant, avec un niveau de difficulté "${level}" et en format "${format}":
 
-Les exercices doivent être au format ${format}.`;
+${courseText}
+
+IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
+Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).
+Pour les puissances, utilisez la notation avec chapeau (ex: x^2 et non x²).
+Pour les racines carrées, écrivez "racine de" en toutes lettres.
+Pour les équations, utilisez un format linéaire simple (ex: a + b = c et non des alignements complexes).
+
+Le corrigé doit être clair, structuré et pédagogique, également dans un format texte simple.
+Chaque exercice commence par "### Exercice [n]" et son corrigé commence par "### Corrigé [n]".
+
+Assurez-vous que les exercices:
+1. Correspondent parfaitement au contenu du cours fourni
+2. Respectent la complexité demandée (${level})
+3. Sont adaptés au format demandé (${format})
+4. Utilisent le vocabulaire spécifique au domaine traité dans le cours
+5. Sont rédigés en texte simple facilement lisible sur écran`;
     } else {
-      return new Response(
-        JSON.stringify({ error: "Mode d'entrée ou texte invalide" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Add instructions based on format
-    if (format === 'qcm') {
-      prompt += `
-Format: QCM avec 4 options par question, une seule correcte.
-Inclus:
-- Au moins 5 questions
-- Corrigé détaillé pour chaque question
-- Pour chaque question, indique la bonne réponse
-- Utilise une mise en forme soignée et claire`;
-    } else if (format === 'vrai_faux') {
-      prompt += `
-Format: Vrai/Faux
-Inclus:
-- Au moins 8 affirmations 
-- Pour chaque affirmation, précise si elle est vraie ou fausse
-- Explique pourquoi chaque affirmation est vraie ou fausse
-- Utilise une mise en forme soignée et claire`;
-    } else if (format === 'questions_ouvertes') {
-      prompt += `
-Format: Questions ouvertes
-Inclus:
-- Au moins 5 questions détaillées
-- Corrigé complet et détaillé pour chaque question
-- Questions variées en complexité
-- Utilise une mise en forme soignée`;
-    }
-    
-    // Add difficulty level specifics
-    if (difficultyLevel === 'facile') {
-      prompt += `
-Niveau: FACILE - Adapté pour des débutants ou pour une première évaluation.
-- Questions simples et directes
-- Avec guidage clair`;
-    } else if (difficultyLevel === 'moyen') {
-      prompt += `
-Niveau: MOYEN - Questions plus élaborées nécessitant une bonne compréhension.
-- Inclure des questions nécessitant plusieurs étapes de raisonnement
-- Varier les types de questions`;
-    } else if (difficultyLevel === 'difficile') {
-      prompt += `
-Niveau: DIFFICILE - Questions avancées pour tester une maîtrise approfondie.
-- Inclure des problèmes complexes
-- Questions nécessitant une analyse poussée
-- Au moins une question avec un cas pratique ou contextualisé`;
+      prompt = `Vous êtes un professeur expérimenté. Créez ${numQuestions} exercices progressifs et complets avec leurs corrigés sur le sujet "${subject}", avec un niveau de difficulté "${level}" et en format "${format}".
+
+IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
+Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).
+Pour les puissances, utilisez la notation avec chapeau (ex: x^2 et non x²).
+Pour les racines carrées, écrivez "racine de" en toutes lettres.
+Pour les équations, utilisez un format linéaire simple (ex: a + b = c et non des alignements complexes).
+
+${format === 'mixte' ? 
+  "Puisque vous devez créer un format mixte, assurez-vous d'inclure une variété de types de questions: QCM, questions ouvertes, vrai/faux, etc." 
+: `Respectez bien le format demandé (${format}).`}
+
+Le corrigé doit être clair, structuré et pédagogique, également dans un format texte simple.
+Chaque exercice commence par "### Exercice [n]" et son corrigé commence par "### Corrigé [n]".
+
+Assurez-vous que les exercices:
+1. Correspondent parfaitement au sujet demandé
+2. Respectent la complexité demandée (${level})
+3. Sont adaptés au sujet et au niveau scolaire approprié
+4. Utilisent le vocabulaire spécifique au domaine traité
+5. Sont rédigés en texte simple facilement lisible sur écran
+
+Si le sujet est lié à un domaine scolaire spécifique, adaptez votre niveau de langage et de complexité en conséquence.`;
     }
 
-    // Add formatting instructions
-    prompt += `
-Présentation:
-- Utilise des titres clairs (## pour les sections principales, ### pour les sous-sections)
-- Structure bien les exercices avec une numérotation claire
-- Formate proprement le texte pour une bonne lisibilité
-- Évite d'utiliser trop de caractères # dans le formatage`;
+    console.log(`Modèle utilisé: gpt-4o-mini`);
+    console.log(`Envoi de la requête à OpenAI`);
 
-    console.log("Envoi de la requête à OpenAI");
-
-    // Call OpenAI API
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Appel à l'API OpenAI
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${openAIApiKey}`,
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("OPENAI_API_KEY") || ""}`,
       },
       body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un professeur expert spécialisé dans la création d'exercices pédagogiques adaptés au niveau demandé. Ta mission est de créer des exercices clairs, bien structurés et formatés."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1500
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7, // Légère augmentation pour plus de créativité dans les exercices
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorBody = await openaiResponse.text();
-      console.error(`OpenAI API error (${openaiResponse.status}):`, errorBody);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Erreur OpenAI (${response.status}):`, errorText);
       return new Response(
-        JSON.stringify({ error: `API error: ${openaiResponse.status}`, details: errorBody }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: `Erreur API: ${response.status}`,
+          details: errorText
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    const openaiData = await openaiResponse.json();
-    const exercisesContent = openaiData.choices[0]?.message?.content || "";
-    
-    console.log("Réponse reçue d'OpenAI, longueur du contenu:", exercisesContent.length);
-    
-    // Format document name based on mode and input
-    let documentName = "";
-    if (inputMode === 'subject') {
-      documentName = `Exercices : ${inputText} (${difficultyLevel})`;
-    } else {
-      documentName = `Exercices ${difficultyLevel} - ${new Date().toLocaleDateString("fr-FR")}`;
-    }
-
-    // Save document to database
-    const { data: document, error: documentError } = await supabase
-      .from("documents")
-      .insert({
-        nom: documentName,
-        content: exercisesContent,
-        user_id: user.id,
-      })
-      .select()
-      .single();
-
-    if (documentError) {
-      console.error("Error creating document:", documentError);
+    // Parse la réponse
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Erreur lors du parsing de la réponse OpenAI:", jsonError);
+      const rawResponse = await response.text();
+      console.error("Réponse brute:", rawResponse);
       return new Response(
-        JSON.stringify({ error: "Failed to save exercises", details: documentError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Impossible de parser la réponse de l'API" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
       );
     }
-    
-    // Add XP for generating exercises
-    const { error: historyError } = await supabase
-      .from('history')
-      .insert({
-        user_id: user.id,
-        action_type: 'generate_exercises',
-        document_name: documentName,
-        xp_gained: 15
-      });
 
-    if (historyError) {
-      console.error("Error recording XP history:", historyError);
-      // Non-blocking, continue execution
+    console.log(`Réponse reçue d'OpenAI, longueur du contenu: ${data.choices[0]?.message?.content?.length || 0}`);
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error("Réponse OpenAI invalide:", JSON.stringify(data));
+      return new Response(
+        JSON.stringify({ error: "Erreur lors de la génération des exercices." }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
+
+    const exercicesGeneres = data.choices[0].message.content;
 
     return new Response(
       JSON.stringify({
-        success: true,
-        exercises: exercisesContent,
-        documentId: document.id
+        exercises: exercicesGeneres,
+        inputMode: inputMode,
+        source: inputMode === 'text' ? 'cours' : 'sujet',
+        sourceValue: inputMode === 'text' ? courseText.substring(0, 50) + '...' : subject,
+        level,
+        format,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   } catch (error) {
-    console.error("Error in generate-exercises function:", error);
+    console.error("Erreur dans la fonction generate-exercises:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });

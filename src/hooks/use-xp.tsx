@@ -12,8 +12,7 @@ export type XpActionType =
   | 'generate_control'
   | 'complete_exercise'
   | 'profile_complete'
-  | 'daily_login'
-  | 'suppression';  // Added to match database constraints
+  | 'daily_login';
 
 // Valeurs d'XP pour chaque type d'action
 const XP_VALUES: Record<XpActionType, number> = {
@@ -23,8 +22,7 @@ const XP_VALUES: Record<XpActionType, number> = {
   generate_control: 20,
   complete_exercise: 25,
   profile_complete: 50,
-  daily_login: 3,
-  suppression: 0  // No XP for deletion
+  daily_login: 3
 };
 
 // Fonction pour calculer le niveau en fonction de l'XP selon les seuils définis

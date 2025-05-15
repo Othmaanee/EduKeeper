@@ -1,25 +1,42 @@
 
-import { useState } from 'react';
+import { Save, Loader2, FileText, Download } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Download, Tag } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useXp } from "@/hooks/use-xp";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { useEffect, useRef } from "react";
+
+interface Category {
+  id: string;
+  nom: string | null;
+}
 
 interface SummaryDisplayProps {
-  generatedSummary: string;
-  categories: any[];
+  generatedSummary: string | null;
+  categories: Category[];
   selectedCategoryId: string;
   setSelectedCategoryId: (id: string) => void;
-  saveSummaryMutation: any;
-  saveSummaryAsPdf: () => Promise<void>;
+  saveSummaryMutation: {
+    mutate: () => void;
+    isPending: boolean;
+  };
+  saveSummaryAsPdf: () => void;
   isSavingPdf: boolean;
 }
 
-export function SummaryDisplay({
+export const SummaryDisplay = ({
   generatedSummary,
   categories,
   selectedCategoryId,
@@ -27,165 +44,72 @@ export function SummaryDisplay({
   saveSummaryMutation,
   saveSummaryAsPdf,
   isSavingPdf
-}: SummaryDisplayProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
-  const { awardXP } = useXp();
+}: SummaryDisplayProps) => {
+  const summaryRef = useRef<HTMLDivElement | null>(null);
   
-  const cleanFormattedSummary = (rawSummary: string) => {
-    // Replace markdown headings with proper HTML formatting
-    let formatted = rawSummary
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-5 mb-3">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-3">$1</h1>')
-      .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-      .replace(/\*(.*)\*/gim, '<em>$1</em>')
-      .replace(/\n\n/gim, '<br/><br/>');
-    
-    // Split into paragraphs and format
-    const paragraphs = formatted.split('\n').filter(p => p.trim().length > 0);
-    
-    // If there are no HTML elements yet, wrap each paragraph
-    if (!formatted.includes('<h') && !formatted.includes('<br/>')) {
-      formatted = paragraphs
-        .map(p => `<p class="mb-3">${p}</p>`)
-        .join('');
-    }
-    
-    return formatted;
-  };
-  
-  const saveToDocuments = async () => {
-    setIsSaving(true);
-    try {
-      // Récupérer la session utilisateur
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Non connecté",
-          description: "Vous devez être connecté pour sauvegarder un document",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Créer un nouveau document avec le résumé
-      const { data, error } = await supabase
-        .from('documents')
-        .insert({
-          nom: `Résumé: ${new Date().toLocaleDateString('fr-FR')}`,
-          content: generatedSummary,
-          summary: generatedSummary.substring(0, 150) + '...',
-          user_id: session.user.id,
-          category_id: selectedCategoryId === 'no-category' ? null : selectedCategoryId
-        })
-        .select()
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Ajouter à l'historique
-      await supabase.from('history').insert({
-        user_id: session.user.id,
-        action_type: 'document_upload',
-        document_name: `Résumé: ${new Date().toLocaleDateString('fr-FR')}`
-      });
-      
-      toast({
-        title: "Résumé sauvegardé",
-        description: "Le résumé a été enregistré dans vos documents",
-        className: "bg-green-500 text-white border-green-600"
-      });
-      
-      // Attribuer de l'XP à l'utilisateur
-      try {
-        await awardXP('document_upload');
-      } catch (xpError) {
-        console.error("Erreur lors de l'attribution d'XP:", xpError);
-        // Non bloquant
-      }
-      
-    } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: `Impossible de sauvegarder: ${error.message}`,
-        variant: "destructive",
-      });
-      console.error("Erreur lors de la sauvegarde:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  const formattedSummary = cleanFormattedSummary(generatedSummary);
+  // Formatage du texte avec des sauts de ligne HTML et conversion des deux sauts de ligne consécutifs en paragraphes
+  const processedSummary = generatedSummary ? 
+    generatedSummary.split("\n").map((line, i) => 
+      `<div key=${i}>${line || "&nbsp;"}</div>`
+    ).join("") : 
+    '';
 
+  if (!generatedSummary) return null;
+  
   return (
-    <Card className="mt-6">
+    <Card className="animate-scale-in">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Résumé généré</CardTitle>
-          <Badge variant="outline" className="ml-2">IA</Badge>
-        </div>
+        <CardTitle>Résumé généré</CardTitle>
+        <CardDescription>
+          Voici le résumé automatique de votre document
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="prose prose-sm max-w-none">
-          <div dangerouslySetInnerHTML={{ __html: formattedSummary }} />
-        </div>
-        <div className="mt-6 flex flex-col gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Catégorie</span>
-            </div>
-            <Select 
-              value={selectedCategoryId} 
-              onValueChange={setSelectedCategoryId}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choisir une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-category">Sans catégorie</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <div 
+          ref={summaryRef}
+          className="whitespace-pre-line bg-muted p-4 rounded-md text-sm leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: processedSummary }}
+        />
       </CardContent>
-      <CardFooter className="flex flex-col gap-3">
-        <div className="flex w-full gap-2">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={saveSummaryAsPdf}
-            disabled={isSavingPdf}
+      <CardFooter className="flex flex-col space-y-4">
+        {/* Category selection */}
+        <div className="w-full">
+          <label htmlFor="category-select" className="text-sm font-medium block mb-2">
+            Catégorie (optionnel)
+          </label>
+          <Select 
+            value={selectedCategoryId} 
+            onValueChange={setSelectedCategoryId}
           >
-            {isSavingPdf ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Génération PDF...
-              </>
-            ) : (
-              <>
-                <Download className="mr-2 h-4 w-4" />
-                Télécharger en PDF
-              </>
-            )}
-          </Button>
-          
-          <Button
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sélectionnez une catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem key="no-category" value="no-category">Sans catégorie</SelectItem>
+              {categories && categories.length > 0 ? (
+                categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.nom || "Catégorie sans nom"}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-categories-available" disabled>
+                  Aucune catégorie disponible
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Save buttons */}
+        <div className="w-full flex gap-2">
+          <Button 
+            onClick={() => saveSummaryMutation.mutate()}
+            disabled={saveSummaryMutation.isPending}
             className="w-full"
-            onClick={saveToDocuments}
-            disabled={isSaving}
+            variant="default"
           >
-            {isSaving ? (
+            {saveSummaryMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Enregistrement...
@@ -193,19 +117,31 @@ export function SummaryDisplay({
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Enregistrer dans mes documents
+                Enregistrer comme texte
+              </>
+            )}
+          </Button>
+          
+          <Button
+            onClick={saveSummaryAsPdf}
+            disabled={isSavingPdf}
+            className="w-full"
+            variant="secondary"
+          >
+            {isSavingPdf ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Création du PDF...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Enregistrer en PDF
               </>
             )}
           </Button>
         </div>
-        
-        {saveSummaryMutation.isPending && (
-          <div className="flex items-center justify-center w-full">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            <span>Sauvegarde en cours...</span>
-          </div>
-        )}
       </CardFooter>
     </Card>
   );
-}
+};

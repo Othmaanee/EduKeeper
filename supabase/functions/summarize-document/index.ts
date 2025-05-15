@@ -91,26 +91,19 @@ serve(async (req) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "system",
-            content: `Tu es un assistant pédagogique expert en résumés académiques. Ton objectif est de créer un résumé structuré, informatif et bien formaté qui restitue les informations essentielles d'un cours ou d'un document académique.
+            content: `Tu es un assistant pédagogique expert en résumés académiques. Ton objectif est de créer un résumé structuré et informatif qui restitue les informations essentielles d'un cours ou d'un document académique.
 
-Ne fais PAS simplement une description générale du document.
+Ne fais pas simplement une description générale de ce dont parle le document.
 Organise ton résumé avec :
-1. Une structure claire avec des titres (utilise des niveaux de titres comme "## Titre principal" et "### Sous-titre")
-2. Les concepts clés et définitions importantes mis en gras
-3. Les points principaux organisés de manière logique et claire
-4. Des exemples importants s'il y en a
-5. Les relations entre les concepts
-
-Utilise une mise en forme soignée :
-- Titres principaux (##)
-- Sous-titres (###)
-- Texte en gras pour les concepts clés (**concept**)
-- Listes à puces pour les énumérations
-- Paragraphes bien structurés
+1. Les concepts clés et définitions importantes
+2. Les points principaux organisés de manière logique
+3. Des exemples importants s'il y en a
+4. Les relations entre les concepts
+5. Un format clair avec des sections/titres si nécessaire
 
 Si le texte semble être un cours, assure-toi que ton résumé soit utilisable pour des révisions en incluant toutes les informations essentielles qu'un étudiant devrait retenir.`
           },
@@ -119,7 +112,7 @@ Si le texte semble être un cours, assure-toi que ton résumé soit utilisable p
             content: documentText
           }
         ],
-        max_tokens: 800,
+        max_tokens: 700,
         temperature: 0.3,
       })
     });
@@ -159,24 +152,6 @@ Si le texte semble être un cours, assure-toi que ton résumé soit utilisable p
       .filter(phrase => phrase.length > 10 && phrase.length < 60)
       .filter((value, index, self) => self.indexOf(value) === index)
       .slice(0, 5);
-
-    // Ajout des données d'historique pour l'attribution XP
-    try {
-      const { error: historyError } = await supabase
-        .from('history')
-        .insert({
-          user_id: user.id,
-          action_type: 'generate_summary',
-          document_name: 'Résumé de document',
-          xp_gained: 10
-        });
-
-      if (historyError) {
-        console.error("Erreur lors de l'enregistrement dans l'historique:", historyError);
-      }
-    } catch (historyError) {
-      console.error("Exception lors de l'enregistrement dans l'historique:", historyError);
-    }
 
     return new Response(
       JSON.stringify({ 
