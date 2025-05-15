@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -193,7 +194,6 @@ export function DocumentView() {
 
   const isAIGenerated = documentData?.nom?.startsWith('Cours :');
 
-  // Remplacer la fonction handleDownload par celle-ci qui télécharge directement le fichier
   const handleDownload = async () => {
     if (!documentData) return;
     
@@ -204,19 +204,13 @@ export function DocumentView() {
       if (!documentUrl) {
         throw new Error("L'URL du document est invalide");
       }
-
-      // Créer un élément a invisible
-      const link = document.createElement('a');
-      link.href = documentUrl;
-      link.download = documentData.nom || 'document'; // Nom du fichier pour le téléchargement
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
       
-      toast.success("Téléchargement du document démarré");
+      window.open(documentUrl, '_blank');
+      
+      toast.success("Document ouvert dans un nouvel onglet");
     } catch (error: any) {
-      toast.error(`Erreur de téléchargement du document: ${error.message}`);
-      console.error("Erreur lors du téléchargement du document:", error);
+      toast.error(`Erreur d'accès au document: ${error.message}`);
+      console.error("Erreur lors de l'accès au document:", error);
     }
   };
 

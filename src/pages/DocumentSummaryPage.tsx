@@ -32,9 +32,7 @@ export function DocumentSummaryPage() {
     isLoading: isGeneratingSummary,
     error: summaryError,
     generateSummary,
-    saveAsPdf,
-    saveToDocuments,
-    isSavingToDocuments
+    saveAsPdf
   } = useSummaryGeneration();
 
   // Charger les données utilisateur et documents au chargement de la page
@@ -182,11 +180,6 @@ export function DocumentSummaryPage() {
       setIsSavingPdf(false);
     }
   };
-  
-  // Fonction pour sauvegarder le résumé dans "Mes documents"
-  const handleSaveToDocuments = async () => {
-    await saveToDocuments(selectedCategoryId);
-  };
 
   return (
     <Layout>
@@ -258,8 +251,6 @@ export function DocumentSummaryPage() {
             saveSummaryMutation={saveSummaryMutation}
             saveSummaryAsPdf={saveSummaryAsPdf}
             isSavingPdf={isSavingPdf}
-            saveToDocuments={handleSaveToDocuments}
-            isSavingToDocuments={isSavingToDocuments}
           />
         )}
       </div>
