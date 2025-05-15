@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ComingSoonOverlay } from '@/components/ComingSoonOverlay';
 import { useXp } from '@/hooks/use-xp';
 import { Loader2 } from 'lucide-react';
 
@@ -99,10 +98,6 @@ const ExercisesPage: React.FC = () => {
       <div className="container mx-auto py-8 px-4 max-w-5xl">
         <h1 className="text-3xl font-bold mb-6">Exercices et révisions</h1>
         
-        <ComingSoonOverlay 
-          message="La section exercices sera bientôt disponible"
-        />
-
         <Tabs defaultValue="generate">
           <TabsList className="mb-4">
             <TabsTrigger value="generate">Générer un exercice</TabsTrigger>
@@ -242,9 +237,9 @@ const ExercisesPage: React.FC = () => {
           
           <TabsContent value="library">
             <div className="relative">
-              <ComingSoonOverlay 
-                message="Cette fonctionnalité sera disponible prochainement."
-              />
+              <p className="text-center text-muted-foreground py-10">
+                La bibliothèque d'exercices sera bientôt disponible.
+              </p>
             </div>
           </TabsContent>
         </Tabs>

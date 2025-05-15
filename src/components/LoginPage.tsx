@@ -9,10 +9,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Form, FormField, FormItem, FormControl, FormLabel } from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [nom, setNom] = useState('');
+  const [classe, setClasse] = useState('');
+  const [etablissement, setEtablissement] = useState('');
+  const [dateNaissance, setDateNaissance] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
@@ -39,7 +48,7 @@ const LoginPage = () => {
           description: "Vous êtes maintenant connecté",
           variant: "default",
         });
-        navigate('/');
+        navigate('/accueil');
       }
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
@@ -60,10 +69,32 @@ const LoginPage = () => {
     setIsLoading(true);
     setErrorMessage('');
 
+    // Vérifier que tous les champs sont remplis
+    if (!email || !password || !prenom || !nom || !classe || !etablissement || !dateNaissance) {
+      setErrorMessage('Tous les champs sont obligatoires');
+      setIsLoading(false);
+      
+      toast({
+        title: "Erreur d'inscription",
+        description: "Tous les champs sont obligatoires",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            prenom,
+            nom,
+            classe,
+            etablissement,
+            date_naissance: dateNaissance,
+          }
+        }
       });
 
       if (error) {
@@ -122,9 +153,6 @@ const LoginPage = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Mot de passe</Label>
-                    <Button variant="link" className="text-xs" onClick={() => navigate('/forgot-password')}>
-                      Mot de passe oublié?
-                    </Button>
                   </div>
                   <Input
                     id="password"
@@ -169,6 +197,60 @@ const LoginPage = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-prenom">Prénom</Label>
+                  <Input
+                    id="signup-prenom"
+                    type="text"
+                    placeholder="Prénom"
+                    value={prenom}
+                    onChange={(e) => setPrenom(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-nom">Nom</Label>
+                  <Input
+                    id="signup-nom"
+                    type="text"
+                    placeholder="Nom"
+                    value={nom}
+                    onChange={(e) => setNom(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-classe">Classe</Label>
+                  <Input
+                    id="signup-classe"
+                    type="text"
+                    placeholder="Votre classe"
+                    value={classe}
+                    onChange={(e) => setClasse(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-etablissement">Établissement</Label>
+                  <Input
+                    id="signup-etablissement"
+                    type="text"
+                    placeholder="Votre établissement"
+                    value={etablissement}
+                    onChange={(e) => setEtablissement(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-date-naissance">Date de naissance</Label>
+                  <Input
+                    id="signup-date-naissance"
+                    type="date"
+                    value={dateNaissance}
+                    onChange={(e) => setDateNaissance(e.target.value)}
                     required
                   />
                 </div>
