@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.31.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
@@ -61,12 +62,14 @@ serve(async (req) => {
       );
     }
     
-    const { sujet, classe, niveau } = requestBody;
-    console.log(`Génération d'exercices - Sujet: ${sujet}, Classe: ${classe}, Niveau: ${niveau}`);
+    // Vérifier le mode d'entrée
+    const { courseText, subject, level, format, numQuestions, includeSolutions, inputMode } = requestBody;
+    console.log(`Génération d'exercices - Mode: ${inputMode}, Niveau: ${level}, Format: ${format}`);
 
-    if (!sujet || !classe || !niveau) {
+    // Vérifier que les paramètres requis sont présents selon le mode
+    if ((inputMode === 'text' && !courseText) || (inputMode === 'subject' && !subject)) {
       return new Response(
-        JSON.stringify({ error: "Les paramètres sujet, classe et niveau sont requis." }),
+        JSON.stringify({ error: "Les paramètres requis sont manquants selon le mode de génération." }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -74,11 +77,12 @@ serve(async (req) => {
       );
     }
 
-    // Création du prompt amélioré pour OpenAI avec instructions spécifiques sur le formatage
-    const prompt = `Vous êtes un professeur expérimenté. Créez 5 exercices progressifs et complets avec leurs corrigés, adaptés à une classe de ${classe} en fonction du sujet "${sujet}" et du niveau "${niveau}" :
-- Niveau "Bases" : exercices simples, notions fondamentales
-- Niveau "Classique" : exercices standards, adaptés à des évaluations de mi-parcours
-- Niveau "Très complet" : exercices complexes, croisant plusieurs notions du programme de ${classe}
+    // Création du prompt en fonction du mode d'entrée
+    let prompt;
+    if (inputMode === 'text') {
+      prompt = `Vous êtes un professeur expérimenté. Créez ${numQuestions} exercices progressifs et complets avec leurs corrigés, adaptés au texte du cours suivant, avec un niveau de difficulté "${level}" et en format "${format}":
+
+${courseText}
 
 IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
 Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).
@@ -86,23 +90,43 @@ Pour les puissances, utilisez la notation avec chapeau (ex: x^2 et non x²).
 Pour les racines carrées, écrivez "racine de" en toutes lettres.
 Pour les équations, utilisez un format linéaire simple (ex: a + b = c et non des alignements complexes).
 
-Exemples de format approuvés :
-- "Calculer : 4/11 + 3/11 = ..."
-- "Résoudre l'équation : 2x + 3 = 7"
-- "Simplifier : (x^2 + 3x) / x"
+Le corrigé doit être clair, structuré et pédagogique, également dans un format texte simple.
+Chaque exercice commence par "### Exercice [n]" et son corrigé commence par "### Corrigé [n]".
+
+Assurez-vous que les exercices:
+1. Correspondent parfaitement au contenu du cours fourni
+2. Respectent la complexité demandée (${level})
+3. Sont adaptés au format demandé (${format})
+4. Utilisent le vocabulaire spécifique au domaine traité dans le cours
+5. Sont rédigés en texte simple facilement lisible sur écran`;
+    } else {
+      prompt = `Vous êtes un professeur expérimenté. Créez ${numQuestions} exercices progressifs et complets avec leurs corrigés sur le sujet "${subject}", avec un niveau de difficulté "${level}" et en format "${format}".
+
+IMPORTANT - FORMAT : Utilisez uniquement un format de texte simple, sans balises LaTeX complexes ni code Markdown. 
+Pour les fractions, utilisez la notation classique avec barre oblique (ex: 3/4 et non \\frac{3}{4}).
+Pour les puissances, utilisez la notation avec chapeau (ex: x^2 et non x²).
+Pour les racines carrées, écrivez "racine de" en toutes lettres.
+Pour les équations, utilisez un format linéaire simple (ex: a + b = c et non des alignements complexes).
+
+${format === 'mixte' ? 
+  "Puisque vous devez créer un format mixte, assurez-vous d'inclure une variété de types de questions: QCM, questions ouvertes, vrai/faux, etc." 
+: `Respectez bien le format demandé (${format}).`}
 
 Le corrigé doit être clair, structuré et pédagogique, également dans un format texte simple.
 Chaque exercice commence par "### Exercice [n]" et son corrigé commence par "### Corrigé [n]".
 
 Assurez-vous que les exercices:
-1. Correspondent parfaitement au niveau scolaire de ${classe}
-2. Respectent la complexité demandée (${niveau})
-3. Sont adaptés aux connaissances typiques à ce stade de l'année scolaire
-4. Utilisent le vocabulaire et les méthodes spécifiques au programme officiel de ${classe}
-5. Sont rédigés en texte simple facilement lisible sur écran`;
+1. Correspondent parfaitement au sujet demandé
+2. Respectent la complexité demandée (${level})
+3. Sont adaptés au sujet et au niveau scolaire approprié
+4. Utilisent le vocabulaire spécifique au domaine traité
+5. Sont rédigés en texte simple facilement lisible sur écran
+
+Si le sujet est lié à un domaine scolaire spécifique, adaptez votre niveau de langage et de complexité en conséquence.`;
+    }
 
     console.log(`Modèle utilisé: gpt-4o-mini`);
-    console.log(`Envoi de la requête à OpenAI avec le prompt amélioré`);
+    console.log(`Envoi de la requête à OpenAI`);
 
     // Appel à l'API OpenAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -167,10 +191,12 @@ Assurez-vous que les exercices:
 
     return new Response(
       JSON.stringify({
-        exercices: exercicesGeneres,
-        sujet: sujet,
-        classe: classe,
-        niveau: niveau,
+        exercises: exercicesGeneres,
+        inputMode: inputMode,
+        source: inputMode === 'text' ? 'cours' : 'sujet',
+        sourceValue: inputMode === 'text' ? courseText.substring(0, 50) + '...' : subject,
+        level,
+        format,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -12,9 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useXp } from '@/hooks/use-xp';
 import { Loader2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
 
 const ExercisesPage: React.FC = () => {
   const [courseText, setCourseText] = useState('');
+  const [subject, setSubject] = useState('');
+  const [inputMode, setInputMode] = useState('text');
   const [level, setLevel] = useState('facile');
   const [format, setFormat] = useState('qcm');
   const [numQuestions, setNumQuestions] = useState('5');
@@ -25,10 +29,20 @@ const ExercisesPage: React.FC = () => {
   const { toast } = useToast();
 
   const handleGenerateExercises = async () => {
-    if (courseText.trim().length < 20) {
+    // Vérifier si au moins l'un des champs requis est rempli
+    if (inputMode === 'text' && courseText.trim().length < 20) {
       toast({
         title: "Texte trop court",
         description: "Veuillez entrer un cours plus détaillé pour générer des exercices pertinents.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (inputMode === 'subject' && subject.trim().length < 3) {
+      toast({
+        title: "Sujet trop court",
+        description: "Veuillez entrer un sujet plus détaillé pour générer des exercices pertinents.",
         variant: "destructive"
       });
       return;
@@ -49,14 +63,18 @@ const ExercisesPage: React.FC = () => {
         return;
       }
 
+      const requestBody = {
+        courseText: inputMode === 'text' ? courseText : '',
+        subject: inputMode === 'subject' ? subject : '',
+        level,
+        format,
+        numQuestions: parseInt(numQuestions),
+        includeSolutions,
+        inputMode
+      };
+
       const { data, error } = await supabase.functions.invoke('generate-exercises', {
-        body: {
-          courseText,
-          level,
-          format,
-          numQuestions: parseInt(numQuestions),
-          includeSolutions
-        }
+        body: requestBody
       });
 
       if (error) {
@@ -72,12 +90,13 @@ const ExercisesPage: React.FC = () => {
         if (result.success) {
           toast({
             title: "Exercices générés !",
-            description: `${result.message} - Nouveau total: ${result.newTotalXp} XP`
+            description: `${result.message} - Nouveau total: ${result.newTotalXp} XP (Niveau ${result.newLevel})`,
+            className: "bg-green-500 text-white border-green-600"
           });
         } else {
           toast({
             title: "Exercices générés !",
-            description: "Vos exercices ont été créés avec succès."
+            description: "Vos exercices ont été créés avec succès.",
           });
         }
       }
@@ -91,6 +110,14 @@ const ExercisesPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Vérifier si le bouton peut être actif
+  const isGenerateButtonDisabled = () => {
+    if (isGenerating) return true;
+    if (inputMode === 'text') return courseText.trim().length < 20;
+    if (inputMode === 'subject') return subject.trim().length < 3;
+    return false;
   };
 
   return (
@@ -108,23 +135,52 @@ const ExercisesPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="md:col-span-2">
                 <CardHeader>
-                  <CardTitle>Texte du cours</CardTitle>
+                  <CardTitle>Contenu pour la génération</CardTitle>
                   <CardDescription>
-                    Collez le texte de votre cours pour générer des exercices personnalisés
+                    Choisissez votre mode de génération d'exercices
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="courseText">Contenu du cours</Label>
-                      <Textarea
-                        id="courseText"
-                        value={courseText}
-                        onChange={(e) => setCourseText(e.target.value)}
-                        placeholder="Collez le texte de votre cours ici..."
-                        className="min-h-[200px]"
-                      />
-                    </div>
+                    <RadioGroup 
+                      defaultValue="text" 
+                      value={inputMode}
+                      onValueChange={setInputMode}
+                      className="flex flex-col space-y-2 mb-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="text" id="mode-text" />
+                        <Label htmlFor="mode-text">Coller un cours complet</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="subject" id="mode-subject" />
+                        <Label htmlFor="mode-subject">Saisir un sujet</Label>
+                      </div>
+                    </RadioGroup>
+
+                    {inputMode === 'text' ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="courseText">Contenu du cours</Label>
+                        <Textarea
+                          id="courseText"
+                          value={courseText}
+                          onChange={(e) => setCourseText(e.target.value)}
+                          placeholder="Collez le texte de votre cours ici..."
+                          className="min-h-[200px]"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">Sujet</Label>
+                        <Input
+                          id="subject"
+                          value={subject}
+                          onChange={(e) => setSubject(e.target.value)}
+                          placeholder="Ex: Les fonctions en mathématiques"
+                          className="w-full"
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -194,7 +250,7 @@ const ExercisesPage: React.FC = () => {
                 <CardFooter>
                   <Button 
                     onClick={handleGenerateExercises} 
-                    disabled={isGenerating || courseText.trim().length < 20} 
+                    disabled={isGenerateButtonDisabled()} 
                     className="w-full"
                   >
                     {isGenerating ? (

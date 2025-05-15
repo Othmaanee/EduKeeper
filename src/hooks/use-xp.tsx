@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useXPStore } from '@/store/xpStore';
 
 // Définir les types d'actions qui peuvent générer de l'XP
 export type XpActionType = 
@@ -24,6 +25,20 @@ const XP_VALUES: Record<XpActionType, number> = {
   daily_login: 3
 };
 
+// Fonction pour calculer le niveau en fonction de l'XP selon les seuils définis
+export function calculateLevel(xp: number): number {
+  if (xp < 20) return 1;
+  if (xp < 80) return 2;
+  if (xp < 160) return 3;
+  if (xp < 300) return 4;
+  if (xp < 500) return 5;
+  if (xp < 800) return 6;
+  if (xp < 1200) return 7;
+  if (xp < 1800) return 8;
+  if (xp < 2500) return 9;
+  return 10; // Maximum pour l'instant
+}
+
 // Interface pour le résultat de l'attribution d'XP
 export interface XpResult {
   success: boolean;
@@ -37,6 +52,7 @@ export interface XpResult {
 export function useXp() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { updateXP } = useXPStore();
   
   // Attribuer de l'XP à l'utilisateur pour une action spécifique
   const awardXP = async (actionType: XpActionType): Promise<XpResult> => {
@@ -87,24 +103,46 @@ export function useXp() {
         };
       }
       
-      // Mettre à jour l'XP totale de l'utilisateur
-      // Cette opération est gérée par un trigger côté base de données
-      
-      // Récupérer les informations mises à jour de l'utilisateur
-      const { data: userData, error: userError } = await supabase
+      // Récupérer les informations actuelles de l'utilisateur
+      const { data: currentUserData, error: currentUserError } = await supabase
         .from('users')
         .select('xp, level')
         .eq('id', userId)
         .single();
       
-      if (userError) {
-        console.error("Erreur lors de la récupération des données utilisateur:", userError);
+      if (currentUserError) {
+        console.error("Erreur lors de la récupération des données utilisateur:", currentUserError);
         return { 
-          success: true, 
-          message: `Vous avez gagné ${xpValue} XP!`,
-          xpEarned: xpValue 
+          success: false, 
+          message: "Erreur lors de la récupération des données utilisateur" 
         };
       }
+      
+      // Calculer la nouvelle valeur d'XP
+      const newXpTotal = (currentUserData.xp || 0) + xpValue;
+      
+      // Calculer le nouveau niveau selon les seuils définis
+      const newLevel = calculateLevel(newXpTotal);
+      
+      // Mettre à jour l'XP et le niveau de l'utilisateur
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          xp: newXpTotal,
+          level: newLevel
+        })
+        .eq('id', userId);
+      
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour de l'XP utilisateur:", updateError);
+        return { 
+          success: false, 
+          message: "Erreur lors de la mise à jour de l'XP" 
+        };
+      }
+      
+      // Mettre à jour le store local
+      updateXP(newXpTotal, newLevel);
       
       // Afficher un toast de réussite
       toast({
@@ -113,12 +151,21 @@ export function useXp() {
         className: "bg-green-500 text-white border-green-600"
       });
       
+      // Vérifier si l'utilisateur a changé de niveau
+      if (newLevel > (currentUserData.level || 1)) {
+        toast({
+          title: `Niveau ${newLevel} atteint!`,
+          description: `Félicitations, vous avez atteint le niveau ${newLevel}!`,
+          className: "bg-yellow-500 text-white border-yellow-600"
+        });
+      }
+      
       return { 
         success: true, 
         message: `Vous avez gagné ${xpValue} XP!`,
         xpEarned: xpValue,
-        newTotalXp: userData.xp,
-        newLevel: userData.level
+        newTotalXp: newXpTotal,
+        newLevel: newLevel
       };
       
     } catch (error) {
