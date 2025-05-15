@@ -1,5 +1,5 @@
 
-// Re-export the hook from the correct location
-import { useToast, toast } from "@/hooks/use-toast";
+// Re-export the hook and toast function from the correct location
+import { useToast, toast, type ToastOptions } from "@/hooks/use-toast";
 
-export { useToast, toast };
+export { useToast, toast, type ToastOptions };

@@ -1,36 +1,40 @@
 
-import { toast as sonnerToast, type Toast } from "sonner"
+import { toast as sonnerToast } from "sonner";
 
 import {
-  ToastAction,
   ToastActionElement,
   ToastProps,
-} from "@/components/ui/toast"
+} from "@/components/ui/toast";
 
-export type ToastVariant = NonNullable<ToastProps["variant"]>
+export type ToastVariant = NonNullable<ToastProps["variant"]>;
 
-export type ToasterToast = Omit<ToastProps, keyof Toast>
-
-export interface ToastOptions extends ToasterToast {
-  description?: React.ReactNode
+export interface ToastOptions {
+  variant?: ToastVariant;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+  duration?: number;
+  className?: string;
 }
 
-const DEFAULT_TOAST_DURATION = 5000 // 5 seconds
+const DEFAULT_TOAST_DURATION = 5000; // 5 seconds
 
 export function toast({
   variant = "default",
   title,
   description,
   action,
+  duration = DEFAULT_TOAST_DURATION,
+  className,
   ...props
 }: ToastOptions) {
-  return sonnerToast(title, {
-    ...props,
-    description: description,
-    duration: props.duration || DEFAULT_TOAST_DURATION,
-    className: variant ? `variant-${variant}` : undefined,
+  return sonnerToast(title as string, {
+    description,
+    duration,
+    className: variant ? `variant-${variant}` : className,
     action,
-  })
+    ...props
+  });
 }
 
 export const useToast = () => {
@@ -41,5 +45,5 @@ export const useToast = () => {
       toast({ title: "Error", description: message, variant: "destructive" }),
     success: (message: string) =>
       toast({ title: "Success", description: message }),
-  }
-}
+  };
+};
