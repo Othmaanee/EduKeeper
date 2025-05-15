@@ -55,7 +55,7 @@ export function Layout({ children }: LayoutProps) {
         fetchUserInfo(session.user.id);
       } else {
         setLoading(false);
-        if (location.pathname !== '/login') {
+        if (location.pathname !== '/login' && location.pathname !== '/landing') {
           navigate('/login');
         }
       }
@@ -70,7 +70,7 @@ export function Layout({ children }: LayoutProps) {
         setUserRole('user');
         setUserSkin('base');
         setLoading(false);
-        if (location.pathname !== '/login') {
+        if (location.pathname !== '/login' && location.pathname !== '/landing') {
           navigate('/login');
         }
       }
@@ -119,7 +119,7 @@ export function Layout({ children }: LayoutProps) {
         description: "Vous avez été déconnecté avec succès.",
       });
       
-      navigate('/login');
+      navigate('/landing');
       
     } catch (error: any) {
       toast({
@@ -145,12 +145,12 @@ export function Layout({ children }: LayoutProps) {
     return null;
   }
 
-  if (!user && location.pathname !== '/login') {
+  if (!user && location.pathname !== '/login' && location.pathname !== '/landing') {
     navigate('/login');
     return null;
   }
 
-  if (location.pathname === '/login') {
+  if (location.pathname === '/login' || location.pathname === '/landing') {
     return <>{children}</>;
   }
 

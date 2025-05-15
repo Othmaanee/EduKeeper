@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserLevel } from '@/components/UserLevel';
 import { 
   DropdownMenu,
@@ -22,6 +22,7 @@ interface UserProfileProps {
 
 export const UserProfile = ({ user, onLogout, loggingOut }: UserProfileProps) => {
   const [userProfile, setUserProfile] = useState<any>(null);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -43,6 +44,11 @@ export const UserProfile = ({ user, onLogout, loggingOut }: UserProfileProps) =>
     
     fetchUserDetails();
   }, [user]);
+  
+  const handleLogout = async () => {
+    await onLogout();
+    navigate('/landing');
+  };
   
   return (
     <div className="mt-auto border-t pt-4 px-4 pb-6">
@@ -83,7 +89,7 @@ export const UserProfile = ({ user, onLogout, loggingOut }: UserProfileProps) =>
               <DropdownMenuItem 
                 className="text-red-500 focus:text-red-500" 
                 disabled={loggingOut}
-                onClick={onLogout}
+                onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 {loggingOut ? "Déconnexion..." : "Déconnexion"}
