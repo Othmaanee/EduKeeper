@@ -206,7 +206,7 @@ export function Dashboard({ onSubscribeInterest }: DashboardProps) {
         </div>
       </div>
       
-      {/* Subscribe Button */}
+      {/* Subscribe Button - Updated text */}
       <div className="flex justify-center">
         <Button 
           onClick={handleSubscribeClick}
@@ -214,7 +214,7 @@ export function Dashboard({ onSubscribeInterest }: DashboardProps) {
           disabled={isSubmitting}
         >
           <Zap className="h-5 w-5" />
-          Je veux m'abonner
+          Faire un retour sur EduKeeper
         </Button>
       </div>
       
