@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -101,11 +100,23 @@ const LoginPage = () => {
         throw error;
       }
 
+      // Inscription réussie, l'utilisateur est considéré comme inscrit directement
+      // sans nécessiter de vérification par email
       toast({
         title: "Inscription réussie",
-        description: "Vérifiez votre email pour confirmer votre inscription",
+        description: "Vous êtes maintenant inscrit",
         variant: "default",
       });
+      
+      // Tenter une connexion directe après l'inscription
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (!loginError) {
+        navigate('/accueil');
+      }
       
     } catch (error: any) {
       console.error('Erreur d\'inscription:', error);
