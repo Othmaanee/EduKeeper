@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,7 @@ const GeneratePage = () => {
 
     // Attribuer des XP pour la génération de contrôle
     try {
-      const xpResult = await awardXP('generate_control', 'Génération de contrôle');
+      const xpResult = await awardXP('generate_control');
       
       if (xpResult.success) {
         console.log("XP attribuée avec succès:", xpResult.message);
