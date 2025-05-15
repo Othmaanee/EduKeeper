@@ -56,10 +56,23 @@ serve(async (req) => {
 
     console.log(`Génération d'un contrôle - Sujet: ${topic}, Niveau: ${level}, Questions: ${quantity}`);
 
-    // Construction du prompt pour OpenAI
-    const prompt = `Tu es un professeur expérimenté. Génère un contrôle d'entraînement pour un élève de niveau ${level}, sur le sujet : "${topic}".\n\nLe contrôle doit comporter ${quantity || 5} questions au total.\n\nDonne :\n- Un énoncé structuré\n- Des questions pertinentes selon le niveau\n- Les corrigés à part ou directement après chaque question\n\nFormat clair, adapté à un élève qui révise seul.`;
+    // Construction du prompt amélioré pour OpenAI
+    const prompt = `Tu es un professeur expert dans la création de contrôles et évaluations pédagogiques. Génère un contrôle complet de niveau "${level}" sur le thème "${topic}".
 
-    console.log('Envoi de la requête à OpenAI avec le prompt:', prompt);
+Ce contrôle doit contenir ${quantity || 5} questions au total, avec la structure suivante :
+1. Un titre et une introduction claire
+2. Les questions doivent être variées et comprendre :
+   - Des questions courtes de connaissances (QCM, vrai/faux, définitions...)
+   - Au moins ${Math.max(1, Math.floor((quantity || 5) / 3))} question(s) à développement long avec un énoncé structuré
+   - Au moins ${Math.max(1, Math.floor((quantity || 5) / 4))} exercice(s) d'application pratique complexe(s)
+3. Des énoncés clairs et complets pour chaque question
+4. Le barème de notation pour chaque question
+5. Des corrigés détaillés et pédagogiques pour toutes les questions
+6. Des conseils pour la résolution des questions difficiles
+
+Adapte rigoureusement la complexité au niveau "${level}" indiqué. Le document final doit être bien structuré, avec une typographie claire et une organisation qui facilite l'utilisation par l'élève qui travaille en autonomie.`;
+
+    console.log('Envoi de la requête à OpenAI avec le prompt amélioré');
     
     // Appel à l'API OpenAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -73,7 +86,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "Tu es un professeur expérimenté qui crée des contrôles d'entraînement clairs et pédagogiques."
+            content: "Tu es un professeur expérimenté qui crée des contrôles d'entraînement complets, structurés et adaptés au niveau demandé. Tu fournis des questions variées incluant des problèmes élaborés et leurs corrections détaillées."
           },
           {
             role: "user",
@@ -81,6 +94,7 @@ serve(async (req) => {
           }
         ],
         temperature: 0.7,
+        max_tokens: 2500,
       }),
     });
 

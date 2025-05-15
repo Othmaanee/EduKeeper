@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -99,30 +100,29 @@ export function DocumentView() {
       
       console.log("🗑️ Début du processus de suppression du document:", documentId);
       
-      // Vérifier si c'est un document généré par IA
-      const isAIGenerated = documentData?.nom?.startsWith('Cours :');
+      // Vérifier si le document a une URL qui pointe vers Storage
+      const isStorageDocument = documentData.url && documentData.url.includes('/storage/v1/object/public/');
       
-      if (isAIGenerated) {
-        console.log("❌ Tentative de suppression d'un document généré par IA - opération non autorisée");
-        throw new Error("Les documents générés par IA ne peuvent pas être supprimés");
+      // Si c'est un document stocké dans Storage, on supprime le fichier
+      if (isStorageDocument) {
+        const urlParts = documentData.url.split('/');
+        const bucketName = urlParts[urlParts.length - 2];
+        const fileName = urlParts[urlParts.length - 1];
+        
+        console.log("📂 Tentative de suppression du fichier:", fileName, "dans le bucket:", bucketName);
+        const { error: storageError } = await supabase
+          .storage
+          .from(bucketName)
+          .remove([fileName]);
+        
+        if (storageError) {
+          console.error("❌ Échec de la suppression du fichier:", storageError.message);
+          // On continue malgré l'erreur pour supprimer au moins l'entrée en base de données
+          console.warn("On continue pour supprimer l'entrée en base de données");
+        } else {
+          console.log("✅ Fichier supprimé avec succès");
+        }
       }
-      
-      const urlParts = documentData.url.split('/');
-      const bucketName = urlParts[urlParts.length - 2];
-      const fileName = urlParts[urlParts.length - 1];
-      
-      console.log("📂 Tentative de suppression du fichier:", fileName, "dans le bucket:", bucketName);
-      const { error: storageError } = await supabase
-        .storage
-        .from(bucketName)
-        .remove([fileName]);
-      
-      if (storageError) {
-        console.error("❌ Échec de la suppression du fichier:", storageError.message);
-        throw new Error(`Failed to delete file: ${storageError.message}`);
-      }
-      
-      console.log("✅ Fichier supprimé avec succès");
       
       console.log("🗄️ Tentative de suppression de l'enregistrement en base de données");
       const { error: deleteError } = await supabase
@@ -352,21 +352,19 @@ export function DocumentView() {
             )}
             Modifier la catégorie
           </Button>
-          {!isAIGenerated && (
-            <Button 
-              variant="outline" 
-              className="text-destructive hover:bg-destructive/10" 
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Trash className="h-4 w-4 mr-2" />
-              )}
-              Supprimer
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            className="text-destructive hover:bg-destructive/10" 
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Trash className="h-4 w-4 mr-2" />
+            )}
+            Supprimer
+          </Button>
         </div>
       </div>
       

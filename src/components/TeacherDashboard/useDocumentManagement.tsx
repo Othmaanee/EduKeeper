@@ -156,6 +156,40 @@ export const useDocumentManagement = () => {
     try {
       setActionInProgress(documentToDelete);
       
+      // Récupérer le document à supprimer
+      const docToDelete = documents.find(doc => doc.id === documentToDelete);
+      if (!docToDelete) {
+        throw new Error("Document non trouvé");
+      }
+      
+      // Vérifier si le document a une URL qui pointe vers Storage
+      const isStorageDocument = docToDelete.url && docToDelete.url.includes('/storage/v1/object/public/');
+      
+      // Si c'est un document stocké dans Storage, on supprime le fichier
+      if (isStorageDocument) {
+        try {
+          const filePath = docToDelete.url.split("/storage/v1/object/public/documents/")[1];
+          
+          if (filePath) {
+            console.log("📂 Tentative de suppression du fichier:", filePath);
+            const { error: storageError } = await supabase.storage
+              .from("documents")
+              .remove([filePath]);
+            
+            if (storageError) {
+              console.error("❌ Erreur lors de la suppression du fichier:", storageError);
+              // On continue malgré l'erreur pour supprimer au moins l'enregistrement en BDD
+            } else {
+              console.log("✅ Fichier supprimé avec succès");
+            }
+          }
+        } catch (storageError) {
+          console.error("❌ Erreur lors de l'analyse de l'URL du fichier:", storageError);
+          // On continue malgré l'erreur pour supprimer au moins l'enregistrement en BDD
+        }
+      }
+      
+      // Supprimer l'enregistrement en base de données
       const { error } = await supabase
         .from('documents')
         .delete()

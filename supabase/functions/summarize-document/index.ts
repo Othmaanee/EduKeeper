@@ -94,15 +94,25 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "Voici un texte d'élève. Génère un résumé de 10 lignes maximum qui l'aide à réviser."
+            content: `Tu es un assistant pédagogique expert en résumés académiques. Ton objectif est de créer un résumé structuré et informatif qui restitue les informations essentielles d'un cours ou d'un document académique.
+
+Ne fais pas simplement une description générale de ce dont parle le document.
+Organise ton résumé avec :
+1. Les concepts clés et définitions importantes
+2. Les points principaux organisés de manière logique
+3. Des exemples importants s'il y en a
+4. Les relations entre les concepts
+5. Un format clair avec des sections/titres si nécessaire
+
+Si le texte semble être un cours, assure-toi que ton résumé soit utilisable pour des révisions en incluant toutes les informations essentielles qu'un étudiant devrait retenir.`
           },
           {
             role: "user",
             content: documentText
           }
         ],
-        max_tokens: 500,
-        temperature: 0.7,
+        max_tokens: 700,
+        temperature: 0.3,
       })
     });
 
@@ -133,11 +143,12 @@ serve(async (req) => {
     // Extraire le texte du résumé de la réponse
     const summaryText = data.choices[0]?.message?.content || "";
 
-    // Extraction de mots-clés simple (à améliorer)
-    const keywords = summaryText
-      .split(' ')
-      .filter(word => word.length > 5)
-      .map(word => word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, ""))
+    // Extraction de mots-clés plus pertinents
+    // On extrait des phrases ou expressions clés du résumé
+    const keyPhrases = summaryText
+      .split(/[.,:;]/)
+      .map(phrase => phrase.trim())
+      .filter(phrase => phrase.length > 10 && phrase.length < 60)
       .filter((value, index, self) => self.indexOf(value) === index)
       .slice(0, 5);
 
@@ -145,7 +156,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         summary: summaryText, 
-        keywords: keywords,
+        keywords: keyPhrases,
         apiUsed: "OpenAI"
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
