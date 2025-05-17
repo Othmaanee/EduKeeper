@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DemoRequestDialog } from '@/components/DemoRequestDialog';
@@ -251,20 +250,43 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Simple Footer */}
-      <footer className="py-8 px-6 md:px-10 lg:px-20 bg-slate-50">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <img 
-              src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
-              alt="EduKeeper Logo" 
-              className="h-8 w-8" 
-            />
-            <span className="font-bold text-slate-800">EduKeeper</span>
+      {/* Enhanced Footer with Legal Information */}
+      <footer className="py-10 px-6 md:px-10 lg:px-20 bg-slate-800 text-white">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <img 
+                src="/lovable-uploads/52a628e5-5a68-4b99-9f14-d2d9e4101c02.png" 
+                alt="EduKeeper Logo" 
+                className="h-8 w-8 invert" 
+              />
+              <span className="font-bold text-xl">EduKeeper</span>
+            </div>
+            <p className="text-sm text-slate-300">
+              La plateforme intelligente pour réviser efficacement et optimiser son apprentissage.
+            </p>
           </div>
-          <div className="text-slate-500 text-sm">
-            © 2024 EduKeeper. Tous droits réservés.
+          
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Liens utiles</h3>
+            <nav className="flex flex-col space-y-2 text-sm">
+              <Link to="/login" className="text-slate-300 hover:text-white transition-colors">Connexion</Link>
+              <Link to="/accueil" className="text-slate-300 hover:text-white transition-colors">Accueil</Link>
+            </nav>
           </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg">Mentions légales</h3>
+            <div className="text-sm text-slate-300 space-y-2">
+              <p>© 2024 EduKeeper. Tous droits réservés.</p>
+              <p>Créé par Tadjouri Othmane</p>
+              <p>Contact: <a href="mailto:contact@edukeeper.fr" className="underline hover:text-white">contact@edukeeper.fr</a></p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-8 pt-4 border-t border-slate-700 text-center text-xs text-slate-400">
+          <p>EduKeeper - Une solution d'apprentissage basée sur l'IA - Développé par Tadjouri Othmane</p>
         </div>
       </footer>
 

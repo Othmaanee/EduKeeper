@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -19,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sidebar } from './Navigation/Sidebar';
 import { Header } from './Navigation/Header';
 import { NavItem } from './Navigation/NavigationItem';
+import { Footer } from './Footer';
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -167,7 +167,7 @@ export function Layout({ children }: LayoutProps) {
     .sort((a, b) => (a.showOrder || 99) - (b.showOrder || 99));
 
   return (
-    <div className={cn("min-h-screen flex bg-background", `skin-${userSkin}`)}>
+    <div className={cn("min-h-screen flex flex-col bg-background", `skin-${userSkin}`)}>
       <Sidebar 
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -186,14 +186,16 @@ export function Layout({ children }: LayoutProps) {
       />
       
       <main className={cn(
-        "flex-1 transition-all duration-300 ease-in-out",
+        "flex-1 transition-all duration-300 ease-in-out flex flex-col",
         sidebarOpen ? "md:ml-64" : "ml-0"
       )}>
         <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         
-        <div className="px-4 sm:px-6 lg:px-8 py-6 pb-24">
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-6 pb-24">
           {children}
         </div>
+        
+        <Footer />
       </main>
     </div>
   );
