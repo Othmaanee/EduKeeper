@@ -29,7 +29,7 @@ export const Footer = () => {
         </div>
         
         <div className="text-xs text-muted-foreground">
-          Créé par Tadjouri Othmane
+          Créé par Othmane Tadjouri
         </div>
       </div>
     </footer>

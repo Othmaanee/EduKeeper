@@ -279,14 +279,14 @@ const LandingPage = () => {
             <h3 className="font-semibold text-lg">Mentions légales</h3>
             <div className="text-sm text-slate-300 space-y-2">
               <p>© 2024 EduKeeper. Tous droits réservés.</p>
-              <p>Créé par Tadjouri Othmane</p>
+              <p>Créé par Othmane Tadjouri</p>
               <p>Contact: <a href="mailto:contact@edukeeper.fr" className="underline hover:text-white">contact@edukeeper.fr</a></p>
             </div>
           </div>
         </div>
         
         <div className="mt-8 pt-4 border-t border-slate-700 text-center text-xs text-slate-400">
-          <p>EduKeeper - Une solution d'apprentissage basée sur l'IA - Développé par Tadjouri Othmane</p>
+          <p>EduKeeper - Une solution d'apprentissage basée sur l'IA - Développé par Othmane Tadjouri</p>
         </div>
       </footer>
 
